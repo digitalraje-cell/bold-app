@@ -2,8 +2,11 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -73,6 +76,12 @@ export class CreateMeetingDto {
   @IsOptional()
   @IsDateString()
   scheduledAt?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(2)
+  @Max(500)
+  participantLimit?: number;
 
   @IsOptional()
   @ValidateNested()

@@ -12,6 +12,7 @@ import {
   Smile,
   Maximize,
   PhoneOff,
+  UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ interface ControlsBarProps {
   onToggleReactions: () => void;
   onRaiseHand: () => void;
   onToggleFullscreen: () => void;
+  onInvite?: () => void;
   onLeave: () => void;
   isHost?: boolean;
   onEndMeeting?: () => void;
@@ -78,6 +80,7 @@ export function ControlsBar({
   onToggleReactions,
   onRaiseHand,
   onToggleFullscreen,
+  onInvite,
   onLeave,
   isHost,
   onEndMeeting,
@@ -112,6 +115,9 @@ export function ControlsBar({
         />
         <ControlButton icon={Smile} label="Reactions" onClick={onToggleReactions} />
         <ControlButton icon={Hand} label="Raise hand" onClick={onRaiseHand} />
+        {onInvite && (
+          <ControlButton icon={UserPlus} label="Invite" onClick={onInvite} />
+        )}
         <ControlButton
           icon={Maximize}
           label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}

@@ -42,6 +42,7 @@ export const api = {
     list: (status?: string) =>
       apiFetch(`/meetings${status ? `?status=${status}` : ''}`),
     get: (id: string) => apiFetch(`/meetings/${id}`),
+    getInvite: (id: string) => apiFetch(`/meetings/${id}/invite`),
     create: (data: Record<string, unknown>) =>
       apiFetch('/meetings', { method: 'POST', body: JSON.stringify(data) }),
     join: (id: string, data: { displayName: string; password?: string }) =>

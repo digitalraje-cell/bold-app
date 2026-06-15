@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import { MeetingStatus, ParticipantRole, ParticipantStatus } from '@prisma/client';
 import { generateMeetingCode } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { encryptText, decryptText } from '../common/crypto.util';
 import { CreateMeetingDto, JoinMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
 
 @Injectable()
@@ -15,18 +16,24 @@ export class MeetingsService {
   constructor(private prisma: PrismaService) {}
 
   async create(hostId: string, dto: CreateMeetingDto) {
+    const host = await this.prisma.user.findUniqueOrThrow({
+      where: { id: hostId },
+      select: { name: true, email: true, isVerified: true },
+    });
+
+    if (!host.isVerified) {
+      throw new ForbiddenException('Verify your account to host meetings');
+    }
+
     const meetingCode = generateMeetingCode();
     const isInstant = !dto.scheduledAt;
 
     let passwordHash: string | undefined;
+    let passcodeEncrypted: string | undefined;
     if (dto.password) {
       passwordHash = await bcrypt.hash(dto.password, 10);
+      passcodeEncrypted = encryptText(dto.password);
     }
-
-    const host = await this.prisma.user.findUniqueOrThrow({
-      where: { id: hostId },
-      select: { name: true, email: true },
-    });
 
     const meeting = await this.prisma.meeting.create({
       data: {
@@ -35,6 +42,8 @@ export class MeetingsService {
         hostId,
         meetingCode,
         password: passwordHash,
+        passcodeEncrypted,
+        participantLimit: dto.participantLimit ?? 100,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         status: isInstant ? MeetingStatus.LIVE : MeetingStatus.SCHEDULED,
         startedAt: isInstant ? new Date() : null,
@@ -73,7 +82,7 @@ export class MeetingsService {
       include: { settings: true, host: { select: { id: true, name: true, email: true } } },
     });
 
-    return this.sanitizeMeeting(updated);
+    return this.sanitizeMeeting(updated, true);
   }
 
   async findByHost(hostId: string, status?: MeetingStatus) {
@@ -110,6 +119,22 @@ export class MeetingsService {
     return this.sanitizeMeeting(meeting, isHost);
   }
 
+  async getInviteDetails(meetingId: string, hostId: string) {
+    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    if (!meeting) throw new NotFoundException('Meeting not found');
+    if (meeting.hostId !== hostId) throw new ForbiddenException('Only the host can view invite details');
+
+    return {
+      id: meeting.id,
+      title: meeting.title,
+      meetingCode: meeting.meetingCode,
+      passcode: meeting.passcodeEncrypted
+        ? decryptText(meeting.passcodeEncrypted)
+        : null,
+      hasPassword: !!meeting.password,
+    };
+  }
+
   async findByCode(meetingCode: string) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { meetingCode: meetingCode.toLowerCase() },
@@ -129,6 +154,7 @@ export class MeetingsService {
       hostName: meeting.host.name,
       status: meeting.status,
       hasPassword: !!meeting.password,
+      isLocked: meeting.isLocked,
       waitingRoomEnabled: meeting.settings?.waitingRoomEnabled ?? false,
     };
   }
@@ -147,6 +173,12 @@ export class MeetingsService {
       throw new BadRequestException('This meeting has ended');
     }
 
+    const isHost = userId === meeting.hostId;
+
+    if (meeting.isLocked && !isHost) {
+      throw new BadRequestException('This meeting is locked');
+    }
+
     if (meeting.password) {
       if (!dto.password) {
         throw new BadRequestException('Password required');
@@ -157,8 +189,15 @@ export class MeetingsService {
       }
     }
 
+    const admittedCount = await this.prisma.participant.count({
+      where: { meetingId, status: ParticipantStatus.ADMITTED },
+    });
+
+    if (!isHost && admittedCount >= meeting.participantLimit) {
+      throw new BadRequestException('This meeting has reached its participant limit');
+    }
+
     const waitingRoom = meeting.settings?.waitingRoomEnabled ?? false;
-    const isHost = userId === meeting.hostId;
     const status = isHost || !waitingRoom ? ParticipantStatus.ADMITTED : ParticipantStatus.WAITING;
 
     let participant;
@@ -221,6 +260,17 @@ export class MeetingsService {
     return settings;
   }
 
+  async setLocked(meetingId: string, hostId: string, isLocked: boolean) {
+    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    if (!meeting) throw new NotFoundException('Meeting not found');
+    if (meeting.hostId !== hostId) throw new ForbiddenException('Only the host can lock the meeting');
+
+    return this.prisma.meeting.update({
+      where: { id: meetingId },
+      data: { isLocked },
+    });
+  }
+
   async endMeeting(meetingId: string, hostId: string) {
     const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
     if (!meeting) throw new NotFoundException('Meeting not found');
@@ -228,16 +278,19 @@ export class MeetingsService {
 
     return this.prisma.meeting.update({
       where: { id: meetingId },
-      data: { status: MeetingStatus.ENDED, endedAt: new Date() },
+      data: { status: MeetingStatus.ENDED, endedAt: new Date(), isLocked: true },
     });
   }
 
   private sanitizeMeeting(meeting: Record<string, unknown>, includeSensitive = false) {
-    const { password, ...rest } = meeting;
+    const { password, passcodeEncrypted, ...rest } = meeting;
     return {
       ...rest,
       hasPassword: !!password,
-      ...(includeSensitive && password ? { password: undefined } : {}),
+      passcode:
+        includeSensitive && typeof passcodeEncrypted === 'string'
+          ? decryptText(passcodeEncrypted)
+          : undefined,
     };
   }
 }

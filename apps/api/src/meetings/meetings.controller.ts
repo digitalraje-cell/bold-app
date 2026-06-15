@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { MeetingStatus } from '@prisma/client';
 import { AuthGuard, AuthUser } from '../auth/auth.guard';
+import { VerifiedGuard } from '../auth/verified.guard';
 import { MeetingsService } from './meetings.service';
 import {
   CreateMeetingDto,
@@ -25,7 +26,7 @@ export class MeetingsController {
   constructor(private readonly meetingsService: MeetingsService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, VerifiedGuard)
   create(@Req() req: Request & { user: AuthUser }, @Body() dto: CreateMeetingDto) {
     return this.meetingsService.create(req.user.id, dto);
   }
@@ -42,6 +43,12 @@ export class MeetingsController {
   @Get('code/:meetingCode')
   findByCode(@Param('meetingCode') meetingCode: string) {
     return this.meetingsService.findByCode(meetingCode);
+  }
+
+  @Get(':id/invite')
+  @UseGuards(AuthGuard)
+  getInvite(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+    return this.meetingsService.getInviteDetails(id, req.user.id);
   }
 
   @Get(':id')
@@ -76,6 +83,16 @@ export class MeetingsController {
     @Body() dto: UpdateMeetingSettingsDto,
   ) {
     return this.meetingsService.updateSettings(id, req.user.id, dto);
+  }
+
+  @Post(':id/lock')
+  @UseGuards(AuthGuard)
+  lockMeeting(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+    @Body() body: { isLocked: boolean },
+  ) {
+    return this.meetingsService.setLocked(id, req.user.id, body.isLocked);
   }
 
   @Post(':id/end')

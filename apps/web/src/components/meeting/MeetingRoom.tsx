@@ -10,6 +10,7 @@ import { ControlsBar } from '@/components/meeting/ControlsBar';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
+import { InviteModal } from '@/components/meeting/InviteModal';
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -29,6 +30,7 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
   const [activePanel, setActivePanel] = useState<'chat' | 'participants' | null>(null);
   const [handRaised, setHandRaised] = useState(false);
   const [reactions, setReactions] = useState<{ id: string; reaction: string }[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const displayName = session?.user?.name || 'Guest';
 
@@ -134,6 +136,7 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           onToggleReactions={() => handleReaction('👍')}
           onRaiseHand={handleRaiseHand}
           onToggleFullscreen={handleToggleFullscreen}
+          onInvite={isHost ? () => setInviteOpen(true) : undefined}
           onLeave={() => {
             hangup();
             handleLeave();
@@ -145,6 +148,12 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           }}
         />
       </div>
+
+      <InviteModal
+        meetingId={meetingId}
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+      />
     </FullscreenWrapper>
   );
 }

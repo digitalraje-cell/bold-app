@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, ReactNode } from 'react';
-import { Maximize2 } from 'lucide-react';
+import { useEffect, useState, useCallback, ReactNode, useRef } from 'react';
+import { Minimize2 } from 'lucide-react';
 
 interface FullscreenWrapperProps {
   children: ReactNode;
@@ -14,17 +14,21 @@ export function FullscreenWrapper({
   isFullscreen,
   onToggle,
 }: FullscreenWrapperProps) {
-  const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const enterFullscreen = useCallback(async () => {
-    if (!containerRef) return;
+    const el = containerRef.current;
+    if (!el) return;
     try {
-      await containerRef.requestFullscreen();
+      await el.requestFullscreen();
       onToggle(true);
     } catch {
       onToggle(true);
     }
-  }, [containerRef, onToggle]);
+  }, [onToggle]);
 
   const exitFullscreen = useCallback(async () => {
     if (document.fullscreenElement) {
@@ -45,19 +49,25 @@ export function FullscreenWrapper({
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onToggle]);
 
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-900">{children}</div>;
+  }
+
   return (
     <div
-      ref={setContainerRef}
+      ref={containerRef}
       className={`relative flex flex-col bg-slate-900 ${
-        isFullscreen ? 'fixed inset-0 z-50 h-screen w-screen' : 'h-[calc(100vh-0px)] min-h-screen'
+        isFullscreen ? 'fixed inset-0 z-50 h-screen w-screen' : 'min-h-screen h-[100dvh]'
       }`}
     >
       {children}
@@ -65,19 +75,11 @@ export function FullscreenWrapper({
       {isFullscreen && (
         <button
           onClick={exitFullscreen}
-          className="fixed bottom-24 right-6 z-[60] rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white backdrop-blur transition hover:bg-black/90"
+          aria-label="Exit fullscreen"
+          className="fixed bottom-24 right-6 z-[60] inline-flex items-center gap-2 rounded-full bg-black/75 px-4 py-2.5 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/90"
         >
+          <Minimize2 className="h-4 w-4" />
           Exit Fullscreen
-        </button>
-      )}
-
-      {!isFullscreen && (
-        <button
-          onClick={enterFullscreen}
-          className="sr-only"
-          aria-label="Enter fullscreen"
-        >
-          <Maximize2 className="h-5 w-5" />
         </button>
       )}
     </div>
