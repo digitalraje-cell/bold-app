@@ -58,29 +58,68 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
   },
   providers,
+  events: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: {
+            isVerified: true,
+            verifiedAt: new Date(),
+            emailVerified: new Date(),
+          },
+        });
+      }
+    },
+  },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, trigger, session }) {
+      if (user?.id) {
         token.id = user.id;
       }
+
+      if (trigger === 'update' && (session as { isVerified?: boolean })?.isVerified) {
+        token.isVerified = true;
+      }
+
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { isVerified: true },
+        });
+        token.isVerified = dbUser?.isVerified ?? false;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        session.user.isVerified = Boolean(token.isVerified);
       }
       return session;
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const protectedPaths = ['/dashboard', '/settings', '/meetings'];
+      const protectedPaths = ['/dashboard', '/settings', '/meetings', '/verify'];
+      const hostOnlyPaths = ['/meetings/create'];
+
       const isProtected = protectedPaths.some((path) =>
         nextUrl.pathname.startsWith(path),
       );
 
-      if (isProtected) {
-        return isLoggedIn;
+      if (isProtected && !isLoggedIn) {
+        return false;
       }
+
+      const isHostOnly = hostOnlyPaths.some((path) =>
+        nextUrl.pathname.startsWith(path),
+      );
+
+      if (isHostOnly && isLoggedIn && !auth?.user?.isVerified) {
+        return Response.redirect(new URL('/verify', nextUrl));
+      }
+
       return true;
     },
   },

@@ -5,6 +5,7 @@ declare module 'next-auth' {
       email?: string | null;
       name?: string | null;
       image?: string | null;
+      isVerified: boolean;
     };
   }
 }
@@ -12,6 +13,7 @@ declare module 'next-auth' {
 declare module '@auth/core/jwt' {
   interface JWT {
     id?: string;
+    isVerified?: boolean;
   }
 }
 

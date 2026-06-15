@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
 export function CreateMeetingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const isInstant = searchParams.get('type') !== 'schedule';
 
   const [title, setTitle] = useState('');
@@ -24,6 +26,11 @@ export function CreateMeetingForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!session?.user?.isVerified) {
+      setError('Verify your account to host meetings');
+      router.push('/verify');
+      return;
+    }
     setError('');
     setLoading(true);
 

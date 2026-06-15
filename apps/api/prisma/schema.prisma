@@ -50,6 +50,11 @@ enum StreamStatus {
   ERROR
 }
 
+enum OtpChannel {
+  EMAIL
+  WHATSAPP
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -57,6 +62,8 @@ model User {
   avatarUrl     String?
   passwordHash  String?
   role          UserRole  @default(USER)
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -69,6 +76,20 @@ model User {
   chatMessages   ChatMessage[]
 
   @@map("users")
+}
+
+model OtpVerification {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  channel   OtpChannel @default(EMAIL)
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@map("otp_verifications")
 }
 
 model Account {
@@ -118,6 +139,9 @@ model Meeting {
   hostId      String
   status      MeetingStatus @default(SCHEDULED)
   password    String?
+  passcodeEncrypted String? @db.Text
+  participantLimit Int     @default(100)
+  isLocked    Boolean     @default(false)
   scheduledAt DateTime?
   startedAt   DateTime?
   endedAt     DateTime?

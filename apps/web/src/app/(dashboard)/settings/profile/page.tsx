@@ -9,7 +9,7 @@ export default async function ProfileSettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+    select: { id: true, name: true, email: true, avatarUrl: true, isVerified: true, createdAt: true },
   });
 
   if (!user) redirect('/login');
@@ -28,6 +28,13 @@ export default async function ProfileSettingsPage() {
             <div>
               <h2 className="text-lg font-semibold">{user.name || 'User'}</h2>
               <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className="mt-1 text-sm">
+                {user.isVerified ? (
+                  <span className="text-green-600">Verified User ✓</span>
+                ) : (
+                  <span className="text-amber-600">Unverified — verify to host meetings</span>
+                )}
+              </p>
             </div>
           </div>
 

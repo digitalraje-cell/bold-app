@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { AppShell } from '@/components/layout/AppShell';
+import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { MeetingListSection } from '@/components/dashboard/MeetingCard';
 import { Calendar, Radio, History } from 'lucide-react';
 import Link from 'next/link';
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl">
+        <VerificationBanner />
         <div className="mb-8">
           <h1 className="text-2xl font-bold">
             Welcome back{session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}

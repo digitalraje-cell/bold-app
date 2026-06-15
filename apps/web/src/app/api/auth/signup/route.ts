@@ -36,11 +36,12 @@ export async function POST(request: Request) {
         name: name || email.split('@')[0],
         email,
         passwordHash,
+        isVerified: false,
       },
       select: { id: true, email: true, name: true },
     });
 
-    return NextResponse.json({ user }, { status: 201 });
+    return NextResponse.json({ user, requiresVerification: true }, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: 'Failed to create account' },
