@@ -1,6 +1,6 @@
-# BoldMeet
+# Bold
 
-A production-ready browser-based Zoom clone MVP built with Next.js, NestJS, PostgreSQL, Socket.io, and Jitsi Meet.
+A production-ready browser-based meeting platform built with Next.js, NestJS, PostgreSQL, Socket.io, and Jitsi Meet.
 
 ## Tech Stack
 

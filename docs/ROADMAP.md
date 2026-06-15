@@ -1,4 +1,4 @@
-# BoldMeet — Development Roadmap
+# Bold — Development Roadmap
 
 ## Phase 1: Project Foundation ✅
 **Goal:** Monorepo setup, tooling, database schema, Docker
@@ -14,7 +14,7 @@
 - [ ] Environment config
 - [ ] README
 
-**Commit:** `feat: initialize BoldMeet monorepo with Next.js, NestJS, and Prisma`
+**Commit:** `feat: initialize Bold monorepo with Next.js, NestJS, and Prisma`
 
 ---
 

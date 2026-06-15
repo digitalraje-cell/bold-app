@@ -1,4 +1,4 @@
-# BoldMeet — Component Plan
+# Bold — Component Plan
 
 ## UI Design System
 

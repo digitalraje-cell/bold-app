@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
             B
           </div>
-          <span className="text-lg font-semibold">BoldMeet</span>
+          <span className="text-lg font-semibold">Bold</span>
           <button
             className="ml-auto lg:hidden"
             onClick={() => setSidebarOpen(false)}
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">BoldMeet</span>
+          <span className="font-semibold">Bold</span>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>

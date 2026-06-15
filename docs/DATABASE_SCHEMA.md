@@ -1,4 +1,4 @@
-# BoldMeet — Database Schema
+# Bold — Database Schema
 
 ## Entity Relationship Diagram
 

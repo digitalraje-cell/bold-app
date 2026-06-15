@@ -9,9 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'BoldMeet — Professional Video Meetings',
-  description:
-    'Browser-based video meetings with live streaming, recording, and real-time collaboration.',
+  title: 'Bold',
+  description: 'Browser-based meeting platform with YouTube recording',
 };
 
 export default function RootLayout({

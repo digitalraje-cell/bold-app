@@ -1,8 +1,8 @@
-# BoldMeet — Technical Architecture Plan
+# Bold — Technical Architecture Plan
 
 ## Overview
 
-**BoldMeet** is a browser-based Zoom clone MVP built as a monorepo with a Next.js frontend, NestJS API, PostgreSQL database, Socket.io for real-time signaling, and Jitsi Meet Open Source for WebRTC media.
+**Bold** is a browser-based Zoom clone MVP built as a monorepo with a Next.js frontend, NestJS API, PostgreSQL database, Socket.io for real-time signaling, and Jitsi Meet Open Source for WebRTC media.
 
 ## System Architecture
 

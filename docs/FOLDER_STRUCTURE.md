@@ -1,4 +1,4 @@
-# BoldMeet — Folder Structure
+# Bold — Folder Structure
 
 ```
 Bold/

@@ -5,7 +5,7 @@ export class AppService {
   getHealth() {
     return {
       status: 'ok',
-      service: 'boldmeet-api',
+      service: 'bold-api',
       timestamp: new Date().toISOString(),
     };
   }

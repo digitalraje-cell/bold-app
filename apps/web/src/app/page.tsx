@@ -9,7 +9,7 @@ export default function HomePage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
               B
             </div>
-            <span className="text-xl font-semibold tracking-tight">BoldMeet</span>
+            <span className="text-xl font-semibold tracking-tight">Bold</span>
           </div>
           <nav className="flex items-center gap-3">
             <Link
@@ -91,7 +91,7 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} BoldMeet. All rights reserved.
+        © {new Date().getFullYear()} Bold. All rights reserved.
       </footer>
     </div>
   );
