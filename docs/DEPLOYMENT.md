@@ -58,7 +58,7 @@ bash scripts/railway-start-api.sh
 | `JWT_SECRET` | random 32+ chars | Must match frontend auth secret strategy |
 | `AUTH_SECRET` | same as JWT or separate | Used as JWT fallback |
 | `ENCRYPTION_KEY` | 32-char key | Meeting passcode encryption |
-| `CORS_ORIGIN` | `https://bold.hasbrando.com` | Comma-separated if multiple |
+| `CORS_ORIGIN` | `https://bold.hasbrando.com` | Comma-separated; also accepts `AUTH_URL` / `NEXTAUTH_URL` |
 | `PORT` | `4000` | Railway sets automatically |
 | `NODE_ENV` | `production` | |
 
@@ -89,12 +89,12 @@ cd ../.. && pnpm install && pnpm --filter @boldmeet/web db:generate && pnpm --fi
 
 | Variable | Production value |
 |----------|------------------|
-| `AUTH_SECRET` | Strong random secret |
-| `AUTH_URL` | `https://bold.hasbrando.com` |
-| `NEXTAUTH_URL` | `https://bold.hasbrando.com` |
-| `NEXTAUTH_SECRET` | Same as `AUTH_SECRET` |
-| `JWT_SECRET` | Same as Railway `JWT_SECRET` |
-| `DATABASE_URL` | Same Postgres URL (for NextAuth + OTP) |
+| `DATABASE_URL` | Same Postgres URL (**required** — credentials login uses Prisma on web) |
+| `AUTH_SECRET` | Strong random secret (**required** — Auth.js v5 primary secret) |
+| `NEXTAUTH_SECRET` | Same as `AUTH_SECRET` (legacy alias) |
+| `AUTH_URL` | `https://bold.hasbrando.com` (must match deployed web URL exactly) |
+| `NEXTAUTH_URL` | Same as `AUTH_URL` |
+| `JWT_SECRET` | Same as Railway API `JWT_SECRET` |
 | `ENCRYPTION_KEY` | Same as API |
 | `NEXT_PUBLIC_APP_NAME` | `Bold` |
 | `NEXT_PUBLIC_APP_DOMAIN` | `bold.hasbrando.com` |

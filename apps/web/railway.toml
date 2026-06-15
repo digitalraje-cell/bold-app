@@ -16,6 +16,14 @@ watchPatterns = [
 
 [deploy]
 startCommand = "bash scripts/railway-start-web.sh"
-healthcheckPath = "/"
+healthcheckPath = "/api/auth/status"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
+
+# Required Railway WEB env vars:
+# AUTH_SECRET (or NEXTAUTH_SECRET) — session signing
+# AUTH_URL + NEXTAUTH_URL — https://your-web-service.up.railway.app
+# DATABASE_URL — same Postgres as API (NextAuth + Prisma on web)
+# JWT_SECRET — must match API service
+# NEXT_PUBLIC_API_URL — https://your-api-service.up.railway.app
+# CORS_ORIGIN on API must include the web URL (or set AUTH_URL on API too)

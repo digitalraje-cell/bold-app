@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { auth } from '@/lib/auth';
 
+function resolveJwtSecret(): Uint8Array | null {
+  const secret =
+    process.env.JWT_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET;
+
+  if (!secret) {
+    return null;
+  }
+
+  return new TextEncoder().encode(secret);
+}
+
 export async function GET() {
   const session = await auth();
 
@@ -9,7 +22,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET || process.env.AUTH_SECRET);
+  const secret = resolveJwtSecret();
+  if (!secret) {
+    return NextResponse.json({ error: 'Server auth misconfigured' }, { status: 500 });
+  }
 
   const token = await new SignJWT({
     sub: session.user.id,

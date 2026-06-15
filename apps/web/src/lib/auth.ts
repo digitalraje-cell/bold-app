@@ -5,6 +5,28 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
+function resolveAuthSecret(): string | undefined {
+  return (
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.JWT_SECRET
+  );
+}
+
+const authSecret = resolveAuthSecret();
+
+if (!authSecret && process.env.NODE_ENV === 'production') {
+  console.error(
+    '[auth] Missing AUTH_SECRET (or NEXTAUTH_SECRET). Sign-in will fail in production.',
+  );
+}
+
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+  console.error(
+    '[auth] Missing DATABASE_URL on web service. Credentials sign-in requires Postgres.',
+  );
+}
+
 const providers: NextAuthConfig['providers'] = [
   Credentials({
     name: 'credentials',
@@ -20,23 +42,28 @@ const providers: NextAuthConfig['providers'] = [
       const email = credentials.email as string;
       const password = credentials.password as string;
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      try {
+        const user = await prisma.user.findUnique({ where: { email } });
 
-      if (!user || !user.passwordHash) {
+        if (!user || !user.passwordHash) {
+          return null;
+        }
+
+        const isValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.avatarUrl,
+        };
+      } catch (error) {
+        console.error('[auth] Credentials authorize failed:', error);
         return null;
       }
-
-      const isValid = await bcrypt.compare(password, user.passwordHash);
-      if (!isValid) {
-        return null;
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.avatarUrl,
-      };
     },
   }),
 ];
@@ -52,6 +79,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  secret: authSecret,
   session: { strategy: 'jwt' },
   trustHost: true,
   pages: {
@@ -61,14 +89,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
-        await prisma.user.update({
-          where: { email: user.email },
-          data: {
-            isVerified: true,
-            verifiedAt: new Date(),
-            emailVerified: new Date(),
-          },
-        });
+        try {
+          await prisma.user.update({
+            where: { email: user.email },
+            data: {
+              isVerified: true,
+              verifiedAt: new Date(),
+              emailVerified: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error('[auth] Google sign-in profile update failed:', error);
+        }
       }
     },
   },
@@ -83,17 +115,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { isVerified: true, subscriptionPlan: true, subscriptionExpiresAt: true },
-        });
-        token.isVerified = dbUser?.isVerified ?? false;
-        token.subscriptionPlan = dbUser?.subscriptionPlan ?? 'FREE';
-        if (
-          dbUser?.subscriptionExpiresAt &&
-          dbUser.subscriptionExpiresAt < new Date()
-        ) {
-          token.subscriptionPlan = 'FREE';
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              isVerified: true,
+              subscriptionPlan: true,
+              subscriptionExpiresAt: true,
+            },
+          });
+          token.isVerified = dbUser?.isVerified ?? false;
+          token.subscriptionPlan = dbUser?.subscriptionPlan ?? 'FREE';
+          if (
+            dbUser?.subscriptionExpiresAt &&
+            dbUser.subscriptionExpiresAt < new Date()
+          ) {
+            token.subscriptionPlan = 'FREE';
+          }
+        } catch (error) {
+          console.error('[auth] JWT callback DB lookup failed:', error);
         }
       }
 
@@ -106,29 +146,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.subscriptionPlan = (token.subscriptionPlan as string) || 'FREE';
       }
       return session;
-    },
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const protectedPaths = ['/dashboard', '/settings', '/meetings', '/verify'];
-      const hostOnlyPaths = ['/meetings/create'];
-
-      const isProtected = protectedPaths.some((path) =>
-        nextUrl.pathname.startsWith(path),
-      );
-
-      if (isProtected && !isLoggedIn) {
-        return false;
-      }
-
-      const isHostOnly = hostOnlyPaths.some((path) =>
-        nextUrl.pathname.startsWith(path),
-      );
-
-      if (isHostOnly && isLoggedIn && !auth?.user?.isVerified) {
-        return Response.redirect(new URL('/verify', nextUrl));
-      }
-
-      return true;
     },
   },
 });

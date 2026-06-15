@@ -1,14 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { getAllowedOrigins, isOriginAllowed } from './common/cors.util';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:3000')
-      .split(',')
-      .map((o) => o.trim()),
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   });
 
@@ -28,6 +36,7 @@ async function bootstrap() {
   await app.listen(port, host);
 
   console.log(`Bold API listening on http://${host}:${port}/api/health`);
+  console.log(`CORS allowed origins: ${getAllowedOrigins().join(', ')}`);
 }
 
 bootstrap().catch((error) => {

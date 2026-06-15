@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 
 export function SignupForm() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,34 +21,39 @@ export function SignupForm() {
     setError('');
     setLoading(true);
 
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.error || 'Failed to create account');
+      if (!res.ok) {
+        setError(data.error || 'Failed to create account');
+        return;
+      }
+
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!result || result.error || !result.ok) {
+        setError('Account created but sign in failed. Please try logging in.');
+        return;
+      }
+
+      router.push('/verify');
+      router.refresh();
+    } catch (err) {
+      console.error('[signup] failed:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (result?.error) {
-      setError('Account created but sign in failed. Please try logging in.');
-      return;
-    }
-
-    window.location.href = '/verify';
   }
 
   return (
@@ -61,7 +68,7 @@ export function SignupForm() {
         </p>
       </div>
 
-      <GoogleButton label="Sign up with Google" />
+      <GoogleButton label="Sign up with Google" callbackUrl="/verify" />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

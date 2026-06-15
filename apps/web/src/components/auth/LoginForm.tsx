@@ -1,17 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 import { appConfig } from '@/lib/app-config';
 
-export function LoginForm() {
+function LoginFormInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const authError = searchParams.get('error');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    authError ? 'Sign in failed. Please check your credentials and try again.' : '',
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -19,20 +27,35 @@ export function LoginForm() {
     setError('');
     setLoading(true);
 
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
 
-    setLoading(false);
+      if (!result) {
+        setError('Sign in failed. No response from auth server.');
+        return;
+      }
 
-    if (result?.error) {
-      setError('Invalid email or password');
-      return;
+      if (result.error || !result.ok) {
+        setError(
+          result.error === 'CredentialsSignin'
+            ? 'Invalid email or password'
+            : 'Sign in failed. Please try again.',
+        );
+        return;
+      }
+
+      router.push(callbackUrl);
+      router.refresh();
+    } catch (err) {
+      console.error('[login] signIn failed:', err);
+      setError('Sign in failed. Check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
-
-    window.location.href = '/dashboard';
   }
 
   return (
@@ -47,7 +70,7 @@ export function LoginForm() {
         </p>
       </div>
 
-      <GoogleButton />
+      <GoogleButton callbackUrl={callbackUrl} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -99,5 +122,13 @@ export function LoginForm() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export function LoginForm() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md text-center text-sm text-muted-foreground">Loading…</div>}>
+      <LoginFormInner />
+    </Suspense>
   );
 }
