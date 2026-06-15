@@ -1,10 +1,34 @@
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { AppShell } from '@/components/layout/AppShell';
-import { Video, Calendar, Clock } from 'lucide-react';
+import { MeetingListSection } from '@/components/dashboard/MeetingCard';
+import { Calendar, Radio, History } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
   const session = await auth();
+  const userId = session?.user?.id;
+
+  const [upcoming, live, past] = userId
+    ? await Promise.all([
+        prisma.meeting.findMany({
+          where: { hostId: userId, status: 'SCHEDULED' },
+          include: { _count: { select: { participants: true } } },
+          orderBy: { scheduledAt: 'asc' },
+        }),
+        prisma.meeting.findMany({
+          where: { hostId: userId, status: 'LIVE' },
+          include: { _count: { select: { participants: true } } },
+          orderBy: { startedAt: 'desc' },
+        }),
+        prisma.meeting.findMany({
+          where: { hostId: userId, status: 'ENDED' },
+          include: { _count: { select: { participants: true } } },
+          orderBy: { endedAt: 'desc' },
+          take: 10,
+        }),
+      ])
+    : [[], [], []];
 
   return (
     <AppShell>
@@ -24,12 +48,10 @@ export default async function DashboardPage() {
             className="group rounded-2xl border border-border bg-surface p-6 transition hover:border-primary/50 hover:shadow-lg"
           >
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Video className="h-5 w-5" />
+              <Radio className="h-5 w-5" />
             </div>
             <h3 className="font-semibold group-hover:text-primary">Instant Meeting</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Start a meeting right now
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Start a meeting right now</p>
           </Link>
 
           <Link
@@ -40,37 +62,45 @@ export default async function DashboardPage() {
               <Calendar className="h-5 w-5" />
             </div>
             <h3 className="font-semibold group-hover:text-primary">Schedule Meeting</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Plan a meeting for later
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Plan a meeting for later</p>
           </Link>
 
-          <div className="rounded-2xl border border-border bg-surface p-6">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Clock className="h-5 w-5" />
-            </div>
-            <h3 className="font-semibold">Join Meeting</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter a meeting code to join
-            </p>
-          </div>
+          <JoinByCodeCard />
         </div>
 
-        <div className="space-y-6">
-          <section>
-            <h2 className="mb-4 text-lg font-semibold">Upcoming Meetings</h2>
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-              <p className="text-muted-foreground">No upcoming meetings</p>
-              <Link
-                href="/meetings/create"
-                className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
-              >
-                Schedule your first meeting
-              </Link>
-            </div>
-          </section>
+        <div className="space-y-8">
+          <MeetingListSection
+            title="Live Now"
+            icon={Radio}
+            meetings={live}
+            emptyMessage="No live meetings"
+          />
+          <MeetingListSection
+            title="Upcoming"
+            icon={Calendar}
+            meetings={upcoming}
+            emptyMessage="No upcoming meetings"
+          />
+          <MeetingListSection
+            title="Past Meetings"
+            icon={History}
+            meetings={past}
+            emptyMessage="No past meetings"
+          />
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function JoinByCodeCard() {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Calendar className="h-5 w-5" />
+      </div>
+      <h3 className="font-semibold">Join Meeting</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Enter a meeting code to join</p>
+    </div>
   );
 }
