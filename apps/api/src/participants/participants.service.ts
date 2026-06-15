@@ -5,10 +5,14 @@ import {
 } from '@nestjs/common';
 import { ParticipantRole, ParticipantStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PermissionsService } from '../subscriptions/permissions.service';
 
 @Injectable()
 export class ParticipantsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private permissionsService: PermissionsService,
+  ) {}
 
   async list(meetingId: string) {
     return this.prisma.participant.findMany({
@@ -66,6 +70,24 @@ export class ParticipantsService {
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can change roles');
     }
+
+    if (role === ParticipantRole.CO_HOST) {
+      await this.permissionsService.check(meeting.hostId, 'canUseCohost');
+      const maxCohosts = await this.permissionsService.getMaxCohosts(meeting.hostId);
+      const currentCohosts = await this.prisma.participant.count({
+        where: {
+          meetingId,
+          role: ParticipantRole.CO_HOST,
+          status: ParticipantStatus.ADMITTED,
+        },
+      });
+      if (currentCohosts >= maxCohosts) {
+        throw new ForbiddenException(
+          `Your plan allows a maximum of ${maxCohosts} co-host(s)`,
+        );
+      }
+    }
+
     await this.ensureParticipant(meetingId, participantId);
     return this.prisma.participant.update({
       where: { id: participantId },

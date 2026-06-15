@@ -91,3 +91,6 @@ export interface SocketEvents {
 export * from './types/meeting';
 export * from './types/user';
 export * from './config/app';
+export * from './subscriptions/plans';
+export * from './recording/types';
+export * from './webinar/types';

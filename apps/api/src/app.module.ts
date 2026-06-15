@@ -10,15 +10,22 @@ import { GatewayModule } from './gateway/gateway.module';
 import { ParticipantsModule } from './participants/participants.module';
 import { YoutubeModule } from './youtube/youtube.module';
 
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { RecordingModule } from './recording/recording.module';
+import { WebinarModule } from './webinar/webinar.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
     UsersModule,
+    SubscriptionsModule,
     MeetingsModule,
     ParticipantsModule,
     GatewayModule,
+    RecordingModule,
+    WebinarModule,
     YoutubeModule,
   ],
   controllers: [AppController],

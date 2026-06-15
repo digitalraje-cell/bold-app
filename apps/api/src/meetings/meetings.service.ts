@@ -8,12 +8,16 @@ import bcrypt from 'bcryptjs';
 import { MeetingStatus, ParticipantRole, ParticipantStatus } from '@prisma/client';
 import { generateMeetingCode } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { PermissionsService } from '../subscriptions/permissions.service';
 import { encryptText, decryptText } from '../common/crypto.util';
 import { CreateMeetingDto, JoinMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
 
 @Injectable()
 export class MeetingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private permissionsService: PermissionsService,
+  ) {}
 
   async create(hostId: string, dto: CreateMeetingDto) {
     const host = await this.prisma.user.findUniqueOrThrow({
@@ -24,6 +28,11 @@ export class MeetingsService {
     if (!host.isVerified) {
       throw new ForbiddenException('Verify your account to host meetings');
     }
+
+    const planAttendeeLimit = await this.permissionsService.getAttendeeLimit(hostId);
+    const participantLimit = dto.participantLimit
+      ? Math.min(dto.participantLimit, planAttendeeLimit)
+      : planAttendeeLimit;
 
     const meetingCode = generateMeetingCode();
     const isInstant = !dto.scheduledAt;
@@ -43,7 +52,7 @@ export class MeetingsService {
         meetingCode,
         password: passwordHash,
         passcodeEncrypted,
-        participantLimit: dto.participantLimit ?? 100,
+        participantLimit,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         status: isInstant ? MeetingStatus.LIVE : MeetingStatus.SCHEDULED,
         startedAt: isInstant ? new Date() : null,
@@ -280,6 +289,61 @@ export class MeetingsService {
       where: { id: meetingId },
       data: { status: MeetingStatus.ENDED, endedAt: new Date(), isLocked: true },
     });
+  }
+
+  async getDurationStatus(meetingId: string) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      select: {
+        id: true,
+        hostId: true,
+        startedAt: true,
+        status: true,
+        durationLimitReachedAt: true,
+      },
+    });
+
+    if (!meeting || !meeting.startedAt || meeting.status === MeetingStatus.ENDED) {
+      return { active: false, status: null };
+    }
+
+    const durationStatus = await this.permissionsService.getMeetingDurationStatus(
+      meeting.hostId,
+      meeting.startedAt,
+    );
+
+    if (!durationStatus) {
+      return { active: true, status: null, unlimited: true };
+    }
+
+    if (durationStatus.isExpired && meeting.status === MeetingStatus.LIVE) {
+      await this.prisma.meeting.update({
+        where: { id: meetingId },
+        data: {
+          status: MeetingStatus.ENDED,
+          endedAt: new Date(),
+          isLocked: true,
+          durationLimitReachedAt: meeting.durationLimitReachedAt ?? new Date(),
+        },
+      });
+      return {
+        active: false,
+        expired: true,
+        reason: 'FREE_PLAN_DURATION_LIMIT',
+        status: durationStatus,
+        message: 'Your free meeting time has ended. Upgrade to continue unlimited meetings.',
+      };
+    }
+
+    return {
+      active: true,
+      expired: false,
+      status: durationStatus,
+      warning: durationStatus.isInGracePeriod,
+      message: durationStatus.isInGracePeriod
+        ? 'Grace period: meeting will end shortly unless you upgrade.'
+        : undefined,
+    };
   }
 
   private sanitizeMeeting(meeting: Record<string, unknown>, includeSensitive = false) {

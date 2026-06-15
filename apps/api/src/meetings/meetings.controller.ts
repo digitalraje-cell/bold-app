@@ -45,6 +45,11 @@ export class MeetingsController {
     return this.meetingsService.findByCode(meetingCode);
   }
 
+  @Get(':id/duration')
+  getDurationStatus(@Param('id') id: string) {
+    return this.meetingsService.getDurationStatus(id);
+  }
+
   @Get(':id/invite')
   @UseGuards(AuthGuard)
   getInvite(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
