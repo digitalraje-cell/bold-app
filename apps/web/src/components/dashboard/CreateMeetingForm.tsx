@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { api } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
 
 export function CreateMeetingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const { plan, limits, can } = usePermissions();
   const isInstant = searchParams.get('type') !== 'schedule';
 
   const [title, setTitle] = useState('');
@@ -62,6 +64,11 @@ export function CreateMeetingForm() {
         </h1>
         <p className="mt-1 text-muted-foreground">
           Configure your meeting settings before starting
+          {plan === 'FREE' && limits.maxMeetingDurationMinutes && (
+            <span className="block mt-1 text-xs">
+              Free plan: {limits.maxMeetingDurationMinutes} min limit · up to {limits.attendeeLimit} attendees
+            </span>
+          )}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">

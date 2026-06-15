@@ -43,6 +43,7 @@ export const api = {
       apiFetch(`/meetings${status ? `?status=${status}` : ''}`),
     get: (id: string) => apiFetch(`/meetings/${id}`),
     getInvite: (id: string) => apiFetch(`/meetings/${id}/invite`),
+    getDuration: (id: string) => apiFetch(`/meetings/${id}/duration`, {}, false),
     create: (data: Record<string, unknown>) =>
       apiFetch('/meetings', { method: 'POST', body: JSON.stringify(data) }),
     join: (id: string, data: { displayName: string; password?: string }) =>
@@ -62,5 +63,8 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify(settings),
       }),
+  },
+  subscriptions: {
+    me: () => apiFetch('/subscriptions/me'),
   },
 };

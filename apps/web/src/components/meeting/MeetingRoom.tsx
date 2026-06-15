@@ -11,6 +11,11 @@ import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
 import { InviteModal } from '@/components/meeting/InviteModal';
+import {
+  MeetingDurationModal,
+  MeetingGraceWarning,
+} from '@/components/meeting/MeetingDurationModal';
+import { useMeetingDuration } from '@/hooks/useMeetingDuration';
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -33,6 +38,7 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const displayName = session?.user?.name || 'Guest';
+  const hangupRef = useRef<(() => void) | null>(null);
 
   const handleLeave = useCallback(() => {
     router.push('/dashboard');
@@ -44,6 +50,25 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
     containerRef,
     onLeave: handleLeave,
   });
+
+  hangupRef.current = hangup;
+
+  const handleDurationExpired = useCallback(() => {
+    hangupRef.current?.();
+  }, []);
+
+  const {
+    showExpiredModal,
+    showGraceWarning,
+    dismissExpiredModal,
+    dismissGraceWarning,
+    durationState,
+  } = useMeetingDuration(meetingId, handleDurationExpired);
+
+  const handleLeaveMeeting = useCallback(() => {
+    hangupRef.current?.();
+    handleLeave();
+  }, [handleLeave]);
 
   const { emit } = useSocket(meetingId);
 
@@ -148,6 +173,14 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           }}
         />
       </div>
+
+      <MeetingDurationModal
+        open={showExpiredModal}
+        message={durationState?.message}
+        onClose={dismissExpiredModal}
+        onLeave={handleLeaveMeeting}
+      />
+      <MeetingGraceWarning open={showGraceWarning} onDismiss={dismissGraceWarning} />
 
       <InviteModal
         meetingId={meetingId}

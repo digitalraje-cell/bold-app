@@ -85,9 +85,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { isVerified: true },
+          select: { isVerified: true, subscriptionPlan: true, subscriptionExpiresAt: true },
         });
         token.isVerified = dbUser?.isVerified ?? false;
+        token.subscriptionPlan = dbUser?.subscriptionPlan ?? 'FREE';
+        if (
+          dbUser?.subscriptionExpiresAt &&
+          dbUser.subscriptionExpiresAt < new Date()
+        ) {
+          token.subscriptionPlan = 'FREE';
+        }
       }
 
       return token;
@@ -96,6 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user && token.id) {
         session.user.id = token.id as string;
         session.user.isVerified = Boolean(token.isVerified);
+        session.user.subscriptionPlan = (token.subscriptionPlan as string) || 'FREE';
       }
       return session;
     },

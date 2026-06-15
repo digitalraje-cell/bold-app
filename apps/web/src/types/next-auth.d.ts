@@ -6,6 +6,7 @@ declare module 'next-auth' {
       name?: string | null;
       image?: string | null;
       isVerified: boolean;
+      subscriptionPlan: string;
     };
   }
 }
@@ -14,6 +15,7 @@ declare module '@auth/core/jwt' {
   interface JWT {
     id?: string;
     isVerified?: boolean;
+    subscriptionPlan?: string;
   }
 }
 
