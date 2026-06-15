@@ -1,74 +1,176 @@
 import nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { APP_CONFIG } from '@boldmeet/shared';
 
-const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
+/** Read env at request time — bracket access avoids Next.js build-time inlining. */
+function runtimeEnv(key: string): string | undefined {
+  const value = process.env[key];
+  return value?.trim() ? value.trim() : undefined;
+}
+
+function getOtpExpiryMinutes(): number {
+  return Number(runtimeEnv('OTP_EXPIRY_MINUTES') ?? 10);
+}
 
 export function getOtpExpiryDate(): Date {
-  return new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+  return new Date(Date.now() + getOtpExpiryMinutes() * 60 * 1000);
 }
 
-function isSmtpConfigured(): boolean {
-  return Boolean(process.env.SMTP_HOST?.trim());
+function getSmtpPassword(): { pass: string | undefined; passSource: 'SMTP_PASS' | 'SMTP_PASSWORD' | 'none' } {
+  const fromPass = runtimeEnv('SMTP_PASS');
+  if (fromPass) {
+    return { pass: fromPass, passSource: 'SMTP_PASS' };
+  }
+  const fromPassword = runtimeEnv('SMTP_PASSWORD');
+  if (fromPassword) {
+    return { pass: fromPassword, passSource: 'SMTP_PASSWORD' };
+  }
+  return { pass: undefined, passSource: 'none' };
 }
 
-function createTransporter() {
-  const port = Number(process.env.SMTP_PORT || 587);
+export type SmtpConfigSnapshot = {
+  host: string | undefined;
+  port: number;
+  secure: boolean;
+  hasUser: boolean;
+  hasPass: boolean;
+  passSource: 'SMTP_PASS' | 'SMTP_PASSWORD' | 'none';
+  from: string;
+  nodeEnv: string | undefined;
+  railwayService: string | undefined;
+};
+
+export function getSmtpConfigSnapshot(): SmtpConfigSnapshot {
+  const host = runtimeEnv('SMTP_HOST');
+  const port = Number(runtimeEnv('SMTP_PORT') ?? 587);
   const secure =
-    process.env.SMTP_SECURE === 'true' || String(port) === '465';
+    runtimeEnv('SMTP_SECURE') === 'true' || String(port) === '465';
+  const user = runtimeEnv('SMTP_USER');
+  const { pass, passSource } = getSmtpPassword();
+  const from =
+    runtimeEnv('SMTP_FROM') ||
+    `${APP_CONFIG.name} <noreply@${APP_CONFIG.domain}>`;
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+  return {
+    host,
     port,
     secure,
-    auth: process.env.SMTP_USER
+    hasUser: Boolean(user),
+    hasPass: Boolean(pass),
+    passSource,
+    from,
+    nodeEnv: process.env.NODE_ENV,
+    railwayService: runtimeEnv('RAILWAY_SERVICE_NAME'),
+  };
+}
+
+function logSmtpConfig(snapshot: SmtpConfigSnapshot): void {
+  console.log('[otp-email] effective SMTP config', snapshot);
+}
+
+function formatError(error: unknown): { message: string; stack?: string; code?: string } {
+  if (error instanceof Error) {
+    const smtpError = error as Error & { code?: string; response?: string; responseCode?: number };
+    return {
+      message: smtpError.message,
+      stack: smtpError.stack,
+      code: smtpError.code,
+    };
+  }
+  return { message: String(error) };
+}
+
+function createTransporter(snapshot: SmtpConfigSnapshot) {
+  const user = runtimeEnv('SMTP_USER');
+  const { pass } = getSmtpPassword();
+
+  const options: SMTPTransport.Options = {
+    host: snapshot.host,
+    port: snapshot.port,
+    secure: snapshot.secure,
+    auth: user
       ? {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
+          user,
+          pass,
         }
       : undefined,
-  });
+  };
+
+  return nodemailer.createTransport(options);
 }
 
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  const snapshot = getSmtpConfigSnapshot();
+  logSmtpConfig(snapshot);
+
+  const otpExpiryMinutes = getOtpExpiryMinutes();
   const subject = `${APP_CONFIG.name} verification code: ${code}`;
   const text = [
     `Your ${APP_CONFIG.name} verification code is: ${code}`,
     '',
-    `This code expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+    `This code expires in ${otpExpiryMinutes} minutes.`,
     '',
     'If you did not request this, you can ignore this email.',
   ].join('\n');
 
-  if (!isSmtpConfigured()) {
+  if (!snapshot.host) {
     if (process.env.NODE_ENV === 'production') {
+      console.error('[otp-email] SMTP_HOST missing at runtime — check Railway env on web service');
       throw new Error('SMTP is not configured on the web service');
     }
     console.log(`[otp-email] SMTP not configured — dev code for ${email}: ${code}`);
     return;
   }
 
-  const transporter = createTransporter();
+  if (!snapshot.hasPass && snapshot.hasUser) {
+    console.error('[otp-email] SMTP_USER set but neither SMTP_PASS nor SMTP_PASSWORD is set');
+  }
+
+  const transporter = createTransporter(snapshot);
 
   try {
     await transporter.verify();
-  } catch (error) {
-    console.error('[otp-email] SMTP connection verify failed', {
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      error: error instanceof Error ? error.message : error,
+    console.log('[otp-email] SMTP transporter.verify() succeeded', {
+      host: snapshot.host,
+      port: snapshot.port,
+      secure: snapshot.secure,
     });
-    throw new Error('SMTP connection failed');
+  } catch (error) {
+    const details = formatError(error);
+    console.error('[otp-email] SMTP transporter.verify() failed', {
+      ...snapshot,
+      error: details.message,
+      code: details.code,
+      stack: details.stack,
+    });
+    throw new Error(`SMTP connection failed: ${details.message}`);
   }
 
-  const from =
-    process.env.SMTP_FROM || `${APP_CONFIG.name} <noreply@${APP_CONFIG.domain}>`;
+  try {
+    const info = await transporter.sendMail({
+      from: snapshot.from,
+      to: email,
+      subject,
+      text,
+    });
 
-  await transporter.sendMail({
-    from,
-    to: email,
-    subject,
-    text,
-  });
-
-  console.log('[otp-email] sent successfully', { to: email, from });
+    console.log('[otp-email] sendMail() succeeded', {
+      to: email,
+      from: snapshot.from,
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+    });
+  } catch (error) {
+    const details = formatError(error);
+    console.error('[otp-email] sendMail() failed', {
+      ...snapshot,
+      to: email,
+      error: details.message,
+      code: details.code,
+      stack: details.stack,
+    });
+    throw error;
+  }
 }
