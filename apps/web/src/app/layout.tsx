@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { APP_CONFIG, getAppOrigin } from '@/lib/app-config';
 import './globals.css';
 
 const inter = Inter({
@@ -9,8 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Bold',
-  description: 'Browser-based meeting platform with YouTube recording',
+  title: APP_CONFIG.name,
+  description: APP_CONFIG.description,
+  metadataBase: new URL(getAppOrigin()),
 };
 
 export default function RootLayout({

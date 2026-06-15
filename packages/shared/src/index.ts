@@ -90,3 +90,4 @@ export interface SocketEvents {
 
 export * from './types/meeting';
 export * from './types/user';
+export * from './config/app';

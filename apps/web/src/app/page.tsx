@@ -1,15 +1,19 @@
 import Link from 'next/link';
+import { APP_CONFIG } from '@/lib/app-config';
 
 export default function HomePage() {
+  const appName = APP_CONFIG.name;
+  const logoLetter = appName.charAt(0).toUpperCase();
+
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              B
+              {logoLetter}
             </div>
-            <span className="text-xl font-semibold tracking-tight">Bold</span>
+            <span className="text-xl font-semibold tracking-tight">{appName}</span>
           </div>
           <nav className="flex items-center gap-3">
             <Link
@@ -91,7 +95,7 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Bold. All rights reserved.
+        © {new Date().getFullYear()} {appName}. All rights reserved.
       </footer>
     </div>
   );

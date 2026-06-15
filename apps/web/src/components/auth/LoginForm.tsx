@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { GoogleButton } from '@/components/auth/GoogleButton';
+import { appConfig } from '@/lib/app-config';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -42,7 +43,7 @@ export function LoginForm() {
         </div>
         <h1 className="text-2xl font-semibold">Welcome back</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sign in to your Bold account
+          Sign in to your {appConfig.name} account
         </p>
       </div>
 
