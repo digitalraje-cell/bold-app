@@ -19,3 +19,7 @@ startCommand = "bash scripts/railway-start-api.sh"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
+
+# Required Railway env vars (Settings → Variables):
+# DATABASE_URL, JWT_SECRET (or AUTH_SECRET), ENCRYPTION_KEY, CORS_ORIGIN, NODE_ENV=production
+# Railway sets PORT automatically — do not hardcode it.

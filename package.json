@@ -7,7 +7,7 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "build:api": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/api db:generate && pnpm --filter @boldmeet/api build",
-    "start:api": "pnpm --filter @boldmeet/api start:prod",
+    "start:api": "node apps/api/dist/main.js",
     "build:web": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/web db:generate && pnpm --filter @boldmeet/web build",
     "start:web": "pnpm --filter @boldmeet/web start",
     "db:generate": "pnpm --filter @boldmeet/api db:generate",

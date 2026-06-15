@@ -9,7 +9,10 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || process.env.AUTH_SECRET,
+      secret:
+        process.env.JWT_SECRET ||
+        process.env.AUTH_SECRET ||
+        'bold-dev-jwt-secret-change-in-production',
     }),
   ],
   providers: [AuthGuard, VerifiedGuard],

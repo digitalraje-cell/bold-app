@@ -10,5 +10,11 @@ else
   exit 1
 fi
 
-cd "$ROOT"
-pnpm start:api
+cd "$ROOT/apps/api"
+
+if [ ! -f "dist/main.js" ]; then
+  echo "API build output missing: apps/api/dist/main.js"
+  exit 1
+fi
+
+exec node dist/main.js
