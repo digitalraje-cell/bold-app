@@ -84,17 +84,19 @@ function createTransporter(snapshot: SmtpConfigSnapshot) {
   const user = runtimeEnv('SMTP_USER');
   const { pass } = getSmtpPassword();
 
-  const options: SMTPTransport.Options = {
+  const options = {
     host: snapshot.host,
     port: snapshot.port,
     secure: snapshot.secure,
+    // Railway has no IPv6 route to Gmail; force IPv4 DNS + socket.
+    family: 4,
     auth: user
       ? {
           user,
           pass,
         }
       : undefined,
-  };
+  } as SMTPTransport.Options;
 
   return nodemailer.createTransport(options);
 }
@@ -134,6 +136,7 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
       host: snapshot.host,
       port: snapshot.port,
       secure: snapshot.secure,
+      family: 4,
     });
   } catch (error) {
     const details = formatError(error);
