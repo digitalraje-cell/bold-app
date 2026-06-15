@@ -1,21 +1,41 @@
-'use client';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { redirect, notFound } from 'next/navigation';
+import { MeetingRoom } from '@/components/meeting/MeetingRoom';
 
-import Link from 'next/link';
+export default async function MeetingRoomPage({
+  params,
+}: {
+  params: Promise<{ meetingId: string }>;
+}) {
+  const { meetingId } = await params;
+  const session = await auth();
 
-export default function MeetingRoomPage({ params }: { params: { meetingId: string } }) {
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    select: {
+      id: true,
+      title: true,
+      jitsiRoom: true,
+      hostId: true,
+      status: true,
+    },
+  });
+
+  if (!meeting || meeting.status === 'ENDED') {
+    notFound();
+  }
+
+  if (!session?.user) {
+    redirect(`/meeting/${meetingId}`);
+  }
+
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-slate-900 px-6 text-white">
-      <h1 className="text-xl font-semibold">Meeting Room</h1>
-      <p className="mt-2 text-slate-400">
-        Jitsi integration coming in Phase 4
-      </p>
-      <p className="mt-1 font-mono text-sm text-slate-500">{params.meetingId}</p>
-      <Link
-        href="/dashboard"
-        className="mt-8 rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20"
-      >
-        Leave meeting
-      </Link>
-    </div>
+    <MeetingRoom
+      meetingId={meeting.id}
+      jitsiRoom={meeting.jitsiRoom}
+      title={meeting.title}
+      isHost={session.user.id === meeting.hostId}
+    />
   );
 }
