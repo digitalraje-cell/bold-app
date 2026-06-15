@@ -88,6 +88,10 @@ export class ParticipantsService {
       }
     }
 
+    if (role === ParticipantRole.PANELIST) {
+      await this.permissionsService.check(meeting.hostId, 'canUsePanelists');
+    }
+
     await this.ensureParticipant(meetingId, participantId);
     return this.prisma.participant.update({
       where: { id: participantId },

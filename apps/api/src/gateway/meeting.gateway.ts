@@ -97,4 +97,35 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     const meetingId = client.handshake.query.meetingId as string;
     this.server.to(meetingId).emit('waiting:admit', data);
   }
+
+  broadcastRoomModeChanged(meetingId: string, roomMode: string) {
+    this.server.to(meetingId).emit('room:mode-changed', { roomMode, meetingId });
+  }
+
+  broadcastParticipantStage(
+    meetingId: string,
+    participant: {
+      id: string;
+      isOnStage: boolean;
+      micAllowed: boolean;
+      cameraAllowed: boolean;
+      isMuted: boolean;
+      isVideoOff: boolean;
+      role?: string;
+    },
+  ) {
+    this.server.to(meetingId).emit('participant:stage', {
+      participantId: participant.id,
+      isOnStage: participant.isOnStage,
+      micAllowed: participant.micAllowed,
+      cameraAllowed: participant.cameraAllowed,
+      isMuted: participant.isMuted,
+      isVideoOff: participant.isVideoOff,
+      role: participant.role,
+    });
+  }
+
+  broadcastChatModeChanged(meetingId: string, chatMode: string, chatEnabled: boolean) {
+    this.server.to(meetingId).emit('chat:mode-changed', { chatMode, chatEnabled });
+  }
 }

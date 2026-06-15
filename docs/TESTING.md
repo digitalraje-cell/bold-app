@@ -43,6 +43,18 @@
 - [ ] Fullscreen enters/exits smoothly (ESC + button)
 - [ ] Invite modal copies link with correct domain
 
+### Unified room (Meeting ↔ Webinar)
+- [ ] Host switches Meeting → Webinar during live session (no refresh)
+- [ ] All attendees update instantly via socket
+- [ ] Webinar mode: audience mic/camera disabled by default
+- [ ] Host promotes participant → panelist (realtime)
+- [ ] Host brings attendee on stage (realtime)
+- [ ] Host removes attendee from stage
+- [ ] Host switches Webinar → Meeting (state restored)
+- [ ] Participant count visible in room
+- [ ] Chat modes: Everyone, Host only, Host + Panelists, Disabled
+- [ ] Host switches chat mode live during session
+
 ### Host / co-host permissions
 - [ ] Host can mute, remove, make co-host, transfer host
 - [ ] Co-host can moderate when enabled

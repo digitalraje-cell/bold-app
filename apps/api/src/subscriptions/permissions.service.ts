@@ -48,9 +48,10 @@ export class PermissionsService {
     }
   }
 
-  async getAttendeeLimit(userId: string): Promise<number> {
+  async getAttendeeLimit(userId: string, roomMode: 'MEETING' | 'WEBINAR' = 'MEETING'): Promise<number> {
     const ctx = await this.getUserPlanContext(userId);
-    return getPlanLimit(ctx.plan, 'attendeeLimit') ?? 100;
+    const key = roomMode === 'WEBINAR' ? 'webinarAttendeeLimit' : 'meetingAttendeeLimit';
+    return getPlanLimit(ctx.plan, key) ?? 100;
   }
 
   async getMaxCohosts(userId: string): Promise<number> {

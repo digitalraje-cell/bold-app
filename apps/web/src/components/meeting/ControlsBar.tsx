@@ -24,6 +24,8 @@ interface ControlsBarProps {
   onToggleMic: () => void;
   onToggleVideo: () => void;
   onToggleShare: () => void;
+  micDisabled?: boolean;
+  cameraDisabled?: boolean;
   onToggleChat: () => void;
   onToggleParticipants: () => void;
   onToggleReactions: () => void;
@@ -75,6 +77,8 @@ export function ControlsBar({
   onToggleMic,
   onToggleVideo,
   onToggleShare,
+  micDisabled,
+  cameraDisabled,
   onToggleChat,
   onToggleParticipants,
   onToggleReactions,
@@ -90,13 +94,13 @@ export function ControlsBar({
       <div className="mx-auto flex max-w-3xl items-center justify-center gap-2 sm:gap-3">
         <ControlButton
           icon={isMuted ? MicOff : Mic}
-          label={isMuted ? 'Unmute' : 'Mute'}
+          label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
           active={isMuted}
           onClick={onToggleMic}
         />
         <ControlButton
           icon={isVideoOff ? VideoOff : Video}
-          label={isVideoOff ? 'Start video' : 'Stop video'}
+          label={cameraDisabled ? 'Camera disabled' : isVideoOff ? 'Start video' : 'Stop video'}
           active={isVideoOff}
           onClick={onToggleVideo}
         />

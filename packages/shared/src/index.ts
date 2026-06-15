@@ -12,7 +12,9 @@ export enum MeetingStatus {
 export enum ParticipantRole {
   HOST = 'HOST',
   CO_HOST = 'CO_HOST',
+  PANELIST = 'PANELIST',
   PARTICIPANT = 'PARTICIPANT',
+  MODERATOR = 'MODERATOR',
 }
 
 export enum ParticipantStatus {
@@ -25,6 +27,7 @@ export enum ParticipantStatus {
 export enum ChatMode {
   EVERYONE = 'EVERYONE',
   HOST_ONLY = 'HOST_ONLY',
+  HOST_PANELISTS = 'HOST_PANELISTS',
   DISABLED = 'DISABLED',
 }
 
@@ -86,7 +89,21 @@ export interface SocketEvents {
   'waiting:admit-all': Record<string, never>;
   'settings:update': Partial<MeetingSettings>;
   'meeting:end': Record<string, never>;
+  'room:mode-changed': { roomMode: string; meetingId: string };
+  'participant:stage': {
+    participantId: string;
+    isOnStage: boolean;
+    micAllowed: boolean;
+    cameraAllowed: boolean;
+    isMuted: boolean;
+    isVideoOff: boolean;
+    role?: ParticipantRole;
+  };
+  'chat:mode-changed': { chatMode: string; chatEnabled: boolean };
 }
+
+export * from './room/types';
+export * from './rbac/roles';
 
 export * from './types/meeting';
 export * from './types/user';

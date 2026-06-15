@@ -21,13 +21,21 @@ enum MeetingStatus {
 enum ParticipantRole {
   HOST
   CO_HOST
+  PANELIST
   PARTICIPANT
   MODERATOR
 }
 
+enum RoomMode {
+  MEETING
+  WEBINAR
+}
+
 enum SubscriptionPlan {
   FREE
+  STARTER
   PRO
+  BUSINESS
   ENTERPRISE
 }
 
@@ -70,6 +78,7 @@ enum ParticipantStatus {
 enum ChatMode {
   EVERYONE
   HOST_ONLY
+  HOST_PANELISTS
   DISABLED
 }
 
@@ -177,6 +186,7 @@ model Meeting {
   description String?
   hostId      String
   status      MeetingStatus @default(SCHEDULED)
+  roomMode    RoomMode      @default(MEETING)
   password    String?
   passcodeEncrypted String? @db.Text
   participantLimit Int     @default(100)
@@ -230,6 +240,9 @@ model Participant {
   status       ParticipantStatus @default(WAITING)
   isMuted      Boolean           @default(false)
   isVideoOff   Boolean           @default(false)
+  isOnStage    Boolean           @default(true)
+  micAllowed   Boolean           @default(true)
+  cameraAllowed Boolean          @default(true)
   handRaised   Boolean           @default(false)
   handRaisedAt DateTime?
   joinedAt     DateTime          @default(now())

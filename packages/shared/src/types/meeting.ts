@@ -45,6 +45,9 @@ export interface Participant {
   role: ParticipantRole;
   isMuted: boolean;
   isVideoOff: boolean;
+  isOnStage: boolean;
+  micAllowed: boolean;
+  cameraAllowed: boolean;
   handRaised: boolean;
   joinedAt: string;
 }

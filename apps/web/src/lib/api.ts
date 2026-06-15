@@ -67,4 +67,37 @@ export const api = {
   subscriptions: {
     me: () => apiFetch('/subscriptions/me'),
   },
+  participants: {
+    list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/participants`),
+  },
+  room: {
+    get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`),
+    switchMode: (meetingId: string, roomMode: string) =>
+      apiFetch(`/meetings/${meetingId}/room/mode`, {
+        method: 'PATCH',
+        body: JSON.stringify({ roomMode }),
+      }),
+    updateChatMode: (meetingId: string, chatMode: string, chatEnabled?: boolean) =>
+      apiFetch(`/meetings/${meetingId}/room/chat-mode`, {
+        method: 'PATCH',
+        body: JSON.stringify({ chatMode, chatEnabled }),
+      }),
+    promotePanelist: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/room/participants/${participantId}/panelist`, {
+        method: 'POST',
+      }),
+    bringOnStage: (
+      meetingId: string,
+      participantId: string,
+      options: { micAllowed?: boolean; cameraAllowed?: boolean },
+    ) =>
+      apiFetch(`/meetings/${meetingId}/room/participants/${participantId}/stage`, {
+        method: 'POST',
+        body: JSON.stringify(options),
+      }),
+    removeFromStage: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/room/participants/${participantId}/stage/remove`, {
+        method: 'POST',
+      }),
+  },
 };

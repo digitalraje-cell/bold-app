@@ -66,7 +66,7 @@ export function CreateMeetingForm() {
           Configure your meeting settings before starting
           {plan === 'FREE' && limits.maxMeetingDurationMinutes && (
             <span className="block mt-1 text-xs">
-              Free plan: {limits.maxMeetingDurationMinutes} min limit · up to {limits.attendeeLimit} attendees
+              Free plan: {limits.maxMeetingDurationMinutes} min limit · up to {limits.meetingAttendeeLimit} attendees
             </span>
           )}
         </p>

@@ -13,6 +13,7 @@ import { YoutubeModule } from './youtube/youtube.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
 import { WebinarModule } from './webinar/webinar.module';
+import { RoomModule } from './room/room.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WebinarModule } from './webinar/webinar.module';
     GatewayModule,
     RecordingModule,
     WebinarModule,
+    RoomModule,
     YoutubeModule,
   ],
   controllers: [AppController],

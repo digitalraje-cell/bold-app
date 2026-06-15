@@ -6,14 +6,17 @@ Feature access is controlled by **subscription plans**, not hardcoded checks. Bu
 
 ## Plans
 
-| Feature | FREE | PRO | ENTERPRISE |
-|---------|------|-----|------------|
-| Meeting duration | 60 min (+ 5 min grace) | Unlimited | Unlimited |
-| Attendee limit | 100 | 500 | 5000 |
-| Co-hosts | 1 | 5 | 20 |
-| YouTube streaming | ✗ | ✓ | ✓ |
-| Recording | ✗ | ✓ | ✓ |
-| Chat / reactions / raise hand / waiting room / invite | ✓ | ✓ | ✓ |
+| Feature | FREE | STARTER | PRO | BUSINESS | ENTERPRISE |
+|---------|------|---------|-----|----------|------------|
+| Meeting duration | 60 min (+ grace) | 120 min | Unlimited | Unlimited | Unlimited |
+| Meeting attendees | 100 | 100 | 250 | 500 | 5000 |
+| Webinar attendees | 100 | 250 | 500 | 1000 | 5000 |
+| Co-hosts | 1 | 2 | 5 | 10 | 20 |
+| Panelists | 3 | 5 | 10 | 20 | 50 |
+| Meeting + Webinar modes | ✓ | ✓ | ✓ | ✓ | ✓ |
+| YouTube streaming | ✗ | ✗ | ✓ | ✓ | ✓ |
+| Evergreen webinar | ✗ | ✗ | ✓ | ✓ | ✓ |
+| Assign moderator | ✗ | ✗ | ✓ | ✓ | ✓ |
 
 ## Permission keys
 
@@ -27,7 +30,22 @@ type PermissionKey =
   | 'canUseWaitingRoom'
   | 'canUseChat'
   | 'canUseRaiseHand'
-  | 'canUseReactions';
+  | 'canUseReactions'
+  | 'canUsePanelists'
+  | 'canSwitchRoomMode'
+  | 'canUseEvergreenWebinar'
+  | 'canAssignModerator';
+```
+
+## Limit keys
+
+```typescript
+meetingAttendeeLimit
+webinarAttendeeLimit
+maxMeetingDurationMinutes
+maxCohosts
+maxPanelists
+gracePeriodMinutes
 ```
 
 ## Adding a new plan

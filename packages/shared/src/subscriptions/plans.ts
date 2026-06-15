@@ -4,7 +4,9 @@
  */
 export enum SubscriptionPlan {
   FREE = 'FREE',
+  STARTER = 'STARTER',
   PRO = 'PRO',
+  BUSINESS = 'BUSINESS',
   ENTERPRISE = 'ENTERPRISE',
 }
 
@@ -21,13 +23,19 @@ export type PermissionKey =
   | 'canUseWaitingRoom'
   | 'canUseChat'
   | 'canUseRaiseHand'
-  | 'canUseReactions';
+  | 'canUseReactions'
+  | 'canUsePanelists'
+  | 'canSwitchRoomMode'
+  | 'canUseEvergreenWebinar'
+  | 'canAssignModerator';
 
 export interface PlanLimits {
   maxMeetingDurationMinutes: number | null;
-  attendeeLimit: number;
+  meetingAttendeeLimit: number;
+  webinarAttendeeLimit: number;
   maxCohosts: number;
   maxHosts: number;
+  maxPanelists: number;
   gracePeriodMinutes: number;
 }
 
@@ -36,68 +44,111 @@ export interface PlanPermissions {
   permissions: Record<PermissionKey, boolean>;
 }
 
+const FREE_LIMITS: PlanLimits = {
+  maxMeetingDurationMinutes: 60,
+  meetingAttendeeLimit: 100,
+  webinarAttendeeLimit: 100,
+  maxCohosts: 1,
+  maxHosts: 1,
+  maxPanelists: 3,
+  gracePeriodMinutes: 5,
+};
+
+const FREE_PERMISSIONS: Record<PermissionKey, boolean> = {
+  canStreamToYoutube: false,
+  canUseCohost: true,
+  canRecord: false,
+  canInvite: true,
+  canHostMeeting: true,
+  canUseWaitingRoom: true,
+  canUseChat: true,
+  canUseRaiseHand: true,
+  canUseReactions: true,
+  canUsePanelists: true,
+  canSwitchRoomMode: true,
+  canUseEvergreenWebinar: false,
+  canAssignModerator: false,
+};
+
 export const PLAN_DEFINITIONS: Record<SubscriptionPlan, PlanPermissions> = {
   [SubscriptionPlan.FREE]: {
+    limits: FREE_LIMITS,
+    permissions: FREE_PERMISSIONS,
+  },
+  [SubscriptionPlan.STARTER]: {
     limits: {
-      maxMeetingDurationMinutes: 60,
-      attendeeLimit: 100,
-      maxCohosts: 1,
+      maxMeetingDurationMinutes: 120,
+      meetingAttendeeLimit: 100,
+      webinarAttendeeLimit: 250,
+      maxCohosts: 2,
       maxHosts: 1,
+      maxPanelists: 5,
       gracePeriodMinutes: 5,
     },
     permissions: {
-      canStreamToYoutube: false,
-      canUseCohost: true,
+      ...FREE_PERMISSIONS,
       canRecord: false,
-      canInvite: true,
-      canHostMeeting: true,
-      canUseWaitingRoom: true,
-      canUseChat: true,
-      canUseRaiseHand: true,
-      canUseReactions: true,
+      canUseEvergreenWebinar: false,
     },
   },
   [SubscriptionPlan.PRO]: {
     limits: {
       maxMeetingDurationMinutes: null,
-      attendeeLimit: 500,
+      meetingAttendeeLimit: 250,
+      webinarAttendeeLimit: 500,
       maxCohosts: 5,
       maxHosts: 1,
+      maxPanelists: 10,
       gracePeriodMinutes: 0,
     },
     permissions: {
+      ...FREE_PERMISSIONS,
       canStreamToYoutube: true,
-      canUseCohost: true,
       canRecord: true,
-      canInvite: true,
-      canHostMeeting: true,
-      canUseWaitingRoom: true,
-      canUseChat: true,
-      canUseRaiseHand: true,
-      canUseReactions: true,
+      canUseEvergreenWebinar: true,
+      canAssignModerator: true,
+    },
+  },
+  [SubscriptionPlan.BUSINESS]: {
+    limits: {
+      maxMeetingDurationMinutes: null,
+      meetingAttendeeLimit: 500,
+      webinarAttendeeLimit: 1000,
+      maxCohosts: 10,
+      maxHosts: 1,
+      maxPanelists: 20,
+      gracePeriodMinutes: 0,
+    },
+    permissions: {
+      ...FREE_PERMISSIONS,
+      canStreamToYoutube: true,
+      canRecord: true,
+      canUseEvergreenWebinar: true,
+      canAssignModerator: true,
     },
   },
   [SubscriptionPlan.ENTERPRISE]: {
     limits: {
       maxMeetingDurationMinutes: null,
-      attendeeLimit: 5000,
+      meetingAttendeeLimit: 5000,
+      webinarAttendeeLimit: 5000,
       maxCohosts: 20,
       maxHosts: 1,
+      maxPanelists: 50,
       gracePeriodMinutes: 0,
     },
     permissions: {
+      ...FREE_PERMISSIONS,
       canStreamToYoutube: true,
-      canUseCohost: true,
       canRecord: true,
-      canInvite: true,
-      canHostMeeting: true,
-      canUseWaitingRoom: true,
-      canUseChat: true,
-      canUseRaiseHand: true,
-      canUseReactions: true,
+      canUseEvergreenWebinar: true,
+      canAssignModerator: true,
     },
   },
 };
+
+/** @deprecated use meetingAttendeeLimit */
+export type LegacyAttendeeLimit = PlanLimits & { attendeeLimit?: number };
 
 export function resolvePlanPermissions(plan: SubscriptionPlan): PlanPermissions {
   return PLAN_DEFINITIONS[plan] ?? PLAN_DEFINITIONS[SubscriptionPlan.FREE];
@@ -115,6 +166,16 @@ export function getPlanLimit(
   key: keyof PlanLimits,
 ): number | null {
   return resolvePlanPermissions(plan).limits[key];
+}
+
+export function getAttendeeLimitForMode(
+  plan: SubscriptionPlan,
+  roomMode: 'MEETING' | 'WEBINAR',
+): number {
+  const limits = resolvePlanPermissions(plan).limits;
+  return roomMode === 'WEBINAR'
+    ? limits.webinarAttendeeLimit
+    : limits.meetingAttendeeLimit;
 }
 
 export interface MeetingDurationStatus {

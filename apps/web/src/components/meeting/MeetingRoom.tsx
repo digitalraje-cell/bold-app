@@ -1,16 +1,21 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { RoomMode, ChatMode } from '@boldmeet/shared';
 import { useJitsi } from '@/hooks/useJitsi';
 import { useSocket } from '@/hooks/useSocket';
+import { useRoom } from '@/hooks/useRoom';
+import { canUseMicInRoom, canUseCameraInRoom, canSendChatInRoom } from '@/stores/roomStore';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
 import { InviteModal } from '@/components/meeting/InviteModal';
+import { RoomModeSwitcher } from '@/components/meeting/RoomModeSwitcher';
+import { WebinarModeBanner } from '@/components/meeting/WebinarModeBanner';
 import {
   MeetingDurationModal,
   MeetingGraceWarning,
@@ -36,9 +41,27 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
   const [handRaised, setHandRaised] = useState(false);
   const [reactions, setReactions] = useState<{ id: string; reaction: string }[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [modeSwitching, setModeSwitching] = useState(false);
 
   const displayName = session?.user?.name || 'Guest';
   const hangupRef = useRef<(() => void) | null>(null);
+
+  const {
+    roomMode,
+    chatMode,
+    chatEnabled,
+    participants,
+    switchRoomMode,
+    promoteToPanelist,
+    bringOnStage,
+    removeFromStage,
+    updateChatMode,
+  } = useRoom(meetingId, isHost);
+
+  const myParticipant = participants.find((p) => p.userId === session?.user?.id);
+  const canMic = canUseMicInRoom(myParticipant, roomMode);
+  const canCamera = canUseCameraInRoom(myParticipant, roomMode);
+  const canChat = canSendChatInRoom(myParticipant, roomMode, chatMode, chatEnabled);
 
   const handleLeave = useCallback(() => {
     router.push('/dashboard');
@@ -72,12 +95,28 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
 
   const { emit } = useSocket(meetingId);
 
+  useEffect(() => {
+    if (roomMode === RoomMode.WEBINAR && myParticipant && !canMic && !isMuted) {
+      toggleAudio();
+      setIsMuted(true);
+    }
+  }, [roomMode, myParticipant, canMic, isMuted, toggleAudio]);
+
+  useEffect(() => {
+    if (roomMode === RoomMode.WEBINAR && myParticipant && !canCamera && !isVideoOff) {
+      toggleVideo();
+      setIsVideoOff(true);
+    }
+  }, [roomMode, myParticipant, canCamera, isVideoOff, toggleVideo]);
+
   const handleToggleMic = () => {
+    if (!canMic) return;
     toggleAudio();
     setIsMuted((prev) => !prev);
   };
 
   const handleToggleVideo = () => {
+    if (!canCamera) return;
     toggleVideo();
     setIsVideoOff((prev) => !prev);
   };
@@ -110,17 +149,33 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
     }
   };
 
+  const handleSwitchRoomMode = async (mode: RoomMode) => {
+    if (mode === roomMode) return;
+    setModeSwitching(true);
+    try {
+      await switchRoomMode(mode);
+    } finally {
+      setModeSwitching(false);
+    }
+  };
+
   return (
     <FullscreenWrapper isFullscreen={isFullscreen} onToggle={setIsFullscreen}>
       <div className="relative flex flex-1 overflow-hidden">
         <div ref={containerRef} className="absolute inset-0" />
 
         <ReactionsOverlay reactions={reactions} />
+        <WebinarModeBanner roomMode={roomMode} />
 
         {activePanel === 'chat' && (
           <ChatPanel
             meetingId={meetingId}
+            chatMode={chatMode}
+            chatEnabled={chatEnabled}
+            canSend={canChat}
+            isHost={isHost}
             onClose={() => setActivePanel(null)}
+            onChatModeChange={isHost ? (mode) => updateChatMode(mode) : undefined}
             onSend={(content) =>
               emit('chat:message', {
                 senderId: session?.user?.id,
@@ -136,12 +191,28 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           <ParticipantsPanel
             meetingId={meetingId}
             isHost={isHost}
+            roomMode={roomMode}
             onClose={() => setActivePanel(null)}
+            onPromotePanelist={isHost ? promoteToPanelist : undefined}
+            onBringOnStage={isHost ? bringOnStage : undefined}
+            onRemoveFromStage={isHost ? removeFromStage : undefined}
           />
         )}
 
-        <div className="absolute left-4 top-4 z-30 rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur">
-          {title}
+        <div className="absolute left-4 top-4 z-30 flex flex-col gap-2">
+          <div className="rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur">
+            {title}
+          </div>
+          <div className="rounded-lg bg-black/50 px-3 py-1 text-xs text-white/70 backdrop-blur">
+            {participants.length} participant{participants.length !== 1 ? 's' : ''}
+          </div>
+          {isHost && (
+            <RoomModeSwitcher
+              roomMode={roomMode}
+              onSwitch={handleSwitchRoomMode}
+              disabled={modeSwitching}
+            />
+          )}
         </div>
 
         <ControlsBar
@@ -149,6 +220,8 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           isVideoOff={isVideoOff}
           isFullscreen={isFullscreen}
           activePanel={activePanel}
+          micDisabled={!canMic}
+          cameraDisabled={!canCamera}
           onToggleMic={handleToggleMic}
           onToggleVideo={handleToggleVideo}
           onToggleShare={toggleShareScreen}

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { MeetingStatus, ParticipantRole, ParticipantStatus } from '@prisma/client';
-import { generateMeetingCode } from '@boldmeet/shared';
+import { generateMeetingCode, getWebinarParticipantDefaults, getMeetingParticipantDefaults, isStageVisibleRole } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
 import { encryptText, decryptText } from '../common/crypto.util';
@@ -209,6 +209,14 @@ export class MeetingsService {
     const waitingRoom = meeting.settings?.waitingRoomEnabled ?? false;
     const status = isHost || !waitingRoom ? ParticipantStatus.ADMITTED : ParticipantStatus.WAITING;
 
+    const role = isHost ? ParticipantRole.HOST : ParticipantRole.PARTICIPANT;
+    const modeDefaults =
+      meeting.roomMode === 'WEBINAR' && !isStageVisibleRole(role)
+        ? getWebinarParticipantDefaults()
+        : meeting.roomMode === 'WEBINAR'
+          ? getMeetingParticipantDefaults(true)
+          : getMeetingParticipantDefaults(meeting.settings?.participantMicAccess ?? true);
+
     let participant;
 
     if (userId) {
@@ -220,14 +228,16 @@ export class MeetingsService {
           meetingId,
           userId,
           displayName: dto.displayName,
-          role: isHost ? ParticipantRole.HOST : ParticipantRole.PARTICIPANT,
+          role,
           status,
-          isMuted: !!(meeting.settings?.autoMuteParticipants && !isHost),
+          ...modeDefaults,
+          isMuted: modeDefaults.isMuted || !!(meeting.settings?.autoMuteParticipants && !isHost),
         },
         update: {
           displayName: dto.displayName,
           status,
           leftAt: null,
+          ...(status === ParticipantStatus.ADMITTED ? modeDefaults : {}),
         },
       });
     } else {
@@ -237,7 +247,8 @@ export class MeetingsService {
           displayName: dto.displayName,
           role: ParticipantRole.PARTICIPANT,
           status,
-          isMuted: !!(meeting.settings?.autoMuteParticipants),
+          ...modeDefaults,
+          isMuted: modeDefaults.isMuted || !!meeting.settings?.autoMuteParticipants,
         },
       });
     }
