@@ -1,61 +1,32 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { hashOtpCode } from '@/lib/crypto';
-
-const MAX_ATTEMPTS = 5;
+import { verifyOtpCode } from '@/lib/otp-service';
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const email = (body.email || session?.user?.email)?.toLowerCase()?.trim();
     const code = String(body.code || '').trim();
 
-    if (!email || !code) {
-      return NextResponse.json({ error: 'Email and code are required' }, { status: 400 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const otp = await prisma.otpVerification.findFirst({
-      where: { email, used: false },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!otp) {
-      return NextResponse.json({ error: 'No active verification code found' }, { status: 404 });
+    if (email !== session.user.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Email mismatch' }, { status: 403 });
     }
 
-    if (otp.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Verification code expired' }, { status: 400 });
+    console.log('[otp-api] POST /verify', { email });
+    const result = await verifyOtpCode(email, code);
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status || 500 });
     }
 
-    if (otp.attempts >= MAX_ATTEMPTS) {
-      return NextResponse.json({ error: 'Too many attempts. Request a new code.' }, { status: 429 });
-    }
-
-    const isValid = otp.codeHash === hashOtpCode(code);
-
-    if (!isValid) {
-      await prisma.otpVerification.update({
-        where: { id: otp.id },
-        data: { attempts: { increment: 1 } },
-      });
-      return NextResponse.json({ error: 'Invalid verification code' }, { status: 400 });
-    }
-
-    await prisma.$transaction([
-      prisma.otpVerification.update({
-        where: { id: otp.id },
-        data: { used: true },
-      }),
-      prisma.user.update({
-        where: { email },
-        data: { isVerified: true, verifiedAt: new Date(), emailVerified: new Date() },
-      }),
-    ]);
-
-    return NextResponse.json({ message: 'Account verified successfully', verified: true });
-  } catch {
+    return NextResponse.json({ message: result.message, verified: true });
+  } catch (error) {
+    console.error('[otp-api] POST /verify unexpected error', error);
     return NextResponse.json({ error: 'Verification failed' }, { status: 500 });
   }
 }

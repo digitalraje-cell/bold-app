@@ -1,59 +1,36 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { generateOtpCode, hashOtpCode } from '@/lib/crypto';
-import { getOtpExpiryDate, sendOtpEmail } from '@/lib/email';
-
-const RESEND_COOLDOWN_SECONDS = 60;
-const MAX_ATTEMPTS = 5;
+import { sendVerificationOtp } from '@/lib/otp-service';
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const email = (body.email || session?.user?.email)?.toLowerCase()?.trim();
+
+    if (!session?.user?.email) {
+      console.error('[otp-api] POST /send rejected: unauthenticated');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+    if (email !== session.user.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Email mismatch' }, { status: 403 });
     }
 
-    if (user.isVerified) {
-      return NextResponse.json({ message: 'Account already verified' });
+    console.log('[otp-api] POST /send', { email });
+    const result = await sendVerificationOtp(email);
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status || 500 });
     }
 
-    const recent = await prisma.otpVerification.findFirst({
-      where: { email, used: false },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (
-      recent &&
-      Date.now() - recent.createdAt.getTime() < RESEND_COOLDOWN_SECONDS * 1000
-    ) {
-      return NextResponse.json(
-        { error: `Please wait ${RESEND_COOLDOWN_SECONDS} seconds before resending` },
-        { status: 429 },
-      );
-    }
-
-    const code = generateOtpCode(6);
-    await prisma.otpVerification.create({
-      data: {
-        email,
-        codeHash: hashOtpCode(code),
-        expiresAt: getOtpExpiryDate(),
-      },
-    });
-
-    await sendOtpEmail(email, code);
-
-    return NextResponse.json({ message: 'Verification code sent' });
-  } catch {
+    return NextResponse.json({ message: result.message });
+  } catch (error) {
+    console.error('[otp-api] POST /send unexpected error', error);
     return NextResponse.json({ error: 'Failed to send verification code' }, { status: 500 });
   }
 }
