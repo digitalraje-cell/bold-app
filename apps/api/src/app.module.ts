@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { ParticipantsModule } from './participants/participants.module';
+import { YoutubeModule } from './youtube/youtube.module';
 
 @Module({
   imports: [
@@ -15,7 +17,9 @@ import { GatewayModule } from './gateway/gateway.module';
     AuthModule,
     UsersModule,
     MeetingsModule,
+    ParticipantsModule,
     GatewayModule,
+    YoutubeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

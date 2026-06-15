@@ -14,6 +14,8 @@ export class UsersService {
         name: true,
         avatarUrl: true,
         role: true,
+        isVerified: true,
+        verifiedAt: true,
         createdAt: true,
       },
     });

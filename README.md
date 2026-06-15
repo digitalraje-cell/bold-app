@@ -63,6 +63,8 @@ pnpm dev
 - [Database Schema](./docs/DATABASE_SCHEMA.md)
 - [Component Plan](./docs/COMPONENT_PLAN.md)
 - [Development Roadmap](./docs/ROADMAP.md)
+- [Deployment Plan](./docs/DEPLOYMENT.md)
+- [Testing Checklists](./docs/TESTING.md)
 
 ## License
 
