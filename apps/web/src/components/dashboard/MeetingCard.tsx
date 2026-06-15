@@ -1,8 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Clock, Users, Video } from 'lucide-react';
+import { Calendar, Clock, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+export type MeetingSectionIcon = 'radio' | 'calendar' | 'history';
+
+const sectionIcons: Record<MeetingSectionIcon, LucideIcon> = {
+  radio: Radio,
+  calendar: Calendar,
+  history: History,
+};
 
 interface MeetingCardProps {
   meeting: {
@@ -90,15 +98,17 @@ export function MeetingListEmpty({ message, action }: { message: string; action?
 
 export function MeetingListSection({
   title,
-  icon: Icon,
+  icon,
   meetings,
   emptyMessage,
 }: {
   title: string;
-  icon: typeof Clock;
+  icon: MeetingSectionIcon;
   meetings: MeetingCardProps['meeting'][];
   emptyMessage: string;
 }) {
+  const Icon = sectionIcons[icon];
+
   return (
     <section>
       <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">

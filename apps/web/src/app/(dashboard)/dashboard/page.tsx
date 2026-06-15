@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AppShell } from '@/components/layout/AppShell';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { MeetingListSection } from '@/components/dashboard/MeetingCard';
-import { Calendar, Radio, History } from 'lucide-react';
+import { Calendar, Radio } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
@@ -73,19 +73,19 @@ export default async function DashboardPage() {
         <div className="space-y-8">
           <MeetingListSection
             title="Live Now"
-            icon={Radio}
+            icon="radio"
             meetings={live}
             emptyMessage="No live meetings"
           />
           <MeetingListSection
             title="Upcoming"
-            icon={Calendar}
+            icon="calendar"
             meetings={upcoming}
             emptyMessage="No upcoming meetings"
           />
           <MeetingListSection
             title="Past Meetings"
-            icon={History}
+            icon="history"
             meetings={past}
             emptyMessage="No past meetings"
           />
