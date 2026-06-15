@@ -31,16 +31,21 @@ DATABASE_URL="postgresql://..." pnpm db:migrate
 
 ## 2. Backend (Railway)
 
-**Root directory:** `apps/api`
+**Important (monorepo):** Set the Railway service **Root Directory to `/`** (repo root), **not** `apps/api`.  
+If Root Directory is `apps/api`, npm runs instead of pnpm and `workspace:*` dependencies fail.
 
-**Build command:**
+**Config-as-code path:** `/apps/api/railway.toml`
+
+**Build command (via railway.toml):**
 ```bash
-pnpm install && pnpm db:generate && pnpm build
+bash scripts/railway-build-api.sh
+# runs: pnpm install --frozen-lockfile && pnpm build:api
 ```
 
 **Start command:**
 ```bash
-node dist/main.js
+bash scripts/railway-start-api.sh
+# runs: pnpm start:api → node dist/main.js
 ```
 
 **Health check:** `GET /api/health`

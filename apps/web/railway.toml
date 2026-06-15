@@ -1,0 +1,21 @@
+# Railway config for @boldmeet/web
+# Set service "Root Directory" to "/" (repo root) — NOT apps/web.
+# In Railway UI: Settings → Config-as-code → path: /apps/web/railway.toml
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "bash scripts/railway-build-web.sh"
+watchPatterns = [
+  "apps/web/**",
+  "packages/shared/**",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package.json",
+  "scripts/railway-build-web.sh",
+]
+
+[deploy]
+startCommand = "bash scripts/railway-start-web.sh"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"

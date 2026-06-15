@@ -6,6 +6,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "build:api": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/api db:generate && pnpm --filter @boldmeet/api build",
+    "start:api": "pnpm --filter @boldmeet/api start:prod",
+    "build:web": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/web db:generate && pnpm --filter @boldmeet/web build",
+    "start:web": "pnpm --filter @boldmeet/web start",
     "db:generate": "pnpm --filter @boldmeet/api db:generate",
     "db:migrate": "pnpm --filter @boldmeet/api db:migrate",
     "db:push": "pnpm --filter @boldmeet/api db:push",
@@ -17,6 +21,7 @@
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "pnpm": ">=9.15.0"
   }
 }

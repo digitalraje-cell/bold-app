@@ -1,8 +1,21 @@
+# Railway config for @boldmeet/api
+# Set service "Root Directory" to "/" (repo root) — NOT apps/api.
+# In Railway UI: Settings → Config-as-code → path: /apps/api/railway.toml
+
 [build]
 builder = "NIXPACKS"
+buildCommand = "bash scripts/railway-build-api.sh"
+watchPatterns = [
+  "apps/api/**",
+  "packages/shared/**",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package.json",
+  "scripts/railway-build-api.sh",
+]
 
 [deploy]
-startCommand = "node dist/main.js"
+startCommand = "bash scripts/railway-start-api.sh"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
