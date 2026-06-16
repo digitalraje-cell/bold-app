@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useMemo, useRef } from 'react';
 import { Minimize2 } from 'lucide-react';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { MeetingFullscreenContext } from '@/contexts/MeetingFullscreenContext';
@@ -12,9 +12,13 @@ interface FullscreenWrapperProps {
 export function FullscreenWrapper({ children }: FullscreenWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen(containerRef);
+  const contextValue = useMemo(
+    () => ({ isFullscreen, toggleFullscreen }),
+    [isFullscreen, toggleFullscreen],
+  );
 
   return (
-    <MeetingFullscreenContext.Provider value={{ isFullscreen, toggleFullscreen }}>
+    <MeetingFullscreenContext.Provider value={contextValue}>
       <div
         ref={containerRef}
         className={`relative flex flex-col bg-slate-900 ${

@@ -34,6 +34,39 @@ interface UseJitsiOptions {
   startVideoMuted?: boolean;
 }
 
+let jitsiScriptPromise: Promise<void> | null = null;
+
+function loadJitsiScript(url: string): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (window.JitsiMeetExternalAPI) return Promise.resolve();
+
+  if (jitsiScriptPromise) return jitsiScriptPromise;
+
+  jitsiScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${url}"]`) as HTMLScriptElement | null;
+    if (existing) {
+      if (window.JitsiMeetExternalAPI) {
+        resolve();
+        return;
+      }
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Failed to load Jitsi script')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Jitsi script'));
+    document.body.appendChild(script);
+  });
+
+  return jitsiScriptPromise;
+}
+
 export function useJitsi({
   roomName,
   displayName,
@@ -49,37 +82,76 @@ export function useJitsi({
   startVideoMuted = false,
 }: UseJitsiOptions) {
   const apiRef = useRef<JitsiExternalAPI | null>(null);
+  const sessionKeyRef = useRef<string | null>(null);
+  const callbacksRef = useRef({
+    onReady,
+    onLeave,
+    onScreenShareChange,
+    onPresenterLayoutChange,
+  });
+  const optionsRef = useRef({
+    displayName,
+    isHost,
+    allowDesktopSharing,
+    startMuted,
+    startVideoMuted,
+  });
+
+  callbacksRef.current = {
+    onReady,
+    onLeave,
+    onScreenShareChange,
+    onPresenterLayoutChange,
+  };
+  optionsRef.current = {
+    displayName,
+    isHost,
+    allowDesktopSharing,
+    startMuted,
+    startVideoMuted,
+  };
+
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPresenterLayout, setIsPresenterLayout] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !containerRef.current || !roomName) return;
+    if (!enabled || !roomName) return;
 
-    let api: JitsiExternalAPI | null = null;
+    const sessionKey = roomName;
+    if (apiRef.current && sessionKeyRef.current === sessionKey) return;
+
+    if (apiRef.current) {
+      apiRef.current.dispose();
+      apiRef.current = null;
+      sessionKeyRef.current = null;
+    }
+
+    let cancelled = false;
     const provider = getMeetingMediaProvider();
     const mediaDomain = provider.getDefaultDomain();
+    const scriptUrl = provider.getExternalApiScriptUrl(mediaDomain);
 
     const initJitsi = () => {
-      if (!window.JitsiMeetExternalAPI || !containerRef.current) return;
+      if (cancelled || apiRef.current || !containerRef.current) return;
 
+      const opts = optionsRef.current;
       const embed = provider.buildEmbedOptions({
         roomName,
-        displayName,
-        isHost,
-        allowDesktopSharing,
-        startAudioMuted: startMuted,
-        startVideoMuted: startVideoMuted,
+        displayName: opts.displayName,
+        isHost: opts.isHost,
+        allowDesktopSharing: opts.allowDesktopSharing,
+        startAudioMuted: opts.startMuted,
+        startVideoMuted: opts.startVideoMuted,
       });
 
       console.log('[media] starting jitsi session', {
         domain: embed.domain,
         roomName,
-        isHost,
-        displayName,
-        allowDesktopSharing,
+        isHost: opts.isHost,
+        displayName: opts.displayName,
       });
 
-      api = new window.JitsiMeetExternalAPI(embed.domain, {
+      const api = new window.JitsiMeetExternalAPI(embed.domain, {
         roomName: embed.roomName,
         parentNode: containerRef.current,
         width: '100%',
@@ -90,10 +162,10 @@ export function useJitsi({
       });
 
       api.addListener('videoConferenceJoined', () => {
-        console.log('[media] video conference joined', { roomName, isHost });
-        onReady?.();
+        console.log('[media] video conference joined', { roomName, isHost: opts.isHost });
+        callbacksRef.current.onReady?.();
       });
-      api.addListener('readyToClose', () => onLeave?.());
+      api.addListener('readyToClose', () => callbacksRef.current.onLeave?.());
 
       api.addListener('loginRequired', () => {
         console.warn(
@@ -102,61 +174,73 @@ export function useJitsi({
       });
 
       api.addListener('screenSharingStatusChanged', (payload: unknown) => {
-        const { on } = payload as { on?: boolean };
-        const active = Boolean(on);
+        const { on: sharing } = payload as { on?: boolean };
+        const active = Boolean(sharing);
         setIsScreenSharing(active);
-        onScreenShareChange?.(active);
+        callbacksRef.current.onScreenShareChange?.(active);
       });
 
       api.addListener('tileViewChanged', (payload: unknown) => {
         const { enabled: tileView } = payload as { enabled?: boolean };
         const presenter = !tileView;
         setIsPresenterLayout(presenter);
-        onPresenterLayoutChange?.(presenter);
+        callbacksRef.current.onPresenterLayoutChange?.(presenter);
       });
 
       api.addListener('participantRoleChanged', (payload: unknown) => {
         const { role } = payload as { role?: string };
-        if (isHost && role && role !== 'moderator') {
+        if (opts.isHost && role && role !== 'moderator') {
           console.warn('[media] host is not Jitsi moderator — guests may see waiting screen');
         }
       });
 
       apiRef.current = api;
+      sessionKeyRef.current = sessionKey;
     };
 
-    const scriptUrl = provider.getExternalApiScriptUrl(mediaDomain);
+    const mountWhenReady = () => {
+      if (cancelled) return;
+      if (containerRef.current) {
+        initJitsi();
+        return;
+      }
+      requestAnimationFrame(mountWhenReady);
+    };
 
-    if (window.JitsiMeetExternalAPI) {
-      initJitsi();
-    } else {
-      const script = document.createElement('script');
-      script.src = scriptUrl;
-      script.async = true;
-      script.onload = initJitsi;
-      document.body.appendChild(script);
-    }
+    loadJitsiScript(scriptUrl)
+      .then(() => {
+        if (!cancelled) mountWhenReady();
+      })
+      .catch((error) => {
+        console.error('[media] failed to load Jitsi script', error);
+      });
 
     return () => {
-      api?.dispose();
-      apiRef.current = null;
-      setIsScreenSharing(false);
-      setIsPresenterLayout(false);
+      cancelled = true;
     };
-  }, [
-    roomName,
-    displayName,
-    isHost,
-    enabled,
-    allowDesktopSharing,
-    containerRef,
-    onReady,
-    onLeave,
-    onScreenShareChange,
-    onPresenterLayoutChange,
-    startMuted,
-    startVideoMuted,
-  ]);
+  }, [roomName, enabled, containerRef]);
+
+  useEffect(() => {
+    if (enabled) return;
+
+    if (apiRef.current) {
+      apiRef.current.dispose();
+      apiRef.current = null;
+      sessionKeyRef.current = null;
+    }
+    setIsScreenSharing(false);
+    setIsPresenterLayout(false);
+  }, [enabled]);
+
+  useEffect(() => {
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.dispose();
+        apiRef.current = null;
+        sessionKeyRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleAudio = useCallback(() => {
     apiRef.current?.executeCommand('toggleAudio');
@@ -167,9 +251,8 @@ export function useJitsi({
   }, []);
 
   const toggleShareScreen = useCallback(() => {
-    if (!allowDesktopSharing) return;
     apiRef.current?.executeCommand('toggleShareScreen');
-  }, [allowDesktopSharing]);
+  }, []);
 
   const stopShareScreen = useCallback(() => {
     apiRef.current?.executeCommand('toggleShareScreen');

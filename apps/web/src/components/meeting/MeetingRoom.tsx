@@ -81,11 +81,16 @@ function MeetingRoomInner({
   const displayName = displayNameProp || session?.user?.name || session?.user?.email || 'Guest';
   const hangupRef = useRef<(() => void) | null>(null);
   const meetingEndedRef = useRef(false);
+  const notifyHostMediaReadyRef = useRef<() => void>(() => undefined);
+  const notifyHostMediaLeftRef = useRef<() => void>(() => undefined);
 
   const { canJoinMedia, notifyHostMediaReady, notifyHostMediaLeft } = useMeetingPresence(
     meetingId,
     isHost,
   );
+
+  notifyHostMediaReadyRef.current = notifyHostMediaReady;
+  notifyHostMediaLeftRef.current = notifyHostMediaLeft;
 
   const {
     roomMode,
@@ -125,6 +130,15 @@ function MeetingRoomInner({
     [router],
   );
 
+  const handleJitsiReady = useCallback(() => {
+    if (isHost) notifyHostMediaReadyRef.current();
+  }, [isHost]);
+
+  const handleJitsiLeave = useCallback(() => {
+    if (isHost) notifyHostMediaLeftRef.current();
+    handleLeave();
+  }, [isHost, handleLeave]);
+
   const {
     toggleAudio,
     toggleVideo,
@@ -141,13 +155,8 @@ function MeetingRoomInner({
     // Bold gates sharing in controls; keep Jitsi embed stable when host toggles permissions.
     allowDesktopSharing: true,
     containerRef,
-    onReady: () => {
-      if (isHost) notifyHostMediaReady();
-    },
-    onLeave: () => {
-      if (isHost) notifyHostMediaLeft();
-      handleLeave();
-    },
+    onReady: handleJitsiReady,
+    onLeave: handleJitsiLeave,
   });
 
   hangupRef.current = hangup;
@@ -333,9 +342,9 @@ function MeetingRoomInner({
 
       <div
         ref={containerRef}
-        className={`absolute inset-0 [&_iframe]:border-0 ${
+        className={`absolute inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0 ${
           !canJoinMedia ? 'invisible pointer-events-none' : ''
-        } ${isPresenterLayout || isScreenSharing ? 'presenter-stage' : ''}`}
+        }`}
       />
 
       <ReactionsOverlay reactions={reactions} />
