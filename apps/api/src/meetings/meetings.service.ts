@@ -44,7 +44,7 @@ export class MeetingsService {
 
     if (!meeting) {
       console.error('[meeting] not found', { idOrCode });
-      throw new NotFoundException('Meeting not found');
+      throw new NotFoundException('Meeting not found or no longer available');
     }
 
     console.log('[meeting] found', {
@@ -159,26 +159,31 @@ export class MeetingsService {
     console.log('[meeting] public preview lookup', { idOrCode });
     const meeting = await this.resolveMeeting(idOrCode, {
       host: { select: { name: true, email: true } },
+      _count: {
+        select: {
+          participants: { where: { status: ParticipantStatus.ADMITTED } },
+        },
+      },
     });
 
     console.log('[meeting] public preview found', {
       id: meeting.id,
       meetingCode: meeting.meetingCode,
       status: meeting.status,
+      participantCount: meeting._count.participants,
     });
-
-    if (meeting.status === MeetingStatus.ENDED) {
-      throw new BadRequestException('This meeting has ended');
-    }
 
     return {
       id: meeting.id,
       title: meeting.title,
       meetingCode: meeting.meetingCode,
-      hostName: meeting.host.name || meeting.host.email,
+      hostName: meeting.host.name || meeting.host.email || 'Unknown host',
       status: meeting.status,
       startedAt: meeting.startedAt,
+      scheduledAt: meeting.scheduledAt,
+      participantCount: meeting._count.participants,
       hasPassword: !!meeting.password,
+      endedAt: meeting.endedAt,
     };
   }
 
