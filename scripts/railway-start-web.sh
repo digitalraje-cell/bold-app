@@ -11,4 +11,11 @@ else
 fi
 
 cd "$ROOT"
+
+echo "Applying database migrations..."
+if ! pnpm db:migrate:deploy; then
+  echo "migrate deploy failed; syncing schema with db push..."
+  pnpm db:push
+fi
+
 pnpm start:web

@@ -17,4 +17,10 @@ if [ ! -f "dist/main.js" ]; then
   exit 1
 fi
 
+echo "Applying database migrations..."
+if ! pnpm exec prisma migrate deploy; then
+  echo "migrate deploy failed; syncing schema with db push..."
+  pnpm exec prisma db push --skip-generate
+fi
+
 exec node dist/main.js
