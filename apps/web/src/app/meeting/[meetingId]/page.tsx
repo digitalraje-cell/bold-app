@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
+import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 
-export default function MeetingLobbyPage({ params }: { params: { meetingId: string } }) {
+export default function MeetingLobbyPage() {
+  const meetingId = useMeetingRouteId();
   const { data: session } = useSession();
   const router = useRouter();
   const [displayName, setDisplayName] = useState(session?.user?.name || '');
@@ -17,6 +19,11 @@ export default function MeetingLobbyPage({ params }: { params: { meetingId: stri
   const [error, setError] = useState('');
 
   async function handleJoin() {
+    if (!meetingId) {
+      setError('Invalid meeting link');
+      return;
+    }
+
     if (!displayName.trim()) {
       setError('Please enter your name');
       return;
@@ -26,20 +33,33 @@ export default function MeetingLobbyPage({ params }: { params: { meetingId: stri
     setError('');
 
     try {
-      const result = await api.meetings.join(params.meetingId, {
+      const result = await api.meetings.join(meetingId, {
         displayName: displayName.trim(),
         password: password || undefined,
       }) as { admitted: boolean };
 
       if (result.admitted) {
-        router.push(`/meeting/${params.meetingId}/room`);
+        router.push(`/meeting/${meetingId}/room`);
       } else {
-        router.push(`/meeting/${params.meetingId}/waiting`);
+        router.push(`/meeting/${meetingId}/waiting`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join meeting');
       setLoading(false);
     }
+  }
+
+  if (!meetingId) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          Invalid meeting link. Check the URL or return to your dashboard.
+        </div>
+        <Link href="/dashboard" className="mt-4 text-sm text-primary hover:underline">
+          Back to dashboard
+        </Link>
+      </div>
+    );
   }
 
   return (

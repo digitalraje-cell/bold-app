@@ -14,8 +14,10 @@ export default async function MeetingRoomPage({
   const { meetingId } = await params;
   const session = await auth();
 
-  const meeting = await prisma.meeting.findUnique({
-    where: { id: meetingId },
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      OR: [{ id: meetingId }, { meetingCode: meetingId.toLowerCase() }],
+    },
     select: {
       id: true,
       title: true,

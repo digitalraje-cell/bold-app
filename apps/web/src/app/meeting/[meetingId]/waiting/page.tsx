@@ -2,8 +2,11 @@
 
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 
-export default function WaitingRoomPage({ params }: { params: { meetingId: string } }) {
+export default function WaitingRoomPage() {
+  const meetingId = useMeetingRouteId();
+
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
@@ -14,12 +17,21 @@ export default function WaitingRoomPage({ params }: { params: { meetingId: strin
         <p className="mt-2 text-muted-foreground">
           The host will let you in shortly. Please wait...
         </p>
-        <Link
-          href={`/meeting/${params.meetingId}`}
-          className="mt-8 inline-block text-sm text-primary hover:underline"
-        >
-          Back to lobby
-        </Link>
+        {meetingId ? (
+          <Link
+            href={`/meeting/${meetingId}`}
+            className="mt-8 inline-block text-sm text-primary hover:underline"
+          >
+            Back to lobby
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard"
+            className="mt-8 inline-block text-sm text-primary hover:underline"
+          >
+            Back to dashboard
+          </Link>
+        )}
       </div>
     </div>
   );

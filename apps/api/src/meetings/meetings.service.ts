@@ -19,6 +19,12 @@ export class MeetingsService {
     private permissionsService: PermissionsService,
   ) {}
 
+  private meetingIdentifierWhere(idOrCode: string) {
+    return {
+      OR: [{ id: idOrCode }, { meetingCode: idOrCode.toLowerCase() }],
+    };
+  }
+
   async create(hostId: string, dto: CreateMeetingDto) {
     const host = await this.prisma.user.findUniqueOrThrow({
       where: { id: hostId },
@@ -110,9 +116,9 @@ export class MeetingsService {
     return meetings.map((m) => this.sanitizeMeeting(m));
   }
 
-  async findById(id: string, userId?: string) {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id },
+  async findById(idOrCode: string, userId?: string) {
+    const meeting = await this.prisma.meeting.findFirst({
+      where: this.meetingIdentifierWhere(idOrCode),
       include: {
         settings: true,
         host: { select: { id: true, name: true, email: true } },
@@ -168,15 +174,17 @@ export class MeetingsService {
     };
   }
 
-  async join(meetingId: string, userId: string | null, dto: JoinMeetingDto) {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id: meetingId },
+  async join(idOrCode: string, userId: string | null, dto: JoinMeetingDto) {
+    const meeting = await this.prisma.meeting.findFirst({
+      where: this.meetingIdentifierWhere(idOrCode),
       include: { settings: true },
     });
 
     if (!meeting) {
       throw new NotFoundException('Meeting not found');
     }
+
+    const meetingId = meeting.id;
 
     if (meeting.status === MeetingStatus.ENDED) {
       throw new BadRequestException('This meeting has ended');
