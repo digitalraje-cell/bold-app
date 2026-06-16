@@ -1,13 +1,24 @@
 import { Resend } from 'resend';
 import { APP_CONFIG } from '@boldmeet/shared';
 
-const OTP_EMAIL_FROM = 'onboarding@resend.dev';
+const DEV_OTP_EMAIL_FROM = 'onboarding@resend.dev';
 const OTP_EMAIL_SUBJECT = 'Your BoldMeet Verification Code';
 
 /** Read env at request time — bracket access avoids Next.js build-time inlining. */
 function runtimeEnv(key: string): string | undefined {
   const value = process.env[key];
   return value?.trim() ? value.trim() : undefined;
+}
+
+function getOtpEmailFrom(): string {
+  const from = runtimeEnv('EMAIL_FROM');
+  if (from) {
+    return from;
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    return DEV_OTP_EMAIL_FROM;
+  }
+  throw new Error('EMAIL_FROM missing at runtime — check Railway env on web service');
 }
 
 function getOtpExpiryMinutes(): number {
@@ -88,11 +99,12 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
   const apiKey = runtimeEnv('RESEND_API_KEY');
   const otpExpiryMinutes = getOtpExpiryMinutes();
   const hasApiKey = Boolean(apiKey);
+  const from = getOtpEmailFrom();
 
   console.log('[otp-email] resend config', {
     email,
     hasApiKey,
-    from: OTP_EMAIL_FROM,
+    from,
     nodeEnv: process.env.NODE_ENV,
   });
 
@@ -110,7 +122,7 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
 
   try {
     const result = await resend.emails.send({
-      from: OTP_EMAIL_FROM,
+      from,
       to: email,
       subject: OTP_EMAIL_SUBJECT,
       html: buildOtpEmailHtml(code, otpExpiryMinutes),

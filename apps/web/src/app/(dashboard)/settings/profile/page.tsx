@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { AppShell } from '@/components/layout/AppShell';
 import { redirect } from 'next/navigation';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export default async function ProfileSettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');

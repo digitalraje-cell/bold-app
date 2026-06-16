@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { redirect, notFound } from 'next/navigation';
 import { MeetingRoom } from '@/components/meeting/MeetingRoom';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export default async function MeetingRoomPage({
   params,
 }: {

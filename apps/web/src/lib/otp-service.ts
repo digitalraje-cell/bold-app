@@ -5,11 +5,18 @@ import { getOtpExpiryDate, sendOtpEmail } from './email';
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
 
+function logOtpRuntime(): void {
+  if (process.env.NEXT_RUNTIME !== 'edge') {
+    console.log('[otp] runtime = nodejs');
+  }
+}
+
 export type OtpResult =
   | { ok: true; message: string }
   | { ok: false; error: string; status?: number };
 
 export async function sendVerificationOtp(email: string): Promise<OtpResult> {
+  logOtpRuntime();
   const normalizedEmail = email.toLowerCase().trim();
   console.log('[otp] sendVerificationOtp started', { email: normalizedEmail });
 
@@ -79,6 +86,7 @@ export async function sendVerificationOtp(email: string): Promise<OtpResult> {
 }
 
 export async function verifyOtpCode(email: string, code: string): Promise<OtpResult> {
+  logOtpRuntime();
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedCode = String(code || '').trim();
 

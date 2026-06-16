@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
+if (process.env.NEXT_RUNTIME === 'edge') {
+  throw new Error('Prisma Client cannot be used on Edge runtime');
+}
+
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 export const prisma =

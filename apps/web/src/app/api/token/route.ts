@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 import { auth } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 function resolveJwtSecret(): Uint8Array | null {
   const secret =
     process.env.JWT_SECRET ||

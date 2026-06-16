@@ -1,4 +1,9 @@
 declare module 'next-auth' {
+  interface User {
+    isVerified?: boolean;
+    subscriptionPlan?: string;
+  }
+
   interface Session {
     user: {
       id: string;

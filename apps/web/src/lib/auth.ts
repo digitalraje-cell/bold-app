@@ -3,7 +3,12 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
+import { authConfig } from './auth.config';
 import { prisma } from './prisma';
+
+if (process.env.NEXT_RUNTIME !== 'edge') {
+  console.log('[auth] runtime = nodejs');
+}
 
 function resolveAuthSecret(): string | undefined {
   return (
@@ -59,6 +64,8 @@ const providers: NextAuthConfig['providers'] = [
           email: user.email,
           name: user.name,
           image: user.avatarUrl,
+          isVerified: user.isVerified,
+          subscriptionPlan: user.subscriptionPlan,
         };
       } catch (error) {
         console.error('[auth] Credentials authorize failed:', error);
@@ -78,13 +85,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   secret: authSecret,
-  session: { strategy: 'jwt' },
-  trustHost: true,
-  pages: {
-    signIn: '/login',
-  },
   providers,
   events: {
     async signIn({ user, account }) {
@@ -105,13 +108,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {
-      if (user?.id) {
-        token.id = user.id;
-      }
+      token = authConfig.callbacks!.jwt!({ token, user, trigger, session });
 
-      if (trigger === 'update' && (session as { isVerified?: boolean })?.isVerified) {
-        token.isVerified = true;
+      if (process.env.NEXT_RUNTIME === 'edge') {
+        return token;
       }
 
       if (token.id) {
@@ -138,14 +140,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-        session.user.isVerified = Boolean(token.isVerified);
-        session.user.subscriptionPlan = (token.subscriptionPlan as string) || 'FREE';
-      }
-      return session;
     },
   },
 });

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const hasSecret = Boolean(
     process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
