@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
 import { getMeetingInviteUrl } from '@/lib/urls';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { CopyButton } from './CopyButton';
 
 export type MeetingSectionIcon = 'radio' | 'calendar' | 'history';
@@ -21,12 +23,14 @@ interface MeetingCardProps {
     title: string;
     meetingCode: string;
     status: string;
+    hostId?: string;
     scheduledAt?: string | Date | null;
     startedAt?: string | Date | null;
     endedAt?: string | Date | null;
     host?: { name: string | null; email: string | null };
     _count?: { participants: number };
   };
+  currentUserId?: string;
 }
 
 const statusConfig = {
@@ -40,12 +44,41 @@ function hostLabel(host?: MeetingCardProps['meeting']['host']): string {
   return host.name || host.email || 'Unknown host';
 }
 
-export function MeetingCard({ meeting }: MeetingCardProps) {
+export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
+  const router = useRouter();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const status = statusConfig[meeting.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
   const date = meeting.scheduledAt || meeting.startedAt || meeting.endedAt;
   const inviteLink = getMeetingInviteUrl(meeting.id);
   const isJoinable = meeting.status === 'LIVE' || meeting.status === 'SCHEDULED';
+  const isLive = meeting.status === 'LIVE';
+  const isHost = Boolean(currentUserId && meeting.hostId === currentUserId);
+
+  const handleEndMeeting = async () => {
+    if (!window.confirm('End this meeting for everyone?')) return;
+    setActionLoading(true);
+    try {
+      await api.meetings.end(meeting.id);
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to end meeting');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeaveMeeting = async () => {
+    setActionLoading(true);
+    try {
+      await api.meetings.leave(meeting.id);
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to leave meeting');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 transition hover:border-primary/30">
@@ -67,7 +100,7 @@ export function MeetingCard({ meeting }: MeetingCardProps) {
           {meeting._count && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Users className="h-3.5 w-3.5" />
-              {meeting._count.participants} participants
+              {meeting._count.participants} participant{meeting._count.participants !== 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -75,14 +108,42 @@ export function MeetingCard({ meeting }: MeetingCardProps) {
         <div className="flex shrink-0 flex-col gap-2">
           {isJoinable ? (
             <>
-              <Link
-                href={`/meeting/${meeting.id}`}
-                className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
-              >
-                {meeting.status === 'LIVE' ? 'Join' : 'Start'}
-              </Link>
-              {meeting.status === 'LIVE' && (
-                <CopyButton text={inviteLink} label="Copy Invite Link" className="w-full" />
+              {isLive && isHost && (
+                <>
+                  <Link
+                    href={`/meeting/${meeting.id}`}
+                    className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    Join
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleEndMeeting}
+                    disabled={actionLoading}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    End Meeting
+                  </button>
+                  <CopyButton text={inviteLink} label="Copy Invite Link" className="w-full" />
+                </>
+              )}
+              {isLive && !isHost && (
+                <button
+                  type="button"
+                  onClick={handleLeaveMeeting}
+                  disabled={actionLoading}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  Leave Meeting
+                </button>
+              )}
+              {!isLive && (
+                <Link
+                  href={`/meeting/${meeting.id}`}
+                  className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  Start
+                </Link>
               )}
               <button
                 type="button"
@@ -149,11 +210,13 @@ export function MeetingListSection({
   icon,
   meetings,
   emptyMessage,
+  currentUserId,
 }: {
   title: string;
   icon: MeetingSectionIcon;
   meetings: MeetingCardProps['meeting'][];
   emptyMessage: string;
+  currentUserId?: string;
 }) {
   const Icon = sectionIcons[icon];
 
@@ -168,7 +231,7 @@ export function MeetingListSection({
       ) : (
         <div className="space-y-3">
           {meetings.map((meeting) => (
-            <MeetingCard key={meeting.id} meeting={meeting} />
+            <MeetingCard key={meeting.id} meeting={meeting} currentUserId={currentUserId} />
           ))}
         </div>
       )}

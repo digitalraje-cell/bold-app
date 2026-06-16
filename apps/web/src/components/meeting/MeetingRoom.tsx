@@ -14,6 +14,7 @@ import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
 import { InviteModal } from '@/components/meeting/InviteModal';
+import { HostLeaveModal } from '@/components/meeting/HostLeaveModal';
 import { RoomModeSwitcher } from '@/components/meeting/RoomModeSwitcher';
 import { WebinarModeBanner } from '@/components/meeting/WebinarModeBanner';
 import {
@@ -21,15 +22,17 @@ import {
   MeetingGraceWarning,
 } from '@/components/meeting/MeetingDurationModal';
 import { useMeetingDuration } from '@/hooks/useMeetingDuration';
+import { api } from '@/lib/api';
 
 interface MeetingRoomProps {
   meetingId: string;
   jitsiRoom: string;
   title: string;
   isHost: boolean;
+  displayName?: string;
 }
 
-export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoomProps) {
+export function MeetingRoom({ meetingId, jitsiRoom, title, isHost, displayName: displayNameProp }: MeetingRoomProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -41,10 +44,13 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
   const [handRaised, setHandRaised] = useState(false);
   const [reactions, setReactions] = useState<{ id: string; reaction: string }[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [hostLeaveOpen, setHostLeaveOpen] = useState(false);
+  const [leaveLoading, setLeaveLoading] = useState(false);
   const [modeSwitching, setModeSwitching] = useState(false);
 
-  const displayName = session?.user?.name || 'Guest';
+  const displayName = displayNameProp || session?.user?.name || session?.user?.email || 'Guest';
   const hangupRef = useRef<(() => void) | null>(null);
+  const meetingEndedRef = useRef(false);
 
   const {
     roomMode,
@@ -63,15 +69,18 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
   const canCamera = canUseCameraInRoom(myParticipant, roomMode);
   const canChat = canSendChatInRoom(myParticipant, roomMode, chatMode, chatEnabled);
 
-  const handleLeave = useCallback(() => {
-    router.push('/dashboard');
+  const handleLeave = useCallback((message?: string) => {
+    if (meetingEndedRef.current) return;
+    meetingEndedRef.current = true;
+    hangupRef.current?.();
+    router.push(message ? `/dashboard?message=${encodeURIComponent(message)}` : '/dashboard');
   }, [router]);
 
   const { toggleAudio, toggleVideo, toggleShareScreen, hangup } = useJitsi({
     roomName: jitsiRoom,
     displayName,
     containerRef,
-    onLeave: handleLeave,
+    onLeave: () => handleLeave(),
   });
 
   hangupRef.current = hangup;
@@ -88,12 +97,44 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
     durationState,
   } = useMeetingDuration(meetingId, handleDurationExpired);
 
-  const handleLeaveMeeting = useCallback(() => {
-    hangupRef.current?.();
-    handleLeave();
-  }, [handleLeave]);
+  const handleLeaveMeeting = useCallback(async () => {
+    setLeaveLoading(true);
+    try {
+      await api.meetings.leave(meetingId);
+    } catch {
+      // Still leave the call if the API fails
+    } finally {
+      setLeaveLoading(false);
+      setHostLeaveOpen(false);
+      handleLeave();
+    }
+  }, [meetingId, handleLeave]);
 
-  const { emit } = useSocket(meetingId);
+  const handleEndMeetingForAll = useCallback(async () => {
+    setLeaveLoading(true);
+    try {
+      await api.meetings.end(meetingId);
+    } catch {
+      // Still leave the call if the API fails
+    } finally {
+      setLeaveLoading(false);
+      setHostLeaveOpen(false);
+      handleLeave();
+    }
+  }, [meetingId, handleLeave]);
+
+  const { emit, on } = useSocket(meetingId);
+
+  useEffect(() => {
+    const unsubEnded = on('meeting:ended', (data: unknown) => {
+      const { message } = data as { message?: string };
+      handleLeave(message || 'Meeting ended by host');
+    });
+
+    return () => {
+      unsubEnded?.();
+    };
+  }, [on, handleLeave]);
 
   useEffect(() => {
     if (roomMode === RoomMode.WEBINAR && myParticipant && !canMic && !isMuted) {
@@ -236,13 +277,15 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
           onToggleFullscreen={handleToggleFullscreen}
           onInvite={isHost ? () => setInviteOpen(true) : undefined}
           onLeave={() => {
-            hangup();
-            handleLeave();
+            if (isHost) {
+              setHostLeaveOpen(true);
+              return;
+            }
+            void handleLeaveMeeting();
           }}
           isHost={isHost}
           onEndMeeting={() => {
-            hangup();
-            handleLeave();
+            void handleEndMeetingForAll();
           }}
         />
       </div>
@@ -259,6 +302,14 @@ export function MeetingRoom({ meetingId, jitsiRoom, title, isHost }: MeetingRoom
         meetingId={meetingId}
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
+      />
+
+      <HostLeaveModal
+        open={hostLeaveOpen}
+        onClose={() => setHostLeaveOpen(false)}
+        onLeave={() => void handleLeaveMeeting()}
+        onEndForAll={() => void handleEndMeetingForAll()}
+        loading={leaveLoading}
       />
     </FullscreenWrapper>
   );

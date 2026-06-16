@@ -1,7 +1,8 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { MeetingRoom } from '@/components/meeting/MeetingRoom';
+import { GuestRoomGate } from '@/components/meeting/GuestRoomGate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,16 +32,25 @@ export default async function MeetingRoomPage({
     notFound();
   }
 
-  if (!session?.user) {
-    redirect(`/meeting/${meetingId}`);
+  const isHost = session?.user?.id === meeting.hostId;
+
+  if (session?.user) {
+    return (
+      <MeetingRoom
+        meetingId={meeting.id}
+        jitsiRoom={meeting.jitsiRoom}
+        title={meeting.title}
+        isHost={isHost}
+        displayName={session.user.name || session.user.email || 'Guest'}
+      />
+    );
   }
 
   return (
-    <MeetingRoom
+    <GuestRoomGate
       meetingId={meeting.id}
       jitsiRoom={meeting.jitsiRoom}
       title={meeting.title}
-      isHost={session.user.id === meeting.hostId}
     />
   );
 }

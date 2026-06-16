@@ -49,11 +49,19 @@ export default function MeetingLobbyPage() {
       .getPublic(meetingId)
       .then((data) => {
         if (!cancelled) {
+          console.log('[meeting-lobby] public preview loaded', {
+            meetingId,
+            title: (data as PublicMeeting).title,
+          });
           setMeeting(data as PublicMeeting);
         }
       })
       .catch((err) => {
         if (!cancelled) {
+          console.error('[meeting-lobby] public preview failed', {
+            meetingId,
+            error: err instanceof Error ? err.message : err,
+          });
           setMeeting(null);
           setError(err instanceof Error ? err.message : 'Meeting not found');
         }
@@ -84,6 +92,7 @@ export default function MeetingLobbyPage() {
     setError('');
 
     try {
+      console.log('[meeting-lobby] join clicked', { meetingId, displayName: displayName.trim() });
       const path = await joinMeetingAndGetPath(
         meetingId,
         displayName.trim(),
@@ -91,6 +100,10 @@ export default function MeetingLobbyPage() {
       );
       router.push(path);
     } catch (err) {
+      console.error('[meeting-lobby] join failed', {
+        meetingId,
+        error: err instanceof Error ? err.message : err,
+      });
       setError(err instanceof Error ? err.message : 'Failed to join meeting');
       setLoading(false);
     }

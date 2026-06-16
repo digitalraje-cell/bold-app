@@ -11,6 +11,7 @@ import {
 import { Request } from 'express';
 import { RoomMode, ChatMode } from '@prisma/client';
 import { AuthGuard, AuthUser } from '../auth/auth.guard';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 import { RoomService } from './room.service';
 
 @Controller('meetings/:meetingId/room')
@@ -18,7 +19,7 @@ export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   @Get()
-  @UseGuards(AuthGuard)
+  @UseGuards(OptionalAuthGuard)
   getState(@Param('meetingId') meetingId: string) {
     return this.roomService.getRoomState(meetingId);
   }

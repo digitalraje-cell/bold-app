@@ -9,6 +9,7 @@ import { Meeting, MeetingStatus, ParticipantRole, ParticipantStatus, Prisma } fr
 import { generateMeetingCode, getWebinarParticipantDefaults, getMeetingParticipantDefaults, isStageVisibleRole } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
+import { MeetingGateway } from '../gateway/meeting.gateway';
 import { encryptText, decryptText } from '../common/crypto.util';
 import { CreateMeetingDto, JoinMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
 
@@ -17,6 +18,7 @@ export class MeetingsService {
   constructor(
     private prisma: PrismaService,
     private permissionsService: PermissionsService,
+    private gateway: MeetingGateway,
   ) {}
 
   private meetingIdentifierWhere(idOrCode: string) {
@@ -154,8 +156,15 @@ export class MeetingsService {
   }
 
   async findPublic(idOrCode: string) {
+    console.log('[meeting] public preview lookup', { idOrCode });
     const meeting = await this.resolveMeeting(idOrCode, {
       host: { select: { name: true, email: true } },
+    });
+
+    console.log('[meeting] public preview found', {
+      id: meeting.id,
+      meetingCode: meeting.meetingCode,
+      status: meeting.status,
     });
 
     if (meeting.status === MeetingStatus.ENDED) {
@@ -226,11 +235,22 @@ export class MeetingsService {
   }
 
   async join(idOrCode: string, userId: string | null, dto: JoinMeetingDto) {
+    console.log('[meeting] join lookup start', { idOrCode, userId });
+
     const meeting = await this.resolveMeeting(idOrCode, { settings: true });
+
+    console.log('[meeting] join lookup result', {
+      id: meeting.id,
+      meetingCode: meeting.meetingCode,
+      status: meeting.status,
+      isLocked: meeting.isLocked,
+      hostId: meeting.hostId,
+    });
 
     const meetingId = meeting.id;
 
     if (meeting.status === MeetingStatus.ENDED) {
+      console.warn('[meeting] join rejected: ended', { meetingId });
       throw new BadRequestException('This meeting has ended');
     }
 
@@ -312,6 +332,14 @@ export class MeetingsService {
       });
     }
 
+    console.log('[meeting] join success', {
+      meetingId,
+      participantId: participant.id,
+      status: participant.status,
+      admitted: participant.status === ParticipantStatus.ADMITTED,
+      userId,
+    });
+
     return {
       meeting: this.sanitizeMeeting(meeting, isHost),
       participant,
@@ -343,15 +371,62 @@ export class MeetingsService {
     });
   }
 
-  async endMeeting(meetingId: string, hostId: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
-    if (!meeting) throw new NotFoundException('Meeting not found');
-    if (meeting.hostId !== hostId) throw new ForbiddenException('Only the host can end the meeting');
+  async endMeeting(idOrCode: string, hostId: string) {
+    const meeting = await this.resolveMeeting(idOrCode);
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Only the host can end the meeting');
+    }
+    if (meeting.status === MeetingStatus.ENDED) {
+      return meeting;
+    }
 
-    return this.prisma.meeting.update({
-      where: { id: meetingId },
-      data: { status: MeetingStatus.ENDED, endedAt: new Date(), isLocked: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.participant.updateMany({
+        where: {
+          meetingId: meeting.id,
+          status: { in: [ParticipantStatus.ADMITTED, ParticipantStatus.WAITING] },
+        },
+        data: { status: ParticipantStatus.LEFT, leftAt: new Date() },
+      });
+
+      return tx.meeting.update({
+        where: { id: meeting.id },
+        data: { status: MeetingStatus.ENDED, endedAt: new Date(), isLocked: true },
+      });
     });
+
+    this.gateway.broadcastMeetingEnded(meeting.id, 'Meeting ended by host');
+
+    return updated;
+  }
+
+  async leaveMeeting(idOrCode: string, userId: string) {
+    const meeting = await this.resolveMeeting(idOrCode);
+
+    if (meeting.status === MeetingStatus.ENDED) {
+      return { success: true };
+    }
+
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        meetingId: meeting.id,
+        userId,
+        status: { in: [ParticipantStatus.ADMITTED, ParticipantStatus.WAITING] },
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('You are not in this meeting');
+    }
+
+    await this.prisma.participant.update({
+      where: { id: participant.id },
+      data: { status: ParticipantStatus.LEFT, leftAt: new Date() },
+    });
+
+    this.gateway.broadcastParticipantLeft(meeting.id, participant.id);
+
+    return { success: true };
   }
 
   async getDurationStatus(meetingId: string) {

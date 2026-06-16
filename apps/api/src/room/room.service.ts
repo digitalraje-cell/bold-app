@@ -37,7 +37,7 @@ export class RoomService {
       include: {
         settings: true,
         participants: {
-          where: { status: { not: ParticipantStatus.REMOVED } },
+          where: { status: ParticipantStatus.ADMITTED },
           orderBy: { joinedAt: 'asc' },
         },
       },

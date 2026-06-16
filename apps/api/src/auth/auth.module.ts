@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from './auth.guard';
+import { OptionalAuthGuard } from './optional-auth.guard';
 import { VerifiedGuard } from './verified.guard';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -15,7 +16,7 @@ import { PrismaModule } from '../prisma/prisma.module';
         'bold-dev-jwt-secret-change-in-production',
     }),
   ],
-  providers: [AuthGuard, VerifiedGuard],
-  exports: [AuthGuard, VerifiedGuard, JwtModule],
+  providers: [AuthGuard, OptionalAuthGuard, VerifiedGuard],
+  exports: [AuthGuard, OptionalAuthGuard, VerifiedGuard, JwtModule],
 })
 export class AuthModule {}

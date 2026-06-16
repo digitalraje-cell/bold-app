@@ -1,10 +1,56 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 async function getAuthToken(): Promise<string | null> {
   const res = await fetch('/api/token');
   if (!res.ok) return null;
   const data = await res.json();
   return data.token;
+}
+
+type ApiErrorBody = {
+  message?: string | string[];
+  error?: string;
+  statusCode?: number;
+};
+
+function formatApiError(body: ApiErrorBody | null, status: number, rawBody: string): string {
+  if (body?.message) {
+    if (Array.isArray(body.message)) {
+      return body.message.join(', ');
+    }
+    if (typeof body.message === 'string' && body.message.trim()) {
+      return body.message;
+    }
+  }
+
+  if (body?.error && typeof body.error === 'string') {
+    return body.error;
+  }
+
+  if (rawBody.trim()) {
+    const trimmed = rawBody.trim().slice(0, 300);
+    if (!trimmed.startsWith('<!DOCTYPE') && !trimmed.startsWith('<html')) {
+      return trimmed;
+    }
+  }
+
+  return `API error ${status}`;
+}
+
+async function parseErrorResponse(res: Response): Promise<{ message: string; rawBody: string }> {
+  const rawBody = await res.text();
+  let body: ApiErrorBody | null = null;
+
+  try {
+    body = rawBody ? (JSON.parse(rawBody) as ApiErrorBody) : null;
+  } catch {
+    body = null;
+  }
+
+  return {
+    message: formatApiError(body, res.status, rawBody),
+    rawBody,
+  };
 }
 
 async function apiFetch<T>(
@@ -24,14 +70,33 @@ async function apiFetch<T>(
     }
   }
 
-  const res = await fetch(`${API_URL}/api${path}`, {
-    ...options,
-    headers,
-  });
+  const url = `${getApiBaseUrl()}${path}`;
+  const method = options.method || 'GET';
+
+  console.log('[api]', method, url, auth ? '(auth optional)' : '(public)');
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Network request failed';
+    console.error('[api] network error', { method, url, message });
+    throw new Error(`Network error calling ${method} ${path}: ${message}`);
+  }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `API error: ${res.status}`);
+    const { message, rawBody } = await parseErrorResponse(res);
+    console.error('[api] request failed', {
+      method,
+      url,
+      status: res.status,
+      message,
+      body: rawBody.slice(0, 500),
+    });
+    throw new Error(message);
   }
 
   return res.json();
@@ -51,7 +116,7 @@ export const api = {
       apiFetch(`/meetings/${id}/join`, {
         method: 'POST',
         body: JSON.stringify(data),
-      }, false),
+      }),
     joinByCode: (data: { meetingCode: string; displayName: string; password?: string }) =>
       apiFetch('/meetings/join-by-code', {
         method: 'POST',
@@ -59,6 +124,7 @@ export const api = {
       }, false),
     findByCode: (code: string) => apiFetch(`/meetings/code/${code}`, {}, false),
     end: (id: string) => apiFetch(`/meetings/${id}/end`, { method: 'POST' }),
+    leave: (id: string) => apiFetch(`/meetings/${id}/leave`, { method: 'POST' }),
     updateSettings: (id: string, settings: Record<string, unknown>) =>
       apiFetch(`/meetings/${id}/settings`, {
         method: 'PATCH',
@@ -72,7 +138,7 @@ export const api = {
     list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/participants`),
   },
   room: {
-    get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`),
+    get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`, {}, false),
     switchMode: (meetingId: string, roomMode: string) =>
       apiFetch(`/meetings/${meetingId}/room/mode`, {
         method: 'PATCH',

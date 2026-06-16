@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { MeetingStatus } from '@prisma/client';
 import { AuthGuard, AuthUser } from '../auth/auth.guard';
+import { OptionalAuthGuard } from '../auth/optional-auth.guard';
 import { VerifiedGuard } from '../auth/verified.guard';
 import { MeetingsService } from './meetings.service';
 import {
@@ -68,11 +69,18 @@ export class MeetingsController {
   }
 
   @Post(':id/join')
+  @UseGuards(OptionalAuthGuard)
   join(
     @Param('id') id: string,
     @Body() dto: JoinMeetingDto,
     @Req() req: Request & { user?: AuthUser },
   ) {
+    console.log('[meeting] join request', {
+      idOrCode: id,
+      displayName: dto.displayName,
+      hasPassword: Boolean(dto.password),
+      userId: req.user?.id ?? null,
+    });
     return this.meetingsService.join(id, req.user?.id ?? null, dto);
   }
 
@@ -109,5 +117,11 @@ export class MeetingsController {
   @UseGuards(AuthGuard)
   endMeeting(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
     return this.meetingsService.endMeeting(id, req.user.id);
+  }
+
+  @Post(':id/leave')
+  @UseGuards(AuthGuard)
+  leaveMeeting(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+    return this.meetingsService.leaveMeeting(id, req.user.id);
   }
 }

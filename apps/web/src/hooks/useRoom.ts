@@ -19,6 +19,7 @@ export function useRoom(meetingId: string, isHost: boolean) {
     setParticipants,
     setMyParticipantId,
     updateParticipant,
+    removeParticipant,
     reset,
   } = useRoomStore();
 
@@ -95,12 +96,18 @@ export function useRoom(meetingId: string, isHost: boolean) {
       setChatMode(mode, enabled);
     });
 
+    const unsubLeft = on('participant:left', (data: unknown) => {
+      const { participantId } = data as { participantId: string };
+      removeParticipant(participantId);
+    });
+
     return () => {
       unsubMode?.();
       unsubStage?.();
       unsubChat?.();
+      unsubLeft?.();
     };
-  }, [on, setRoomMode, setChatMode, updateParticipant]);
+  }, [on, setRoomMode, setChatMode, updateParticipant, removeParticipant]);
 
   const switchRoomMode = useCallback(
     async (mode: RoomMode) => {

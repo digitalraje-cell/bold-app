@@ -13,6 +13,7 @@ import {
   Maximize,
   PhoneOff,
   UserPlus,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -130,16 +131,15 @@ export function ControlsBar({
 
         <div className="mx-2 h-8 w-px bg-white/20" />
 
-        {isHost ? (
+        {isHost && onEndMeeting && (
           <ControlButton
             icon={PhoneOff}
-            label="End meeting"
+            label="End meeting for all"
             danger
-            onClick={onEndMeeting || onLeave}
+            onClick={onEndMeeting}
           />
-        ) : (
-          <ControlButton icon={PhoneOff} label="Leave meeting" danger onClick={onLeave} />
         )}
+        <ControlButton icon={LogOut} label="Leave meeting" danger onClick={onLeave} />
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ interface RoomStore {
   setParticipants: (participants: RoomParticipant[]) => void;
   setMyParticipantId: (id: string | null) => void;
   updateParticipant: (id: string, patch: Partial<RoomParticipant>) => void;
+  removeParticipant: (id: string) => void;
   reset: () => void;
 }
 
@@ -53,6 +54,10 @@ export const useRoomStore = create<RoomStore>((set) => ({
       participants: s.participants.map((p) =>
         p.id === id ? { ...p, ...patch } : p,
       ),
+    })),
+  removeParticipant: (id) =>
+    set((s) => ({
+      participants: s.participants.filter((p) => p.id !== id),
     })),
   reset: () => set(initialState),
 }));

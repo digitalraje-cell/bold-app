@@ -128,4 +128,12 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   broadcastChatModeChanged(meetingId: string, chatMode: string, chatEnabled: boolean) {
     this.server.to(meetingId).emit('chat:mode-changed', { chatMode, chatEnabled });
   }
+
+  broadcastMeetingEnded(meetingId: string, message: string) {
+    this.server.to(meetingId).emit('meeting:ended', { meetingId, message });
+  }
+
+  broadcastParticipantLeft(meetingId: string, participantId: string) {
+    this.server.to(meetingId).emit('participant:left', { meetingId, participantId });
+  }
 }
