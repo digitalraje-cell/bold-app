@@ -11,7 +11,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { appConfig } from '@/lib/app-config';
 
@@ -25,6 +25,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isActive = (href: string) => mounted && pathname.startsWith(href);
 
   return (
     <div className="flex min-h-full">
@@ -61,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href={href}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                pathname.startsWith(href)
+                isActive(href)
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
@@ -73,9 +80,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t border-border p-4">
-          <div className="mb-3 truncate px-3 text-sm">
-            <p className="font-medium">{session?.user?.name}</p>
-            <p className="truncate text-muted-foreground">{session?.user?.email}</p>
+          <div className="mb-3 truncate px-3 text-sm" suppressHydrationWarning>
+            <p className="font-medium">{mounted ? session?.user?.name : null}</p>
+            <p className="truncate text-muted-foreground">
+              {mounted ? session?.user?.email : null}
+            </p>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}

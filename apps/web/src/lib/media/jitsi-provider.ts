@@ -46,6 +46,9 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
   buildEmbedOptions(config: MeetingMediaSessionConfig): MeetingMediaEmbedOptions {
     const domain = getJitsiDomain();
     const allowDesktopSharing = config.allowDesktopSharing !== false;
+    const startWithAudioMuted = config.startAudioMuted ?? false;
+    const startWithVideoMuted = config.startVideoMuted ?? false;
+    const startSilent = startWithAudioMuted && startWithVideoMuted;
 
     return {
       domain,
@@ -53,9 +56,11 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
       displayName: config.displayName,
       userInfo: { displayName: config.displayName },
       configOverwrite: {
-        startWithAudioMuted: config.startAudioMuted ?? false,
-        startWithVideoMuted: config.startVideoMuted ?? false,
+        startWithAudioMuted,
+        startWithVideoMuted,
+        startSilent,
         prejoinPageEnabled: false,
+        prejoinConfig: { enabled: false },
         requireDisplayName: false,
         enableWelcomePage: false,
         enableClosePage: false,
@@ -76,16 +81,32 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
         disableThirdPartyRequests: true,
         disableModeratorIndicator: true,
         enableEmailInStats: false,
+        enablePromotions: false,
+        disablePolls: true,
+        disableReactions: true,
         subject: 'Bold Meeting',
         defaultLogoUrl: 'data:',
         toolbarButtons: [],
         notifications: [],
         disableDesktopSharing: !allowDesktopSharing,
-        // Presenter layout: shared screen on stage, speaker tiles in filmstrip
         disableStageFilmstrip: false,
         disableTileView: false,
         disableResponsiveTiles: false,
-        // Chrome / Edge / Safari: browser picker supports screen, window, and tab
+        disableFilmstrip: false,
+        disableSelfView: false,
+        disableSelfViewSettings: true,
+        channelLastN: -1,
+        enableLayerSuspension: true,
+        enableTalkWhileMuted: false,
+        enableNoisyMicDetection: true,
+        p2p: { enabled: false },
+        constraints: {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        },
         desktopSharingSources: ['screen', 'window', 'tab'],
       },
       interfaceConfigOverwrite: {
@@ -105,12 +126,16 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
         DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
         AUTHENTICATION_ENABLE: false,
         DISPLAY_WELCOME_PAGE_CONTENT: false,
-        FILM_STRIP_MAX_HEIGHT: 120,
+        FILM_STRIP_MAX_HEIGHT: 140,
+        TILE_VIEW_MAX_COLUMNS: 5,
+        VIDEO_LAYOUT_FIT: 'both',
         VERTICAL_FILMSTRIP: false,
         DEFAULT_BACKGROUND: '#0f172a',
         JITSI_WATERMARK_LINK: '',
         CLOSE_PAGE_GUEST_HINT: false,
         GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
+        DISABLE_FOCUS_INDICATOR: false,
+        DISABLE_DOMINANT_SPEAKER_INDICATOR: false,
       },
     };
   },

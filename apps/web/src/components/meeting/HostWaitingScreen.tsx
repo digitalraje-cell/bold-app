@@ -10,7 +10,7 @@ interface HostWaitingScreenProps {
 
 export function HostWaitingScreen({ meetingId, title }: HostWaitingScreenProps) {
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950 px-6 text-center">
+    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950 px-6 text-center">
       <Loader2 className="mb-6 h-12 w-12 animate-spin text-primary" />
       <h2 className="text-xl font-semibold text-white">Waiting for host to start meeting</h2>
       <p className="mt-2 max-w-sm text-sm text-white/60">

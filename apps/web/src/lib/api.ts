@@ -156,6 +156,10 @@ export const api = {
       apiFetch(`/meetings/${meetingId}/participants/${participantId}/make-cohost`, {
         method: 'POST',
       }),
+    removeCoHost: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/participants/${participantId}/remove-cohost`, {
+        method: 'POST',
+      }),
     transferHost: (meetingId: string, participantId: string) =>
       apiFetch(`/meetings/${meetingId}/participants/${participantId}/transfer-host`, {
         method: 'POST',

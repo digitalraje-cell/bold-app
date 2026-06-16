@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
+import { saveJoinMediaPrefs } from '@/lib/join-media-prefs';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 import { cn } from '@/lib/utils';
 
@@ -107,6 +108,9 @@ export function MeetingLobby({
   const [previewLoading, setPreviewLoading] = useState(!hasServerPreview);
   const [previewError, setPreviewError] = useState(initialPreviewError || '');
   const [joinError, setJoinError] = useState('');
+  const [joined, setJoined] = useState(false);
+  const [joinWithMic, setJoinWithMic] = useState(true);
+  const [joinWithCamera, setJoinWithCamera] = useState(true);
   const [meeting, setMeeting] = useState<PublicMeetingPreview | null>(initialPreview);
 
   useEffect(() => {
@@ -183,12 +187,22 @@ export function MeetingLobby({
     setJoinError('');
 
     try {
-      console.log('[meeting-lobby] join clicked', { meetingId, displayName: displayName.trim() });
+      saveJoinMediaPrefs({
+        startWithAudio: joinWithMic,
+        startWithVideo: joinWithCamera,
+      });
+      console.log('[meeting-lobby] join clicked', {
+        meetingId,
+        displayName: displayName.trim(),
+        joinWithMic,
+        joinWithCamera,
+      });
       const path = await joinMeetingAndGetPath(
         meetingId,
         displayName.trim(),
         password || undefined,
       );
+      setJoined(true);
       router.push(path);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to join meeting';
@@ -294,7 +308,7 @@ export function MeetingLobby({
           </div>
         )}
 
-        {canJoin && (
+        {canJoin && !joined && (
           <>
             <Input
               label="Your name"
@@ -314,16 +328,49 @@ export function MeetingLobby({
               />
             )}
 
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setJoinWithMic((v) => !v)}
+                className={cn(
+                  'rounded-xl border px-3 py-3 text-sm font-medium transition',
+                  joinWithMic
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-muted/30 text-muted-foreground',
+                )}
+              >
+                {joinWithMic ? 'Mic on' : 'Mic off'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setJoinWithCamera((v) => !v)}
+                className={cn(
+                  'rounded-xl border px-3 py-3 text-sm font-medium transition',
+                  joinWithCamera
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-muted/30 text-muted-foreground',
+                )}
+              >
+                {joinWithCamera ? 'Camera on' : 'Camera off'}
+              </button>
+            </div>
+
             <Button
               className="w-full"
               size="lg"
               onClick={handleJoin}
               loading={joinLoading}
-              disabled={previewLoading}
+              disabled={previewLoading || joinLoading}
             >
               Join Meeting
             </Button>
           </>
+        )}
+
+        {joined && (
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+            Joining meeting…
+          </div>
         )}
 
         <p className="text-center text-sm text-muted-foreground">

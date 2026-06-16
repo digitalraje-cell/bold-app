@@ -113,6 +113,8 @@ export function useJitsi({
 
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPresenterLayout, setIsPresenterLayout] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(startMuted);
+  const [isVideoMuted, setIsVideoMuted] = useState(startVideoMuted);
 
   useEffect(() => {
     if (!enabled || !roomName) return;
@@ -166,6 +168,16 @@ export function useJitsi({
         callbacksRef.current.onReady?.();
       });
       api.addListener('readyToClose', () => callbacksRef.current.onLeave?.());
+
+      api.addListener('audioMuteStatusChanged', (payload: unknown) => {
+        const { muted } = payload as { muted?: boolean };
+        if (typeof muted === 'boolean') setIsAudioMuted(muted);
+      });
+
+      api.addListener('videoMuteStatusChanged', (payload: unknown) => {
+        const { muted } = payload as { muted?: boolean };
+        if (typeof muted === 'boolean') setIsVideoMuted(muted);
+      });
 
       api.addListener('loginRequired', () => {
         console.warn(
@@ -230,6 +242,8 @@ export function useJitsi({
     }
     setIsScreenSharing(false);
     setIsPresenterLayout(false);
+    setIsAudioMuted(true);
+    setIsVideoMuted(true);
   }, [enabled]);
 
   useEffect(() => {
@@ -275,5 +289,7 @@ export function useJitsi({
     muteAll,
     isScreenSharing,
     isPresenterLayout,
+    isAudioMuted,
+    isVideoMuted,
   };
 }

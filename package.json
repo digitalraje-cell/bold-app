@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
+    "dev:api": "pnpm --filter @boldmeet/api dev",
+    "dev:web": "pnpm --filter @boldmeet/web dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "build:api": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/api db:generate && pnpm --filter @boldmeet/api build",

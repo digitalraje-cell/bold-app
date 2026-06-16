@@ -64,6 +64,13 @@ export class ParticipantsService {
     return updated;
   }
 
+  async assertHost(meetingId: string, actorId: string) {
+    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    if (!meeting || meeting.hostId !== actorId) {
+      throw new ForbiddenException('Only the host can manage roles');
+    }
+  }
+
   async updateRole(
     meetingId: string,
     participantId: string,
@@ -73,6 +80,17 @@ export class ParticipantsService {
     const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can change roles');
+    }
+
+    const target = await this.ensureParticipant(meetingId, participantId);
+    if (target.role === ParticipantRole.HOST) {
+      throw new ForbiddenException('Cannot change the host role');
+    }
+    if (role === ParticipantRole.CO_HOST && target.role !== ParticipantRole.PARTICIPANT) {
+      throw new ForbiddenException('Only participants can be promoted to co-host');
+    }
+    if (role === ParticipantRole.PARTICIPANT && target.role !== ParticipantRole.CO_HOST) {
+      throw new ForbiddenException('Only co-hosts can be demoted');
     }
 
     if (role === ParticipantRole.CO_HOST) {
@@ -96,7 +114,6 @@ export class ParticipantsService {
       await this.permissionsService.check(meeting.hostId, 'canUsePanelists');
     }
 
-    await this.ensureParticipant(meetingId, participantId);
     const updated = await this.prisma.participant.update({
       where: { id: participantId },
       data: { role },

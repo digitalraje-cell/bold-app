@@ -51,18 +51,33 @@ export class ParticipantsController {
 
   @Post(':participantId/make-cohost')
   @UseGuards(AuthGuard)
-  makeCoHost(
+  async makeCoHost(
     @Req() req: Request & { user: AuthUser },
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
   ) {
-    return this.moderate(req.user.id, meetingId, () =>
-      this.participantsService.updateRole(
-        meetingId,
-        participantId,
-        req.user.id,
-        ParticipantRole.CO_HOST,
-      ),
+    await this.participantsService.assertHost(meetingId, req.user.id);
+    return this.participantsService.updateRole(
+      meetingId,
+      participantId,
+      req.user.id,
+      ParticipantRole.CO_HOST,
+    );
+  }
+
+  @Post(':participantId/remove-cohost')
+  @UseGuards(AuthGuard)
+  async removeCoHost(
+    @Req() req: Request & { user: AuthUser },
+    @Param('meetingId') meetingId: string,
+    @Param('participantId') participantId: string,
+  ) {
+    await this.participantsService.assertHost(meetingId, req.user.id);
+    return this.participantsService.updateRole(
+      meetingId,
+      participantId,
+      req.user.id,
+      ParticipantRole.PARTICIPANT,
     );
   }
 

@@ -6,8 +6,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: boldmeet
-      POSTGRES_PASSWORD: boldmeet_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: boldmeet
     volumes:
       - postgres_data:/var/lib/postgresql/data

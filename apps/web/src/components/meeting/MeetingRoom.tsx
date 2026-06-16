@@ -32,6 +32,7 @@ import {
 import { useMeetingDuration } from '@/hooks/useMeetingDuration';
 import { api } from '@/lib/api';
 import { readGuestJoinSession } from '@/lib/meeting-join';
+import { readJoinMediaPrefs } from '@/lib/join-media-prefs';
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -63,8 +64,6 @@ function MeetingRoomInner({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggleFullscreen } = useMeetingFullscreen();
 
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
   const [activePanel, setActivePanel] = useState<'chat' | 'participants' | null>(null);
   const [handRaised, setHandRaised] = useState(false);
   const [reactions, setReactions] = useState<{ id: string; reaction: string }[]>([]);
@@ -134,6 +133,9 @@ function MeetingRoomInner({
     if (isHost) notifyHostMediaReadyRef.current();
   }, [isHost]);
 
+  const joinMediaPrefs =
+    typeof window !== 'undefined' ? readJoinMediaPrefs() : { startWithAudio: true, startWithVideo: true };
+
   const handleJitsiLeave = useCallback(() => {
     if (isHost) notifyHostMediaLeftRef.current();
     handleLeave();
@@ -147,6 +149,8 @@ function MeetingRoomInner({
     muteAll,
     isScreenSharing,
     isPresenterLayout,
+    isAudioMuted,
+    isVideoMuted,
   } = useJitsi({
     roomName: jitsiRoom,
     displayName,
@@ -157,6 +161,8 @@ function MeetingRoomInner({
     containerRef,
     onReady: handleJitsiReady,
     onLeave: handleJitsiLeave,
+    startMuted: !joinMediaPrefs.startWithAudio,
+    startVideoMuted: !joinMediaPrefs.startWithVideo,
   });
 
   hangupRef.current = hangup;
@@ -239,29 +245,25 @@ function MeetingRoomInner({
   }, [on, handleLeave, participantId]);
 
   useEffect(() => {
-    if (roomMode === RoomMode.WEBINAR && myParticipant && !canMic && !isMuted) {
+    if (roomMode === RoomMode.WEBINAR && myParticipant && !canMic && !isAudioMuted) {
       toggleAudio();
-      setIsMuted(true);
     }
-  }, [roomMode, myParticipant, canMic, isMuted, toggleAudio]);
+  }, [roomMode, myParticipant, canMic, isAudioMuted, toggleAudio]);
 
   useEffect(() => {
-    if (roomMode === RoomMode.WEBINAR && myParticipant && !canCamera && !isVideoOff) {
+    if (roomMode === RoomMode.WEBINAR && myParticipant && !canCamera && !isVideoMuted) {
       toggleVideo();
-      setIsVideoOff(true);
     }
-  }, [roomMode, myParticipant, canCamera, isVideoOff, toggleVideo]);
+  }, [roomMode, myParticipant, canCamera, isVideoMuted, toggleVideo]);
 
   const handleToggleMic = () => {
     if (!canMic) return;
     toggleAudio();
-    setIsMuted((prev) => !prev);
   };
 
   const handleToggleVideo = () => {
     if (!canCamera) return;
     toggleVideo();
-    setIsVideoOff((prev) => !prev);
   };
 
   const handleToggleShare = () => {
@@ -342,7 +344,7 @@ function MeetingRoomInner({
 
       <div
         ref={containerRef}
-        className={`absolute inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0 ${
+        className={`meeting-jitsi-shell absolute inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0 ${
           !canJoinMedia ? 'invisible pointer-events-none' : ''
         }`}
       />
@@ -397,13 +399,13 @@ function MeetingRoomInner({
         />
       )}
 
-      <div className="absolute left-4 top-4 z-30 flex flex-col gap-2">
+      <div className="absolute left-2 top-2 z-30 flex max-w-[calc(100%-1rem)] flex-col gap-2 sm:left-4 sm:top-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur">
+          <div className="max-w-[min(100%,16rem)] truncate rounded-lg bg-black/50 px-2 py-1 text-xs text-white backdrop-blur sm:max-w-none sm:px-3 sm:py-1.5 sm:text-sm">
             {title}
           </div>
         </div>
-        <div className="rounded-lg bg-black/50 px-3 py-1 text-xs text-white/70 backdrop-blur">
+        <div className="rounded-lg bg-black/50 px-2 py-1 text-[10px] text-white/70 backdrop-blur sm:px-3 sm:text-xs">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </div>
         {isModerator && (
@@ -416,8 +418,8 @@ function MeetingRoomInner({
       </div>
 
       <ControlsBar
-        isMuted={isMuted}
-        isVideoOff={isVideoOff}
+        isMuted={isAudioMuted}
+        isVideoOff={isVideoMuted}
         isFullscreen={isFullscreen}
         isScreenSharing={isScreenSharing}
         activePanel={activePanel}

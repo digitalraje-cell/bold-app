@@ -83,7 +83,7 @@ function ControlButton({
       aria-label={label}
       title={label}
       className={cn(
-        'flex h-12 w-12 flex-col items-center justify-center rounded-xl transition',
+        'flex h-11 w-11 flex-col items-center justify-center rounded-xl transition sm:h-12 sm:w-12',
         disabled && 'cursor-not-allowed opacity-40',
         danger
           ? 'bg-red-600 hover:bg-red-700'
@@ -133,19 +133,22 @@ export function ControlsBar({
   canManageBroadcast,
 }: ControlsBarProps) {
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/80 to-transparent px-4 pb-6 pt-12">
-      <div className="mx-auto flex max-w-4xl items-center justify-center gap-2 sm:gap-3">
+    <div className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/80 to-transparent px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 sm:px-4 sm:pb-6 sm:pt-12">
+      <div className="mx-auto max-w-full overflow-x-auto">
+        <div className="mx-auto flex w-max min-w-full items-center justify-center gap-1.5 sm:max-w-4xl sm:gap-3">
         <ControlButton
           icon={isMuted ? MicOff : Mic}
           label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
-          active={isMuted}
+          active={!isMuted && !micDisabled}
+          danger={isMuted && !micDisabled}
           disabled={micDisabled}
           onClick={onToggleMic}
         />
         <ControlButton
           icon={isVideoOff ? VideoOff : Video}
           label={cameraDisabled ? 'Camera disabled' : isVideoOff ? 'Start video' : 'Stop video'}
-          active={isVideoOff}
+          active={!isVideoOff && !cameraDisabled}
+          danger={isVideoOff && !cameraDisabled}
           disabled={cameraDisabled}
           onClick={onToggleVideo}
         />
@@ -234,6 +237,7 @@ export function ControlsBar({
           />
         )}
         <ControlButton icon={LogOut} label="Leave meeting" danger onClick={onLeave} />
+        </div>
       </div>
     </div>
   );

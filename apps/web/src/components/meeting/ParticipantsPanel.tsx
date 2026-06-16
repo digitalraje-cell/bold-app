@@ -6,11 +6,8 @@ import {
   MicOff,
   Video,
   VideoOff,
-  UserPlus,
-  Presentation,
-  UserMinus,
-  Crown,
   Check,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { RoomMode } from '@boldmeet/shared';
@@ -56,6 +53,7 @@ export function ParticipantsPanel({
   const storeParticipants = useRoomStore((s) => s.participants);
   const [participants, setParticipants] = useState<ParticipantRecord[]>(storeParticipants);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const list = (await api.participants.list(meetingId)) as ParticipantRecord[];
@@ -83,7 +81,7 @@ export function ParticipantsPanel({
   };
 
   return (
-    <div className="absolute right-0 top-0 z-40 flex h-full w-80 flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur">
+    <div className="absolute right-0 top-0 z-40 flex h-full w-full max-w-sm flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur sm:w-80">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h3 className="font-semibold text-white">
           Participants ({admitted.length})
@@ -164,74 +162,104 @@ export function ParticipantsPanel({
               {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
             </div>
-            {isModerator && p.role !== 'HOST' && (
-              <div className="flex flex-col gap-1">
+            {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT') && (
+              <div className="relative">
                 <button
                   type="button"
-                  title={p.isMuted ? 'Ask to unmute' : 'Mute'}
+                  title="Participant actions"
                   disabled={loadingId === p.id}
-                  onClick={() =>
-                    runAction(p.id, () =>
-                      api.participants.mute(meetingId, p.id, !p.isMuted),
-                    )
-                  }
-                  className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  onClick={() => setOpenMenuId((current) => (current === p.id ? null : p.id))}
+                  className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
                 >
-                  {p.isMuted ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  <MoreHorizontal className="h-4 w-4" />
                 </button>
-                {isHost && p.role === 'PARTICIPANT' && (
-                  <button
-                    type="button"
-                    title="Make co-host"
-                    disabled={loadingId === p.id}
-                    onClick={() =>
-                      runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id))
-                    }
-                    className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
-                  >
-                    <Crown className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  title="Remove"
-                  disabled={loadingId === p.id}
-                  onClick={() =>
-                    runAction(p.id, () => api.participants.remove(meetingId, p.id))
-                  }
-                  className="rounded p-1 text-red-400/70 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                >
-                  <UserMinus className="h-4 w-4" />
-                </button>
-                {onPromotePanelist && p.role === 'PARTICIPANT' && (
-                  <button
-                    type="button"
-                    title="Promote to panelist"
-                    onClick={() => onPromotePanelist(p.id)}
-                    className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </button>
-                )}
-                {roomMode === RoomMode.WEBINAR && onBringOnStage && !p.isOnStage && (
-                  <button
-                    type="button"
-                    title="Bring on stage"
-                    onClick={() => onBringOnStage(p.id)}
-                    className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
-                  >
-                    <Presentation className="h-4 w-4" />
-                  </button>
-                )}
-                {roomMode === RoomMode.WEBINAR && onRemoveFromStage && p.isOnStage && (
-                  <button
-                    type="button"
-                    title="Remove from stage"
-                    onClick={() => onRemoveFromStage(p.id)}
-                    className="rounded px-1 text-[10px] text-white/50 hover:bg-white/10 hover:text-white"
-                  >
-                    Off
-                  </button>
+                {openMenuId === p.id && (
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-white/10 bg-slate-900 py-1 shadow-xl">
+                    <button
+                      type="button"
+                      className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                      onClick={() => {
+                        setOpenMenuId(null);
+                        void runAction(p.id, () =>
+                          api.participants.mute(meetingId, p.id, !p.isMuted),
+                        );
+                      }}
+                    >
+                      {p.isMuted ? 'Ask to unmute' : 'Mute'}
+                    </button>
+                    {isHost && p.role === 'PARTICIPANT' && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          void runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id));
+                        }}
+                      >
+                        Make co-host
+                      </button>
+                    )}
+                    {isHost && p.role === 'CO_HOST' && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          void runAction(p.id, () =>
+                            api.participants.removeCoHost(meetingId, p.id),
+                          );
+                        }}
+                      >
+                        Remove co-host
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="flex w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+                      onClick={() => {
+                        setOpenMenuId(null);
+                        void runAction(p.id, () => api.participants.remove(meetingId, p.id));
+                      }}
+                    >
+                      Remove from meeting
+                    </button>
+                    {onPromotePanelist && p.role === 'PARTICIPANT' && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          onPromotePanelist(p.id);
+                        }}
+                      >
+                        Promote to panelist
+                      </button>
+                    )}
+                    {roomMode === RoomMode.WEBINAR && onBringOnStage && !p.isOnStage && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          onBringOnStage(p.id);
+                        }}
+                      >
+                        Bring on stage
+                      </button>
+                    )}
+                    {roomMode === RoomMode.WEBINAR && onRemoveFromStage && p.isOnStage && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          onRemoveFromStage(p.id);
+                        }}
+                      >
+                        Remove from stage
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

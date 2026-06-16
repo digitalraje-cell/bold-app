@@ -115,12 +115,20 @@ export function useRoom(meetingId: string, isHost: boolean) {
       removeParticipant(participantId);
     });
 
+    const unsubRole = on('participant:role-changed', (data: unknown) => {
+      const { participantId, role } = data as { participantId?: string; role?: string };
+      if (participantId && role) {
+        updateParticipant(participantId, { role });
+      }
+    });
+
     return () => {
       unsubMode?.();
       unsubStage?.();
       unsubChat?.();
       unsubSettings?.();
       unsubLeft?.();
+      unsubRole?.();
     };
   }, [on, setRoomMode, setChatMode, setScreenShareEnabled, updateParticipant, removeParticipant]);
 
