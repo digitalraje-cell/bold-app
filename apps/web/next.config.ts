@@ -16,7 +16,8 @@ const nextConfig: NextConfig = {
     return {
       beforeFiles: [
         {
-          source: '/api/backend/:path*',
+          // Require at least one segment so GET /api/backend hits the health route handler.
+          source: '/api/backend/:path+',
           destination: `${apiOrigin}/api/:path*`,
         },
       ],
