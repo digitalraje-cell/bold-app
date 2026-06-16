@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Copy, Mail, MessageCircle, X } from 'lucide-react';
-import {
-  formatMeetingInvite,
-  getEmailInviteUrl,
-  getMeetingInviteUrl,
-  getWhatsAppInviteUrl,
-} from '@/lib/urls';
+import { formatMeetingInvite, formatMeetingCode, getEmailInviteUrl, getMeetingInviteUrl, getWhatsAppInviteUrl } from '@/lib/urls';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 
@@ -35,11 +30,11 @@ export function InviteModal({ meetingId, open, onClose }: InviteModalProps) {
 
   if (!open) return null;
 
-  const meetingLink = getMeetingInviteUrl(meetingId);
+  const meetingLink = getMeetingInviteUrl(details?.meetingCode || meetingId);
   const inviteText = details
     ? formatMeetingInvite({
         topic: details.title,
-        meetingId,
+        meetingId: details.meetingCode,
         meetingCode: details.meetingCode,
         passcode: details.passcode,
         link: meetingLink,
@@ -74,7 +69,9 @@ export function InviteModal({ meetingId, open, onClose }: InviteModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs uppercase tracking-wide text-white/50">Meeting ID</p>
-              <p className="mt-1 font-mono text-sm">{details?.meetingCode || '—'}</p>
+              <p className="mt-1 font-mono text-sm">
+                {details?.meetingCode ? formatMeetingCode(details.meetingCode) : '—'}
+              </p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-white/50">Passcode</p>

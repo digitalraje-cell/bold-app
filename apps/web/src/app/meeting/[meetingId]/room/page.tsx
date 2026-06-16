@@ -1,6 +1,7 @@
+import { normalizeMeetingCode } from '@boldmeet/shared';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { MeetingRoom } from '@/components/meeting/MeetingRoom';
 import { GuestRoomGate } from '@/components/meeting/GuestRoomGate';
 
@@ -17,10 +18,11 @@ export default async function MeetingRoomPage({
 
   const meeting = await prisma.meeting.findFirst({
     where: {
-      OR: [{ id: meetingId }, { meetingCode: meetingId.toLowerCase() }],
+      OR: [{ id: meetingId }, { meetingCode: normalizeMeetingCode(meetingId) }],
     },
     select: {
       id: true,
+      meetingCode: true,
       title: true,
       jitsiRoom: true,
       hostId: true,
@@ -30,6 +32,10 @@ export default async function MeetingRoomPage({
 
   if (!meeting || meeting.status === 'ENDED') {
     notFound();
+  }
+
+  if (meetingId === meeting.id && meeting.meetingCode) {
+    redirect(`/meeting/${meeting.meetingCode}/room`);
   }
 
   const isHost = session?.user?.id === meeting.hostId;

@@ -95,6 +95,12 @@ enum StreamStatus {
   ERROR
 }
 
+enum StreamingProviderType {
+  NONE
+  YOUTUBE_RTMP
+  CUSTOM_RTMP
+}
+
 enum OtpChannel {
   EMAIL
   WHATSAPP
@@ -290,18 +296,20 @@ model YouTubeAccount {
 }
 
 model YouTubeStream {
-  id          String           @id @default(cuid())
-  meetingId   String           @unique
+  id          String                 @id @default(cuid())
+  meetingId   String                 @unique
+  provider    StreamingProviderType  @default(YOUTUBE_RTMP)
+  title       String?
   broadcastId String?
   streamId    String?
-  streamKey   String?          @db.Text
+  streamKey   String?                @db.Text
   rtmpUrl     String?
   watchUrl    String?
-  visibility  StreamVisibility @default(PRIVATE)
-  status      StreamStatus     @default(IDLE)
+  visibility  StreamVisibility       @default(PRIVATE)
+  status      StreamStatus           @default(IDLE)
   startedAt   DateTime?
   endedAt     DateTime?
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime               @default(now())
 
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 

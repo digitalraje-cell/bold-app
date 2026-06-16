@@ -3,10 +3,19 @@ import {
   formatMeetingInvite,
   getEmailInviteUrl,
   getWhatsAppInviteUrl,
+  formatMeetingCode,
+  normalizeMeetingCode,
 } from '@boldmeet/shared';
 import { getAppOrigin } from './app-origin';
 
-export { APP_CONFIG, formatMeetingInvite, getEmailInviteUrl, getWhatsAppInviteUrl };
+export {
+  APP_CONFIG,
+  formatMeetingInvite,
+  formatMeetingCode,
+  normalizeMeetingCode,
+  getEmailInviteUrl,
+  getWhatsAppInviteUrl,
+};
 export { getAppOrigin, getClientAppOrigin, getServerAppOrigin } from './app-origin';
 
 export function getMeetingUrl(meetingId: string): string {

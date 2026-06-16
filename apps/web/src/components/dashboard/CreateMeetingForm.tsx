@@ -50,12 +50,16 @@ export function CreateMeetingForm() {
         const displayName =
           session.user.name || session.user.email?.split('@')[0] || 'Host';
         try {
-          const path = await joinMeetingAndGetPath(meeting.id, displayName, password || undefined);
+          const path = await joinMeetingAndGetPath(
+            meeting.meetingCode,
+            displayName,
+            password || undefined,
+          );
           router.push(path);
           return;
         } catch (joinErr) {
           console.error('[meeting] host auto-join failed', joinErr);
-          router.push(`/meeting/${meeting.id}`);
+          router.push(`/meeting/${meeting.meetingCode}`);
           return;
         }
       }
@@ -156,7 +160,8 @@ export function CreateMeetingForm() {
                 onChange={() => toggleSetting('raiseHandEnabled')}
               />
               <Toggle
-                label="Screen sharing"
+                label="Allow participants to share screen"
+                description="When off, only the host and co-hosts can share"
                 checked={settings.screenShareEnabled}
                 onChange={() => toggleSetting('screenShareEnabled')}
               />

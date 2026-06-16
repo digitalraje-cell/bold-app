@@ -127,6 +127,11 @@ export const api = {
     findByCode: (code: string) => apiFetch(`/meetings/code/${code}`, {}, false),
     end: (id: string) => apiFetch(`/meetings/${id}/end`, { method: 'POST' }),
     leave: (id: string) => apiFetch(`/meetings/${id}/leave`, { method: 'POST' }),
+    lock: (id: string, isLocked: boolean) =>
+      apiFetch(`/meetings/${id}/lock`, {
+        method: 'POST',
+        body: JSON.stringify({ isLocked }),
+      }),
     updateSettings: (id: string, settings: Record<string, unknown>) =>
       apiFetch(`/meetings/${id}/settings`, {
         method: 'PATCH',
@@ -138,6 +143,48 @@ export const api = {
   },
   participants: {
     list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/participants`),
+    mute: (meetingId: string, participantId: string, isMuted: boolean) =>
+      apiFetch(`/meetings/${meetingId}/participants/${participantId}/mute`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isMuted }),
+      }),
+    remove: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/participants/${participantId}/remove`, {
+        method: 'POST',
+      }),
+    makeCoHost: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/participants/${participantId}/make-cohost`, {
+        method: 'POST',
+      }),
+    transferHost: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/participants/${participantId}/transfer-host`, {
+        method: 'POST',
+      }),
+    admitWaiting: (meetingId: string, participantId: string) =>
+      apiFetch(`/meetings/${meetingId}/participants/waiting/${participantId}/admit`, {
+        method: 'POST',
+      }),
+  },
+  stream: {
+    get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/stream`),
+    getPublic: (meetingId: string) =>
+      apiFetch(`/meetings/${meetingId}/stream/public`, {}, false),
+    start: (
+      meetingId: string,
+      data: {
+        provider: string;
+        title: string;
+        rtmpUrl?: string;
+        streamKey: string;
+        watchUrl?: string;
+      },
+    ) =>
+      apiFetch(`/meetings/${meetingId}/stream/start`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    stop: (meetingId: string) =>
+      apiFetch(`/meetings/${meetingId}/stream/stop`, { method: 'POST' }),
   },
   room: {
     get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`, {}, false),

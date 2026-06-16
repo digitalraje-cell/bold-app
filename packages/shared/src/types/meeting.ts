@@ -62,11 +62,32 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export function normalizeMeetingCode(input: string): string {
+  return input.replace(/[\s-]/g, '');
+}
+
+/** Display format: 123 456 7890 */
+export function formatMeetingCode(code: string): string {
+  const digits = normalizeMeetingCode(code);
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  if (digits.length === 9) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return digits;
+}
+
+/** Zoom-style numeric meeting ID (10 digits, easy to remember and type). */
 export function generateMeetingCode(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz';
-  const segment = () =>
-    Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `${segment()}-${segment()}-${segment()}`;
+  let code = '';
+  for (let i = 0; i < 10; i += 1) {
+    code +=
+      i === 0
+        ? String(Math.floor(Math.random() * 9) + 1)
+        : String(Math.floor(Math.random() * 10));
+  }
+  return code;
 }
 
 export function generateJitsiRoomName(meetingId: string): string {

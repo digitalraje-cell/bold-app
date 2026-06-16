@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { normalizeMeetingCode } from '@boldmeet/shared';
 import { fetchPublicMeetingServer } from '@/lib/api-server';
 import { MeetingLobby } from '@/components/meeting/MeetingLobby';
 
@@ -16,6 +18,13 @@ export default async function MeetingLobbyPage({
 
   try {
     initialPreview = await fetchPublicMeetingServer(meetingId);
+    if (
+      initialPreview &&
+      normalizeMeetingCode(meetingId) !== initialPreview.meetingCode &&
+      meetingId === initialPreview.id
+    ) {
+      redirect(`/meeting/${initialPreview.meetingCode}`);
+    }
   } catch (error) {
     initialPreviewError =
       error instanceof Error ? error.message : 'Meeting not found or no longer available';

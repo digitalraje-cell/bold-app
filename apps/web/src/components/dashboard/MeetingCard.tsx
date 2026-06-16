@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
+import { formatMeetingCode } from '@boldmeet/shared';
 import { getMeetingInviteUrl } from '@/lib/urls';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -50,7 +51,8 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
   const status = statusConfig[meeting.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
   const date = meeting.scheduledAt || meeting.startedAt || meeting.endedAt;
-  const inviteLink = getMeetingInviteUrl(meeting.id);
+  const inviteLink = getMeetingInviteUrl(meeting.meetingCode);
+  const meetingIdLabel = formatMeetingCode(meeting.meetingCode);
   const isJoinable = meeting.status === 'LIVE' || meeting.status === 'SCHEDULED';
   const isLive = meeting.status === 'LIVE';
   const isHost = Boolean(currentUserId && meeting.hostId === currentUserId);
@@ -90,7 +92,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
               {status.label}
             </span>
           </div>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">{meeting.meetingCode}</p>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">{meetingIdLabel}</p>
           {date && (
             <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
@@ -111,7 +113,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
               {isLive && isHost && (
                 <>
                   <Link
-                    href={`/meeting/${meeting.id}`}
+                    href={`/meeting/${meeting.meetingCode}`}
                     className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
                   >
                     Join
@@ -139,7 +141,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
               )}
               {!isLive && (
                 <Link
-                  href={`/meeting/${meeting.id}`}
+                  href={`/meeting/${meeting.meetingCode}`}
                   className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
                 >
                   Start
@@ -169,7 +171,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
         <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/30 p-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Meeting ID</p>
-            <p className="mt-1 font-mono text-sm">{meeting.meetingCode}</p>
+            <p className="mt-1 font-mono text-sm">{meetingIdLabel}</p>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Host</p>
@@ -182,7 +184,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
             </div>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
-            <CopyButton text={meeting.meetingCode} label="Copy Meeting ID" />
+            <CopyButton text={meetingIdLabel} label="Copy Meeting ID" />
             <CopyButton text={inviteLink} label="Copy Invite Link" />
           </div>
         </div>

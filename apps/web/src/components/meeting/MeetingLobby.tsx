@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Calendar, Radio, Users } from 'lucide-react';
+import { formatMeetingCode } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
@@ -266,7 +267,7 @@ export function MeetingLobby({
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Meeting ID
                 </p>
-                <p className="mt-1 font-mono text-sm">{meeting.meetingCode}</p>
+                <p className="mt-1 font-mono text-sm">{formatMeetingCode(meeting.meetingCode)}</p>
               </div>
 
               {meeting.status === 'ENDED' && (

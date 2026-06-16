@@ -12,10 +12,12 @@ export function useRoom(meetingId: string, isHost: boolean) {
     roomMode,
     chatMode,
     chatEnabled,
+    screenShareEnabled,
     participants,
     myParticipantId,
     setRoomMode,
     setChatMode,
+    setScreenShareEnabled,
     setParticipants,
     setMyParticipantId,
     updateParticipant,
@@ -30,12 +32,17 @@ export function useRoom(meetingId: string, isHost: boolean) {
       try {
         const state = (await api.room.get(meetingId)) as {
           roomMode: RoomMode;
-          settings: { chatMode: ChatMode; chatEnabled: boolean };
+          settings: {
+            chatMode: ChatMode;
+            chatEnabled: boolean;
+            screenShareEnabled?: boolean;
+          };
           participants: RoomParticipant[];
         };
         if (cancelled) return;
         setRoomMode(state.roomMode);
         setChatMode(state.settings.chatMode, state.settings.chatEnabled);
+        setScreenShareEnabled(state.settings.screenShareEnabled ?? true);
         setParticipants(
           state.participants.map((p) => ({
             id: p.id,
@@ -60,7 +67,7 @@ export function useRoom(meetingId: string, isHost: boolean) {
       cancelled = true;
       reset();
     };
-  }, [meetingId, setRoomMode, setChatMode, setParticipants, reset]);
+  }, [meetingId, setRoomMode, setChatMode, setScreenShareEnabled, setParticipants, reset]);
 
   useEffect(() => {
     const unsubMode = on('room:mode-changed', (data: unknown) => {
@@ -96,6 +103,13 @@ export function useRoom(meetingId: string, isHost: boolean) {
       setChatMode(mode, enabled);
     });
 
+    const unsubSettings = on('settings:update', (data: unknown) => {
+      const patch = data as { screenShareEnabled?: boolean };
+      if (typeof patch.screenShareEnabled === 'boolean') {
+        setScreenShareEnabled(patch.screenShareEnabled);
+      }
+    });
+
     const unsubLeft = on('participant:left', (data: unknown) => {
       const { participantId } = data as { participantId: string };
       removeParticipant(participantId);
@@ -105,9 +119,10 @@ export function useRoom(meetingId: string, isHost: boolean) {
       unsubMode?.();
       unsubStage?.();
       unsubChat?.();
+      unsubSettings?.();
       unsubLeft?.();
     };
-  }, [on, setRoomMode, setChatMode, updateParticipant, removeParticipant]);
+  }, [on, setRoomMode, setChatMode, setScreenShareEnabled, updateParticipant, removeParticipant]);
 
   const switchRoomMode = useCallback(
     async (mode: RoomMode) => {
@@ -163,9 +178,11 @@ export function useRoom(meetingId: string, isHost: boolean) {
     roomMode,
     chatMode,
     chatEnabled,
+    screenShareEnabled,
     participants,
     myParticipantId,
     setMyParticipantId,
+    setScreenShareEnabled,
     switchRoomMode,
     promoteToPanelist,
     bringOnStage,

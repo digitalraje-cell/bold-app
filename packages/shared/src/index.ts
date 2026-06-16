@@ -87,6 +87,12 @@ export interface SocketEvents {
   'waiting:admit': { participantId: string };
   'waiting:reject': { participantId: string };
   'waiting:admit-all': Record<string, never>;
+  'host:present': { meetingId: string };
+  'host:absent': { meetingId: string };
+  'host:status': { present: boolean; mediaReady?: boolean };
+  'host:media-ready': { meetingId: string };
+  'host:media-left': { meetingId: string };
+  'participant:role-changed': { meetingId: string; participantId: string; role: ParticipantRole };
   'settings:update': Partial<MeetingSettings>;
   'meeting:end': Record<string, never>;
   'room:mode-changed': { roomMode: string; meetingId: string };
@@ -100,14 +106,27 @@ export interface SocketEvents {
     role?: ParticipantRole;
   };
   'chat:mode-changed': { chatMode: string; chatEnabled: boolean };
+  'stream:live': {
+    meetingId: string;
+    title?: string;
+    watchUrl?: string;
+    provider?: string;
+    startedAt?: string;
+    status?: string;
+  };
+  'stream:stopped': { meetingId: string };
+  'stream:error': { meetingId: string; message?: string };
 }
 
 export * from './room/types';
 export * from './rbac/roles';
 
+export * from './media/types';
 export * from './types/meeting';
+export * from './types/meeting-type';
 export * from './types/user';
 export * from './config/app';
 export * from './subscriptions/plans';
 export * from './recording/types';
+export * from './stream/types';
 export * from './webinar/types';

@@ -14,6 +14,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
 import { WebinarModule } from './webinar/webinar.module';
 import { RoomModule } from './room/room.module';
+import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RoomModule } from './room/room.module';
     RecordingModule,
     WebinarModule,
     RoomModule,
+    StreamModule,
     YoutubeModule,
   ],
   controllers: [AppController],

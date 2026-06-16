@@ -19,6 +19,8 @@ export type RoomAction =
   | 'lockRoom'
   | 'managePasscode'
   | 'inviteParticipants'
+  | 'startBroadcast'
+  | 'stopBroadcast'
   | 'useAudio'
   | 'useVideo'
   | 'useChat'
@@ -45,6 +47,8 @@ const ROLE_CAPABILITIES: Record<string, RoomAction[]> = {
     'lockRoom',
     'managePasscode',
     'inviteParticipants',
+    'startBroadcast',
+    'stopBroadcast',
     'useAudio',
     'useVideo',
     'useChat',
@@ -57,6 +61,8 @@ const ROLE_CAPABILITIES: Record<string, RoomAction[]> = {
     'muteParticipant',
     'moderateWaitingRoom',
     'bringOnStage',
+    'startBroadcast',
+    'stopBroadcast',
     'useAudio',
     'useVideo',
     'useChat',

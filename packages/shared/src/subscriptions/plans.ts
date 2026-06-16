@@ -55,7 +55,8 @@ const FREE_LIMITS: PlanLimits = {
 };
 
 const FREE_PERMISSIONS: Record<PermissionKey, boolean> = {
-  canStreamToYoutube: false,
+  // Phase 1.5 MVP: allow YouTube RTMP validation on all plans
+  canStreamToYoutube: true,
   canUseCohost: true,
   canRecord: false,
   canInvite: true,

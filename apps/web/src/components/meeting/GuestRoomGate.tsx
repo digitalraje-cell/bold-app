@@ -54,6 +54,7 @@ export function GuestRoomGate({ meetingId, jitsiRoom, title }: GuestRoomGateProp
       title={title}
       isHost={false}
       displayName={guest.displayName}
+      participantId={guest.participantId}
     />
   );
 }

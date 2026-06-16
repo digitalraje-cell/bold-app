@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { AppShell } from '@/components/layout/AppShell';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { MeetingListSection } from '@/components/dashboard/MeetingCard';
+import { JoinByCodeCard } from '@/components/dashboard/JoinByCodeCard';
 import { DashboardMessage } from '@/components/dashboard/DashboardMessage';
 import { Calendar, Radio } from 'lucide-react';
 import Link from 'next/link';
@@ -135,17 +136,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </AppShell>
-  );
-}
-
-function JoinByCodeCard() {
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-6">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Calendar className="h-5 w-5" />
-      </div>
-      <h3 className="font-semibold">Join Meeting</h3>
-      <p className="mt-1 text-sm text-muted-foreground">Enter a meeting code to join</p>
-    </div>
   );
 }

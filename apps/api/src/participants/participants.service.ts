@@ -6,12 +6,14 @@ import {
 import { ParticipantRole, ParticipantStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
+import { MeetingGateway } from '../gateway/meeting.gateway';
 
 @Injectable()
 export class ParticipantsService {
   constructor(
     private prisma: PrismaService,
     private permissionsService: PermissionsService,
+    private gateway: MeetingGateway,
   ) {}
 
   async list(meetingId: string) {
@@ -54,10 +56,12 @@ export class ParticipantsService {
 
   async remove(meetingId: string, participantId: string, actorId: string) {
     await this.ensureParticipant(meetingId, participantId);
-    return this.prisma.participant.update({
+    const updated = await this.prisma.participant.update({
       where: { id: participantId },
       data: { status: ParticipantStatus.REMOVED, leftAt: new Date() },
     });
+    this.gateway.broadcastParticipantLeft(meetingId, participantId);
+    return updated;
   }
 
   async updateRole(
@@ -93,10 +97,12 @@ export class ParticipantsService {
     }
 
     await this.ensureParticipant(meetingId, participantId);
-    return this.prisma.participant.update({
+    const updated = await this.prisma.participant.update({
       where: { id: participantId },
       data: { role },
     });
+    this.gateway.broadcastParticipantRoleChanged(meetingId, participantId, role);
+    return updated;
   }
 
   async transferHost(meetingId: string, participantId: string, actorId: string) {
@@ -131,10 +137,12 @@ export class ParticipantsService {
     actorId: string,
   ) {
     await this.ensureParticipant(meetingId, participantId);
-    return this.prisma.participant.update({
+    const updated = await this.prisma.participant.update({
       where: { id: participantId },
       data: { status: ParticipantStatus.ADMITTED },
     });
+    this.gateway.broadcastWaitingAdmit(meetingId, participantId);
+    return updated;
   }
 
   private async ensureParticipant(meetingId: string, participantId: string) {

@@ -2,6 +2,7 @@
  * Centralized app branding configuration.
  * Update env vars to rebrand without code changes.
  */
+import { formatMeetingCode } from '../types/meeting';
 export interface AppConfig {
   name: string;
   domain: string;
@@ -76,7 +77,7 @@ export function formatMeetingInvite(options: {
     joinLink,
     '',
     `Meeting ID:`,
-    meetingCode,
+    formatMeetingCode(meetingCode),
   ];
 
   if (passcode) {

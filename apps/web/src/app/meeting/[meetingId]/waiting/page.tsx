@@ -1,11 +1,35 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
+import { useSocket } from '@/hooks/useSocket';
+import { readGuestJoinSession } from '@/lib/meeting-join';
 
 export default function WaitingRoomPage() {
   const meetingId = useMeetingRouteId();
+  const router = useRouter();
+  const { on } = useSocket(meetingId || '');
+
+  useEffect(() => {
+    if (!meetingId) return;
+
+    const guest = readGuestJoinSession(meetingId);
+    if (!guest?.participantId) return;
+
+    const unsubAdmit = on('waiting:admit', (data: unknown) => {
+      const { participantId } = data as { participantId?: string };
+      if (participantId === guest.participantId) {
+        router.push(`/meeting/${meetingId}/room`);
+      }
+    });
+
+    return () => {
+      unsubAdmit?.();
+    };
+  }, [meetingId, on, router]);
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">

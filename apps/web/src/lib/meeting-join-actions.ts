@@ -1,10 +1,13 @@
 'use server';
 
+import { SignJWT } from 'jose';
+import { normalizeMeetingCode } from '@boldmeet/shared';
+import { auth } from '@/lib/auth';
 import { buildNestApiUrl } from '@/lib/api-base';
 
 type JoinMeetingResponse = {
   admitted: boolean;
-  meeting: { id: string };
+  meeting: { id: string; meetingCode?: string };
   participant?: { id: string; displayName: string };
 };
 
@@ -25,11 +28,33 @@ function formatError(body: ApiErrorBody | null, status: number, rawBody: string)
   return `API error ${status}`;
 }
 
+async function buildAuthHeaders(): Promise<Record<string, string>> {
+  const session = await auth();
+  if (!session?.user?.id || !session.user.email) {
+    return {};
+  }
+
+  const secret =
+    process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) return {};
+
+  const token = await new SignJWT({
+    sub: session.user.id,
+    email: session.user.email,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('1h')
+    .sign(new TextEncoder().encode(secret));
+
+  return { Authorization: `Bearer ${token}` };
+}
+
 export type JoinMeetingActionResult =
   | {
       ok: true;
       path: string;
       meetingId: string;
+      routeId: string;
       participantId?: string;
       displayName: string;
       admitted: boolean;
@@ -46,18 +71,24 @@ export async function joinMeetingAction(
   if (password) payload.password = password;
 
   const url = buildNestApiUrl(`/meetings/${encodeURIComponent(meetingIdOrCode)}/join`);
+  const authHeaders = await buildAuthHeaders();
 
   console.log('[meeting-join-action] POST', url, {
     meetingIdOrCode,
     displayName,
     hasPassword: Boolean(password),
+    authenticated: Boolean(authHeaders.Authorization),
   });
 
   let res: Response;
   try {
     res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...authHeaders,
+      },
       body: JSON.stringify(payload),
       cache: 'no-store',
     });
@@ -85,13 +116,15 @@ export async function joinMeetingAction(
   }
 
   const result = JSON.parse(rawBody) as JoinMeetingResponse;
-  const meetingId = result.meeting?.id ?? meetingIdOrCode;
+  const internalMeetingId = result.meeting?.id ?? meetingIdOrCode;
+  const routeId = result.meeting?.meetingCode || normalizeMeetingCode(meetingIdOrCode) || internalMeetingId;
   const path = result.admitted
-    ? `/meeting/${meetingId}/room`
-    : `/meeting/${meetingId}/waiting`;
+    ? `/meeting/${routeId}/room`
+    : `/meeting/${routeId}/waiting`;
 
   console.log('[meeting-join-action] success', {
-    meetingId,
+    meetingId: internalMeetingId,
+    routeId,
     participantId: result.participant?.id,
     admitted: result.admitted,
     path,
@@ -100,7 +133,8 @@ export async function joinMeetingAction(
   return {
     ok: true,
     path,
-    meetingId,
+    meetingId: internalMeetingId,
+    routeId,
     participantId: result.participant?.id,
     displayName: result.participant?.displayName || displayName,
     admitted: result.admitted,

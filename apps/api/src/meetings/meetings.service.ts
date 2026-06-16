@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { Meeting, MeetingStatus, ParticipantRole, ParticipantStatus, Prisma } from '@prisma/client';
-import { generateMeetingCode, getWebinarParticipantDefaults, getMeetingParticipantDefaults, isStageVisibleRole } from '@boldmeet/shared';
+import { generateMeetingCode, normalizeMeetingCode, getWebinarParticipantDefaults, getMeetingParticipantDefaults, isStageVisibleRole } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
 import { MeetingGateway } from '../gateway/meeting.gateway';
@@ -22,9 +22,22 @@ export class MeetingsService {
   ) {}
 
   private meetingIdentifierWhere(idOrCode: string) {
+    const normalized = normalizeMeetingCode(idOrCode);
     return {
-      OR: [{ id: idOrCode }, { meetingCode: idOrCode.toLowerCase() }],
+      OR: [{ id: idOrCode }, { meetingCode: normalized }, { id: normalized }],
     };
+  }
+
+  private async generateUniqueMeetingCode(maxAttempts = 12): Promise<string> {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const meetingCode = generateMeetingCode();
+      const existing = await this.prisma.meeting.findUnique({
+        where: { meetingCode },
+        select: { id: true },
+      });
+      if (!existing) return meetingCode;
+    }
+    throw new BadRequestException('Could not generate a unique meeting ID. Please try again.');
   }
 
   private async resolveMeeting<T extends Prisma.MeetingInclude | undefined>(
@@ -72,7 +85,7 @@ export class MeetingsService {
       ? Math.min(dto.participantLimit, planAttendeeLimit)
       : planAttendeeLimit;
 
-    const meetingCode = generateMeetingCode();
+    const meetingCode = await this.generateUniqueMeetingCode();
     const isInstant = !dto.scheduledAt;
 
     let passwordHash: string | undefined;
@@ -217,7 +230,7 @@ export class MeetingsService {
 
   async findByCode(meetingCode: string) {
     const meeting = await this.prisma.meeting.findUnique({
-      where: { meetingCode: meetingCode.toLowerCase() },
+      where: { meetingCode: normalizeMeetingCode(meetingCode) },
       include: {
         settings: true,
         host: { select: { id: true, name: true } },
@@ -361,6 +374,8 @@ export class MeetingsService {
       where: { meetingId },
       data: dto,
     });
+
+    this.gateway.broadcastSettingsUpdate(meetingId, dto as Record<string, unknown>);
 
     return settings;
   }

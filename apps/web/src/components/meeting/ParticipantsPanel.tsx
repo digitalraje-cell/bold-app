@@ -1,19 +1,35 @@
 'use client';
 
-import { X, Mic, MicOff, Video, VideoOff, UserPlus, Presentation } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  X,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  UserPlus,
+  Presentation,
+  UserMinus,
+  Crown,
+  Check,
+} from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
 import { RoomMode } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { useRoomStore, RoomParticipant } from '@/stores/roomStore';
 
+type ParticipantRecord = RoomParticipant & { status?: string };
+
 interface ParticipantsPanelProps {
   meetingId: string;
+  isModerator: boolean;
   isHost: boolean;
   roomMode: RoomMode;
+  waitingRoomEnabled?: boolean;
   onClose: () => void;
   onPromotePanelist?: (participantId: string) => void;
   onBringOnStage?: (participantId: string) => void;
   onRemoveFromStage?: (participantId: string) => void;
+  onMuteAll?: () => void;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -22,32 +38,49 @@ const ROLE_LABELS: Record<string, string> = {
   PANELIST: 'Panelist',
   PARTICIPANT: 'Participant',
   MODERATOR: 'Moderator',
+  GUEST: 'Guest',
 };
 
 export function ParticipantsPanel({
   meetingId,
+  isModerator,
   isHost,
   roomMode,
+  waitingRoomEnabled,
   onClose,
   onPromotePanelist,
   onBringOnStage,
   onRemoveFromStage,
+  onMuteAll,
 }: ParticipantsPanelProps) {
   const storeParticipants = useRoomStore((s) => s.participants);
-  const [participants, setParticipants] = useState<RoomParticipant[]>(storeParticipants);
+  const [participants, setParticipants] = useState<ParticipantRecord[]>(storeParticipants);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const list = (await api.participants.list(meetingId)) as ParticipantRecord[];
+    setParticipants(list);
+  }, [meetingId]);
 
   useEffect(() => {
     if (storeParticipants.length > 0) {
-      setParticipants(storeParticipants);
-      return;
+      setParticipants(storeParticipants as ParticipantRecord[]);
     }
+    void refresh();
+  }, [meetingId, storeParticipants, refresh]);
 
-    api.participants.list(meetingId).then((list) => {
-      setParticipants(list as RoomParticipant[]);
-    });
-  }, [meetingId, storeParticipants]);
+  const admitted = participants.filter((p) => p.status !== 'WAITING' && p.status !== 'REMOVED');
+  const waiting = participants.filter((p) => p.status === 'WAITING');
 
-  const admitted = participants.filter((p) => p.role !== undefined);
+  const runAction = async (participantId: string, action: () => Promise<unknown>) => {
+    setLoadingId(participantId);
+    try {
+      await action();
+      await refresh();
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   return (
     <div className="absolute right-0 top-0 z-40 flex h-full w-80 flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur">
@@ -59,6 +92,44 @@ export function ParticipantsPanel({
           <X className="h-5 w-5" />
         </button>
       </div>
+
+      {isModerator && onMuteAll && (
+        <div className="border-b border-white/10 px-4 py-2">
+          <button
+            type="button"
+            onClick={onMuteAll}
+            className="w-full rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+          >
+            Mute all
+          </button>
+        </div>
+      )}
+
+      {isModerator && waitingRoomEnabled && waiting.length > 0 && (
+        <div className="border-b border-white/10 px-4 py-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-white/50">
+            Waiting room ({waiting.length})
+          </p>
+          <div className="space-y-2">
+            {waiting.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2 py-2">
+                <span className="truncate text-sm text-white">{p.displayName}</span>
+                <button
+                  type="button"
+                  disabled={loadingId === p.id}
+                  title="Admit"
+                  onClick={() =>
+                    runAction(p.id, () => api.participants.admitWaiting(meetingId, p.id))
+                  }
+                  className="rounded bg-primary/20 p-1.5 text-primary hover:bg-primary/30 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-2">
         {admitted.map((p) => (
@@ -77,6 +148,11 @@ export function ParticipantsPanel({
                     {ROLE_LABELS[p.role] ?? p.role}
                   </span>
                 )}
+                {!p.userId && (
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/60">
+                    Guest
+                  </span>
+                )}
                 {roomMode === RoomMode.WEBINAR && p.isOnStage && p.role === 'PARTICIPANT' && (
                   <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs text-amber-400">
                     On stage
@@ -88,9 +164,46 @@ export function ParticipantsPanel({
               {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
             </div>
-            {isHost && p.role === 'PARTICIPANT' && (
+            {isModerator && p.role !== 'HOST' && (
               <div className="flex flex-col gap-1">
-                {onPromotePanelist && (
+                <button
+                  type="button"
+                  title={p.isMuted ? 'Ask to unmute' : 'Mute'}
+                  disabled={loadingId === p.id}
+                  onClick={() =>
+                    runAction(p.id, () =>
+                      api.participants.mute(meetingId, p.id, !p.isMuted),
+                    )
+                  }
+                  className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                >
+                  {p.isMuted ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                </button>
+                {isHost && p.role === 'PARTICIPANT' && (
+                  <button
+                    type="button"
+                    title="Make co-host"
+                    disabled={loadingId === p.id}
+                    onClick={() =>
+                      runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id))
+                    }
+                    className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  >
+                    <Crown className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  title="Remove"
+                  disabled={loadingId === p.id}
+                  onClick={() =>
+                    runAction(p.id, () => api.participants.remove(meetingId, p.id))
+                  }
+                  className="rounded p-1 text-red-400/70 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                >
+                  <UserMinus className="h-4 w-4" />
+                </button>
+                {onPromotePanelist && p.role === 'PARTICIPANT' && (
                   <button
                     type="button"
                     title="Promote to panelist"

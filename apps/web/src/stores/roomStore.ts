@@ -20,10 +20,12 @@ interface RoomStore {
   roomMode: RoomMode;
   chatMode: ChatMode;
   chatEnabled: boolean;
+  screenShareEnabled: boolean;
   participants: RoomParticipant[];
   myParticipantId: string | null;
   setRoomMode: (mode: RoomMode) => void;
   setChatMode: (mode: ChatMode, enabled?: boolean) => void;
+  setScreenShareEnabled: (enabled: boolean) => void;
   setParticipants: (participants: RoomParticipant[]) => void;
   setMyParticipantId: (id: string | null) => void;
   updateParticipant: (id: string, patch: Partial<RoomParticipant>) => void;
@@ -35,6 +37,7 @@ const initialState = {
   roomMode: RoomMode.MEETING,
   chatMode: ChatMode.EVERYONE,
   chatEnabled: true,
+  screenShareEnabled: true,
   participants: [] as RoomParticipant[],
   myParticipantId: null as string | null,
 };
@@ -47,6 +50,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
       chatMode,
       chatEnabled: chatEnabled ?? s.chatEnabled,
     })),
+  setScreenShareEnabled: (screenShareEnabled) => set({ screenShareEnabled }),
   setParticipants: (participants) => set({ participants }),
   setMyParticipantId: (id) => set({ myParticipantId: id }),
   updateParticipant: (id, patch) =>
@@ -96,4 +100,17 @@ export function canSendChatInRoom(
     return ['HOST', 'CO_HOST', 'PANELIST'].includes(participant.role);
   }
   return false;
+}
+
+/** Host/co-host always; participants when host allows screen sharing. */
+export function canShareScreenInRoom(
+  participant: RoomParticipant | undefined,
+  roomMode: RoomMode,
+  screenShareEnabled: boolean,
+): boolean {
+  if (!participant) return false;
+  if (participant.role === 'HOST' || participant.role === 'CO_HOST') return true;
+  if (!screenShareEnabled) return false;
+  if (roomMode === RoomMode.WEBINAR && !participant.isOnStage) return false;
+  return ['PARTICIPANT', 'PANELIST'].includes(participant.role);
 }
