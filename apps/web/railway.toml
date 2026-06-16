@@ -22,8 +22,11 @@ restartPolicyType = "ON_FAILURE"
 
 # Required Railway WEB env vars:
 # AUTH_SECRET (or NEXTAUTH_SECRET) — session signing
-# AUTH_URL + NEXTAUTH_URL — https://your-web-service.up.railway.app
+# NEXT_PUBLIC_APP_URL=https://bold.robozant.com
+# NEXT_PUBLIC_APP_DOMAIN=bold.robozant.com
+# AUTH_URL + NEXTAUTH_URL — https://bold.robozant.com
 # DATABASE_URL — same Postgres as API (NextAuth + Prisma on web)
 # JWT_SECRET — must match API service
-# NEXT_PUBLIC_API_URL — https://your-api-service.up.railway.app
-# CORS_ORIGIN on API must include the web URL (or set AUTH_URL on API too)
+# NEXT_PUBLIC_API_URL — https://api.bold.robozant.com
+# NEXT_PUBLIC_SOCKET_URL — https://api.bold.robozant.com
+# RESEND_API_KEY, EMAIL_FROM — OTP email delivery

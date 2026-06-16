@@ -21,5 +21,7 @@ healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 
 # Required Railway env vars (Settings → Variables):
-# DATABASE_URL, JWT_SECRET (or AUTH_SECRET), ENCRYPTION_KEY, CORS_ORIGIN, NODE_ENV=production
+# DATABASE_URL, JWT_SECRET (or AUTH_SECRET), ENCRYPTION_KEY, NODE_ENV=production
+# CORS_ORIGIN=https://bold.robozant.com
+# AUTH_URL=https://bold.robozant.com (optional; also added to allowed origins)
 # Railway sets PORT automatically — do not hardcode it.

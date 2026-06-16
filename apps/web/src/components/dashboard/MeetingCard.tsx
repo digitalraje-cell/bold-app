@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
-import { getMeetingInviteUrl } from '@/lib/app-config';
+import { getMeetingInviteUrl } from '@/lib/urls';
 import { cn } from '@/lib/utils';
 import { CopyButton } from './CopyButton';
 

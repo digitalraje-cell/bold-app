@@ -15,10 +15,28 @@ export const APP_CONFIG: AppConfig = {
   description:
     process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
     'Browser-based meeting platform with YouTube recording',
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bold.hasbrando.com',
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bold.robozant.com',
 };
 
+function normalizeConfiguredOrigin(value: string): string {
+  const trimmed = value.trim().replace(/\/$/, '');
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 export function getAppOrigin(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) {
+    return normalizeConfiguredOrigin(explicit);
+  }
+
+  const authUrl = process.env.AUTH_URL?.trim() || process.env.NEXTAUTH_URL?.trim();
+  if (authUrl) {
+    return authUrl.replace(/\/$/, '');
+  }
+
   const domain = APP_CONFIG.domain;
   if (domain.startsWith('http://') || domain.startsWith('https://')) {
     return domain.replace(/\/$/, '');

@@ -1,5 +1,12 @@
-import { APP_CONFIG, getAppOrigin, getMeetingUrl, getMeetingRoomUrl, getMeetingInviteUrl } from '@boldmeet/shared';
-
-export { APP_CONFIG, getAppOrigin, getMeetingUrl, getMeetingRoomUrl, getMeetingInviteUrl };
+import { APP_CONFIG } from '@boldmeet/shared';
 
 export const appConfig = APP_CONFIG;
+export { APP_CONFIG };
+export {
+  getAppOrigin,
+  getClientAppOrigin,
+  getServerAppOrigin,
+  getMeetingUrl,
+  getMeetingRoomUrl,
+  getMeetingInviteUrl,
+} from './urls';

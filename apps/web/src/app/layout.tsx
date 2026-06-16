@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { APP_CONFIG, getAppOrigin } from '@/lib/app-config';
+import { APP_CONFIG, getServerAppOrigin } from '@/lib/app-config';
 import './globals.css';
 
 const inter = Inter({
@@ -12,7 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: APP_CONFIG.name,
   description: APP_CONFIG.description,
-  metadataBase: new URL(getAppOrigin()),
+  metadataBase: new URL(getServerAppOrigin()),
 };
 
 export default function RootLayout({

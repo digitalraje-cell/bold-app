@@ -5,7 +5,7 @@ import { Copy, Mail, MessageCircle, X } from 'lucide-react';
 import {
   formatMeetingInvite,
   getEmailInviteUrl,
-  getMeetingUrl,
+  getMeetingInviteUrl,
   getWhatsAppInviteUrl,
 } from '@/lib/urls';
 import { Button } from '@/components/ui/Button';
@@ -35,7 +35,7 @@ export function InviteModal({ meetingId, open, onClose }: InviteModalProps) {
 
   if (!open) return null;
 
-  const meetingLink = getMeetingUrl(meetingId);
+  const meetingLink = getMeetingInviteUrl(meetingId);
   const inviteText = details
     ? formatMeetingInvite({
         topic: details.title,
