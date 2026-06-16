@@ -1,3 +1,4 @@
+import dns from 'node:dns';
 import nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { APP_CONFIG } from '@boldmeet/shared';
@@ -6,6 +7,16 @@ import { APP_CONFIG } from '@boldmeet/shared';
 function runtimeEnv(key: string): string | undefined {
   const value = process.env[key];
   return value?.trim() ? value.trim() : undefined;
+}
+
+let ipv4DnsConfigured = false;
+
+function ensureIpv4FirstDns(): void {
+  if (ipv4DnsConfigured) {
+    return;
+  }
+  dns.setDefaultResultOrder('ipv4first');
+  ipv4DnsConfigured = true;
 }
 
 function getOtpExpiryMinutes(): number {
@@ -38,6 +49,12 @@ export type SmtpConfigSnapshot = {
   from: string;
   nodeEnv: string | undefined;
   railwayService: string | undefined;
+};
+
+type ResolvedSmtpHost = {
+  hostname: string;
+  address: string;
+  family: number;
 };
 
 export function getSmtpConfigSnapshot(): SmtpConfigSnapshot {
@@ -80,15 +97,38 @@ function formatError(error: unknown): { message: string; stack?: string; code?: 
   return { message: String(error) };
 }
 
-function createTransporter(snapshot: SmtpConfigSnapshot) {
+async function resolveSmtpIpv4Host(hostname: string): Promise<ResolvedSmtpHost> {
+  ensureIpv4FirstDns();
+  const result = await dns.promises.lookup(hostname, { family: 4 });
+  console.log('[otp-email] DNS resolved SMTP host', {
+    hostname,
+    address: result.address,
+    family: result.family,
+  });
+  return {
+    hostname,
+    address: result.address,
+    family: result.family,
+  };
+}
+
+function createTransporter(snapshot: SmtpConfigSnapshot, resolved: ResolvedSmtpHost) {
   const user = runtimeEnv('SMTP_USER');
   const { pass } = getSmtpPassword();
 
+  console.log('[otp-email] using IPv4 transport', {
+    connectHost: resolved.address,
+    servername: resolved.hostname,
+    family: 4,
+  });
+
+  // Nodemailer 9 resolves IPv4+IPv6 and may pick IPv6 at random; connect to the
+  // IPv4 literal and keep servername for STARTTLS/SNI.
   const options = {
-    host: snapshot.host,
+    host: resolved.address,
+    servername: resolved.hostname,
     port: snapshot.port,
     secure: snapshot.secure,
-    // Railway has no IPv6 route to Gmail; force IPv4 DNS + socket.
     family: 4,
     auth: user
       ? {
@@ -102,6 +142,8 @@ function createTransporter(snapshot: SmtpConfigSnapshot) {
 }
 
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  ensureIpv4FirstDns();
+
   const snapshot = getSmtpConfigSnapshot();
   logSmtpConfig(snapshot);
 
@@ -128,20 +170,25 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
     console.error('[otp-email] SMTP_USER set but neither SMTP_PASS nor SMTP_PASSWORD is set');
   }
 
-  const transporter = createTransporter(snapshot);
+  const resolved = await resolveSmtpIpv4Host(snapshot.host);
+  const transporter = createTransporter(snapshot, resolved);
 
   try {
     await transporter.verify();
     console.log('[otp-email] SMTP transporter.verify() succeeded', {
-      host: snapshot.host,
+      hostname: resolved.hostname,
+      connectHost: resolved.address,
+      family: resolved.family,
       port: snapshot.port,
       secure: snapshot.secure,
-      family: 4,
     });
   } catch (error) {
     const details = formatError(error);
     console.error('[otp-email] SMTP transporter.verify() failed', {
       ...snapshot,
+      connectHost: resolved.address,
+      servername: resolved.hostname,
+      family: resolved.family,
       error: details.message,
       code: details.code,
       stack: details.stack,
@@ -160,6 +207,7 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
     console.log('[otp-email] sendMail() succeeded', {
       to: email,
       from: snapshot.from,
+      connectHost: resolved.address,
       messageId: info.messageId,
       accepted: info.accepted,
       rejected: info.rejected,
@@ -170,6 +218,8 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
     console.error('[otp-email] sendMail() failed', {
       ...snapshot,
       to: email,
+      connectHost: resolved.address,
+      servername: resolved.hostname,
       error: details.message,
       code: details.code,
       stack: details.stack,
