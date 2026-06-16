@@ -29,6 +29,7 @@ interface RoomStore {
   setParticipants: (participants: RoomParticipant[]) => void;
   setMyParticipantId: (id: string | null) => void;
   updateParticipant: (id: string, patch: Partial<RoomParticipant>) => void;
+  upsertParticipant: (participant: RoomParticipant) => void;
   removeParticipant: (id: string) => void;
   reset: () => void;
 }
@@ -59,6 +60,16 @@ export const useRoomStore = create<RoomStore>((set) => ({
         p.id === id ? { ...p, ...patch } : p,
       ),
     })),
+  upsertParticipant: (participant) =>
+    set((s) => {
+      const idx = s.participants.findIndex((p) => p.id === participant.id);
+      if (idx >= 0) {
+        const next = [...s.participants];
+        next[idx] = { ...next[idx], ...participant };
+        return { participants: next };
+      }
+      return { participants: [...s.participants, participant] };
+    }),
   removeParticipant: (id) =>
     set((s) => ({
       participants: s.participants.filter((p) => p.id !== id),

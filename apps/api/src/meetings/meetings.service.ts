@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
 import { MeetingGateway } from '../gateway/meeting.gateway';
 import { encryptText, decryptText } from '../common/crypto.util';
-import { CreateMeetingDto, JoinMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
+import { CreateMeetingDto, JoinMeetingDto, RegisterMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
 
 @Injectable()
 export class MeetingsService {
@@ -93,6 +93,11 @@ export class MeetingsService {
     const meetingCode = await this.generateUniqueMeetingCode();
     const isInstant = !dto.scheduledAt;
 
+    let scheduledEndAt: Date | null = null;
+    if (dto.scheduledAt && dto.durationMinutes) {
+      scheduledEndAt = new Date(new Date(dto.scheduledAt).getTime() + dto.durationMinutes * 60_000);
+    }
+
     let passwordHash: string | undefined;
     let passcodeEncrypted: string | undefined;
     if (dto.password) {
@@ -110,6 +115,8 @@ export class MeetingsService {
         passcodeEncrypted,
         participantLimit,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
+        scheduledEndAt,
+        durationMinutes: dto.durationMinutes ?? null,
         status: isInstant ? MeetingStatus.LIVE : MeetingStatus.SCHEDULED,
         startedAt: isInstant ? new Date() : null,
         jitsiRoom: `boldmeet-${meetingCode}`,
@@ -126,6 +133,7 @@ export class MeetingsService {
             participantMicAccess: dto.settings?.participantMicAccess ?? true,
             coHostPermissionsEnabled: dto.settings?.coHostPermissionsEnabled ?? true,
             autoMuteParticipants: dto.settings?.autoMuteParticipants ?? false,
+            registrationRequired: dto.settings?.registrationRequired ?? false,
           },
         },
       },
@@ -177,6 +185,7 @@ export class MeetingsService {
     console.log('[meeting] public preview lookup', { idOrCode });
     const meeting = await this.resolveMeeting(idOrCode, {
       host: { select: { name: true, email: true } },
+      settings: true,
       _count: {
         select: {
           participants: { where: { status: ParticipantStatus.ADMITTED } },
@@ -198,13 +207,37 @@ export class MeetingsService {
       hostId: meeting.hostId,
       jitsiRoom: meeting.jitsiRoom,
       hostName: meeting.host.name || meeting.host.email || 'Unknown host',
-      status: meeting.status,
+      status: this.getEffectiveStatus(meeting),
       startedAt: meeting.startedAt,
       scheduledAt: meeting.scheduledAt,
+      scheduledEndAt: meeting.scheduledEndAt,
+      durationMinutes: meeting.durationMinutes,
       participantCount: meeting._count.participants,
       hasPassword: !!meeting.password,
+      registrationRequired: meeting.settings?.registrationRequired ?? false,
       endedAt: meeting.endedAt,
     };
+  }
+
+  private getEffectiveStatus(
+    meeting: Pick<Meeting, 'status' | 'scheduledAt' | 'scheduledEndAt' | 'startedAt'>,
+  ): MeetingStatus {
+    if (meeting.status === MeetingStatus.ENDED) return MeetingStatus.ENDED;
+    const now = Date.now();
+    if (meeting.scheduledEndAt && now > meeting.scheduledEndAt.getTime()) {
+      return MeetingStatus.ENDED;
+    }
+    if (
+      meeting.status === MeetingStatus.SCHEDULED &&
+      meeting.scheduledAt &&
+      now < meeting.scheduledAt.getTime()
+    ) {
+      return MeetingStatus.SCHEDULED;
+    }
+    if (meeting.status === MeetingStatus.SCHEDULED && meeting.scheduledAt && now >= meeting.scheduledAt.getTime()) {
+      return MeetingStatus.LIVE;
+    }
+    return meeting.status;
   }
 
   async findById(idOrCode: string, userId?: string) {
@@ -274,18 +307,48 @@ export class MeetingsService {
 
     const meetingId = meeting.id;
 
-    if (meeting.status === MeetingStatus.ENDED) {
-      console.warn('[meeting] join rejected: ended', { meetingId });
-      throw new BadRequestException('This meeting has ended');
-    }
-
     const isHost = userId === meeting.hostId;
 
     if (meeting.isLocked && !isHost) {
       throw new BadRequestException('This meeting is locked');
     }
 
-    if (meeting.password) {
+    const effectiveStatus = this.getEffectiveStatus(meeting);
+    if (effectiveStatus === MeetingStatus.ENDED) {
+      throw new BadRequestException('This meeting has ended');
+    }
+
+    if (
+      meeting.status === MeetingStatus.SCHEDULED &&
+      meeting.scheduledAt &&
+      Date.now() < meeting.scheduledAt.getTime() &&
+      !isHost
+    ) {
+      throw new BadRequestException('This meeting has not started yet');
+    }
+
+    if (meeting.settings?.registrationRequired && !isHost) {
+      let email = dto.registrantEmail?.trim().toLowerCase();
+      if (!email && userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        email = user?.email?.toLowerCase();
+      }
+      if (!email) {
+        throw new BadRequestException('Registration is required before joining');
+      }
+      const registered = await this.prisma.meetingRegistrant.findFirst({
+        where: { meetingId, email: { equals: email, mode: 'insensitive' } },
+      });
+      if (!registered) {
+        throw new ForbiddenException('Email is not registered for this meeting');
+      }
+    }
+
+    const skipPassword = isHost || dto.viaDirectLink === true || !!userId;
+    if (meeting.password && !skipPassword) {
       if (!dto.password) {
         throw new BadRequestException('Password required');
       }
@@ -337,6 +400,36 @@ export class MeetingsService {
           ...(status === ParticipantStatus.ADMITTED ? modeDefaults : {}),
         },
       });
+    } else if (dto.participantId) {
+      const existing = await this.prisma.participant.findFirst({
+        where: {
+          id: dto.participantId,
+          meetingId,
+          userId: null,
+        },
+      });
+      if (existing) {
+        participant = await this.prisma.participant.update({
+          where: { id: existing.id },
+          data: {
+            displayName: dto.displayName,
+            status,
+            leftAt: null,
+            ...(status === ParticipantStatus.ADMITTED ? modeDefaults : {}),
+          },
+        });
+      } else {
+        participant = await this.prisma.participant.create({
+          data: {
+            meetingId,
+            displayName: dto.displayName,
+            role: ParticipantRole.PARTICIPANT,
+            status,
+            ...modeDefaults,
+            isMuted: modeDefaults.isMuted || !!meeting.settings?.autoMuteParticipants,
+          },
+        });
+      }
     } else {
       participant = await this.prisma.participant.create({
         data: {
@@ -364,6 +457,17 @@ export class MeetingsService {
       admitted: participant.status === ParticipantStatus.ADMITTED,
       userId,
     });
+
+    if (participant.status === ParticipantStatus.ADMITTED) {
+      this.gateway.broadcastParticipantJoined(meetingId, {
+        id: participant.id,
+        displayName: participant.displayName,
+        role: participant.role,
+        userId: participant.userId,
+        isMuted: participant.isMuted,
+        isVideoOff: participant.isVideoOff,
+      });
+    }
 
     return {
       meeting: this.sanitizeMeeting(meeting, isHost),
@@ -454,6 +558,81 @@ export class MeetingsService {
     this.gateway.broadcastParticipantLeft(meeting.id, participant.id);
 
     return { success: true };
+  }
+
+  async leaveGuest(idOrCode: string, participantId: string) {
+    const meeting = await this.resolveMeeting(idOrCode);
+
+    if (meeting.status === MeetingStatus.ENDED) {
+      return { success: true };
+    }
+
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        id: participantId,
+        meetingId: meeting.id,
+        status: { in: [ParticipantStatus.ADMITTED, ParticipantStatus.WAITING] },
+      },
+    });
+
+    if (!participant) {
+      return { success: true };
+    }
+
+    await this.prisma.participant.update({
+      where: { id: participant.id },
+      data: { status: ParticipantStatus.LEFT, leftAt: new Date() },
+    });
+
+    this.gateway.broadcastParticipantLeft(meeting.id, participant.id);
+
+    return { success: true };
+  }
+
+  async registerForMeeting(idOrCode: string, dto: RegisterMeetingDto) {
+    const meeting = await this.resolveMeeting(idOrCode, { settings: true });
+
+    if (!meeting.settings?.registrationRequired) {
+      throw new BadRequestException('Registration is not required for this meeting');
+    }
+
+    if (this.getEffectiveStatus(meeting) === MeetingStatus.ENDED) {
+      throw new BadRequestException('This meeting has ended');
+    }
+
+    const email = dto.email.trim().toLowerCase();
+
+    return this.prisma.meetingRegistrant.upsert({
+      where: {
+        meetingId_email: { meetingId: meeting.id, email },
+      },
+      create: {
+        meetingId: meeting.id,
+        fullName: dto.fullName.trim(),
+        email,
+        phone: dto.phone?.trim() || null,
+        company: dto.company?.trim() || null,
+        designation: dto.designation?.trim() || null,
+      },
+      update: {
+        fullName: dto.fullName.trim(),
+        phone: dto.phone?.trim() || null,
+        company: dto.company?.trim() || null,
+        designation: dto.designation?.trim() || null,
+      },
+    });
+  }
+
+  async listRegistrants(idOrCode: string, hostId: string) {
+    const meeting = await this.resolveMeeting(idOrCode);
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Only the host can view registrants');
+    }
+
+    return this.prisma.meetingRegistrant.findMany({
+      where: { meetingId: meeting.id },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async getDurationStatus(meetingId: string) {

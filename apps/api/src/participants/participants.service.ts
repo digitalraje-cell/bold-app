@@ -159,6 +159,14 @@ export class ParticipantsService {
       data: { status: ParticipantStatus.ADMITTED },
     });
     this.gateway.broadcastWaitingAdmit(meetingId, participantId);
+    this.gateway.broadcastParticipantJoined(meetingId, {
+      id: updated.id,
+      displayName: updated.displayName,
+      role: updated.role,
+      userId: updated.userId,
+      isMuted: updated.isMuted,
+      isVideoOff: updated.isVideoOff,
+    });
     return updated;
   }
 

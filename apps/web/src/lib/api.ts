@@ -114,7 +114,13 @@ export const api = {
     getDuration: (id: string) => apiFetch(`/meetings/${id}/duration`, {}, false),
     create: (data: Record<string, unknown>) =>
       apiFetch('/meetings', { method: 'POST', body: JSON.stringify(data) }),
-    join: (id: string, data: { displayName: string; password?: string }) =>
+    join: (id: string, data: {
+      displayName: string;
+      password?: string;
+      viaDirectLink?: boolean;
+      participantId?: string;
+      registrantEmail?: string;
+    }) =>
       apiFetch(`/meetings/${id}/join`, {
         method: 'POST',
         body: JSON.stringify(data),
@@ -127,6 +133,17 @@ export const api = {
     findByCode: (code: string) => apiFetch(`/meetings/code/${code}`, {}, false),
     end: (id: string) => apiFetch(`/meetings/${id}/end`, { method: 'POST' }),
     leave: (id: string) => apiFetch(`/meetings/${id}/leave`, { method: 'POST' }),
+    leaveGuest: (id: string, participantId: string) =>
+      apiFetch(`/meetings/${id}/leave-guest`, {
+        method: 'POST',
+        body: JSON.stringify({ participantId }),
+      }, false),
+    register: (id: string, data: Record<string, unknown>) =>
+      apiFetch(`/meetings/${id}/register`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }, false),
+    listRegistrants: (id: string) => apiFetch(`/meetings/${id}/registrants`),
     lock: (id: string, isLocked: boolean) =>
       apiFetch(`/meetings/${id}/lock`, {
         method: 'POST',

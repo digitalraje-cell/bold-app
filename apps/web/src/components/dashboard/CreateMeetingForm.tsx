@@ -41,6 +41,8 @@ export function CreateMeetingForm() {
   const [description, setDescription] = useState('');
   const [password, setPassword] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('60');
+  const [customDuration, setCustomDuration] = useState('');
   const [settings, setSettings] = useState(DEFAULT_MEETING_SETTINGS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +62,20 @@ export function CreateMeetingForm() {
   );
 
   const isFormValid = !fieldErrors.title && !fieldErrors.password && !fieldErrors.scheduledAt;
+
+  const resolvedDuration = useMemo(() => {
+    if (isInstant) return undefined;
+    if (durationMinutes === 'custom') {
+      const custom = Number(customDuration);
+      return Number.isFinite(custom) && custom >= 5 ? custom : undefined;
+    }
+    return Number(durationMinutes);
+  }, [isInstant, durationMinutes, customDuration]);
+
+  const endTimePreview = useMemo(() => {
+    if (isInstant || !scheduledAt || !resolvedDuration) return null;
+    return new Date(new Date(scheduledAt).getTime() + resolvedDuration * 60_000).toLocaleString();
+  }, [isInstant, scheduledAt, resolvedDuration]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +103,7 @@ export function CreateMeetingForm() {
         description: description.trim() || undefined,
         password: password || undefined,
         scheduledAt: isInstant ? undefined : scheduledAt,
+        durationMinutes: resolvedDuration,
         settings,
       })) as { id: string; meetingCode: string };
 
@@ -97,7 +114,7 @@ export function CreateMeetingForm() {
           const path = await joinMeetingAndGetPath(
             meeting.meetingCode,
             displayName,
-            password || undefined,
+            { password: password || undefined, viaDirectLink: true },
           );
           router.push(path);
           return;
@@ -167,15 +184,46 @@ export function CreateMeetingForm() {
           />
 
           {!isInstant && (
-            <Input
-              label="Date & time"
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              onBlur={() => setTouched((prev) => ({ ...prev, scheduledAt: true }))}
-              required
-              error={touched.scheduledAt ? fieldErrors.scheduledAt : undefined}
-            />
+            <>
+              <Input
+                label="Date & time"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, scheduledAt: true }))}
+                required
+                error={touched.scheduledAt ? fieldErrors.scheduledAt : undefined}
+              />
+              <div>
+                <label className="mb-2 block text-sm font-medium">Duration</label>
+                <select
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm"
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(e.target.value)}
+                >
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                  <option value="90">90 minutes</option>
+                  <option value="120">120 minutes</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              {durationMinutes === 'custom' && (
+                <Input
+                  label="Custom duration (minutes)"
+                  type="number"
+                  min={5}
+                  max={480}
+                  value={customDuration}
+                  onChange={(e) => setCustomDuration(e.target.value)}
+                />
+              )}
+              {endTimePreview && (
+                <p className="text-sm text-muted-foreground">Ends {endTimePreview}</p>
+              )}
+            </>
           )}
 
           <Input
@@ -223,6 +271,12 @@ export function CreateMeetingForm() {
                 description="When off, only the host and co-hosts can share"
                 checked={settings.screenShareEnabled}
                 onChange={() => toggleSetting('screenShareEnabled')}
+              />
+              <Toggle
+                label="Registration required"
+                description="Guests must register before joining"
+                checked={settings.registrationRequired}
+                onChange={() => toggleSetting('registrationRequired')}
               />
             </div>
           </div>

@@ -81,7 +81,7 @@ export function ParticipantsPanel({
   };
 
   return (
-    <div className="absolute right-0 top-0 z-40 flex h-full w-full max-w-sm flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur sm:w-80">
+    <div className="fixed inset-0 z-40 flex flex-col border-l border-white/10 bg-slate-900/98 backdrop-blur sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-sm">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h3 className="font-semibold text-white">
           Participants ({admitted.length})
@@ -146,7 +146,7 @@ export function ParticipantsPanel({
                     {ROLE_LABELS[p.role] ?? p.role}
                   </span>
                 )}
-                {!p.userId && (
+                {!p.userId && p.role === 'PARTICIPANT' && (
                   <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/60">
                     Guest
                   </span>

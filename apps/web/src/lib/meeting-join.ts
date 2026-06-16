@@ -56,15 +56,21 @@ export function readGuestJoinSession(routeParam: string): GuestJoinSession | nul
 export async function joinMeetingAndGetPath(
   meetingIdOrCode: string,
   displayName: string,
-  password?: string,
+  options: {
+    password?: string;
+    viaDirectLink?: boolean;
+    participantId?: string;
+    registrantEmail?: string;
+  } = {},
 ): Promise<string> {
   console.log('[meeting-join] requesting join via server action', {
     meetingIdOrCode,
     displayName,
-    hasPassword: Boolean(password),
+    hasPassword: Boolean(options.password),
+    viaDirectLink: options.viaDirectLink,
   });
 
-  const result = await joinMeetingAction(meetingIdOrCode, displayName, password);
+  const result = await joinMeetingAction(meetingIdOrCode, displayName, options);
 
   if (!result.ok) {
     console.error('[meeting-join] join failed', {

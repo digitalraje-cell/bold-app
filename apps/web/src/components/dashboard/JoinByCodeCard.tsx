@@ -15,7 +15,7 @@ export function JoinByCodeCard() {
     event.preventDefault();
     const normalized = normalizeMeetingCode(code.trim());
     if (!normalized) return;
-    router.push(`/meeting/${normalized}`);
+    router.push(`/meeting/${normalized}?entry=code`);
   }
 
   return (

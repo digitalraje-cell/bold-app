@@ -57,6 +57,10 @@ export class MeetingSettingsDto {
   @IsOptional()
   @IsBoolean()
   autoMuteParticipants?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  registrationRequired?: boolean;
 }
 
 export class CreateMeetingDto {
@@ -76,6 +80,12 @@ export class CreateMeetingDto {
   @IsOptional()
   @IsDateString()
   scheduledAt?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  durationMinutes?: number;
 
   @IsOptional()
   @IsInt()
@@ -99,6 +109,48 @@ export class JoinMeetingDto {
   @IsString()
   @MinLength(1)
   displayName: string;
+
+  /** Direct invite link join — skip password prompt (link is the access grant). */
+  @IsOptional()
+  @IsBoolean()
+  viaDirectLink?: boolean;
+
+  /** Rejoin as existing anonymous participant. */
+  @IsOptional()
+  @IsString()
+  participantId?: string;
+
+  /** Email used during registration (when registrationRequired). */
+  @IsOptional()
+  @IsString()
+  registrantEmail?: string;
+}
+
+export class RegisterMeetingDto {
+  @IsString()
+  @MinLength(1)
+  fullName: string;
+
+  @IsString()
+  @MinLength(3)
+  email: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @IsOptional()
+  @IsString()
+  designation?: string;
+}
+
+export class LeaveGuestDto {
+  @IsString()
+  participantId: string;
 }
 
 export class JoinByCodeDto {

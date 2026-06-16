@@ -65,10 +65,20 @@ export type JoinMeetingActionResult =
 export async function joinMeetingAction(
   meetingIdOrCode: string,
   displayName: string,
-  password?: string,
+  options: {
+    password?: string;
+    viaDirectLink?: boolean;
+    participantId?: string;
+    registrantEmail?: string;
+  } = {},
 ): Promise<JoinMeetingActionResult> {
-  const payload: { displayName: string; password?: string } = { displayName };
-  if (password) payload.password = password;
+  const payload: Record<string, unknown> = {
+    displayName,
+    viaDirectLink: options.viaDirectLink ?? false,
+  };
+  if (options.password) payload.password = options.password;
+  if (options.participantId) payload.participantId = options.participantId;
+  if (options.registrantEmail) payload.registrantEmail = options.registrantEmail;
 
   const url = buildNestApiUrl(`/meetings/${encodeURIComponent(meetingIdOrCode)}/join`);
   const authHeaders = await buildAuthHeaders();
@@ -76,7 +86,8 @@ export async function joinMeetingAction(
   console.log('[meeting-join-action] POST', url, {
     meetingIdOrCode,
     displayName,
-    hasPassword: Boolean(password),
+    hasPassword: Boolean(options.password),
+    viaDirectLink: options.viaDirectLink ?? false,
     authenticated: Boolean(authHeaders.Authorization),
   });
 

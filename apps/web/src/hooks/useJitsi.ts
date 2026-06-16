@@ -35,6 +35,8 @@ interface UseJitsiOptions {
 }
 
 let jitsiScriptPromise: Promise<void> | null = null;
+const MAX_RECONNECT_ATTEMPTS = 6;
+const RECONNECT_DELAY_MS = 2000;
 
 function loadJitsiScript(url: string): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
@@ -83,6 +85,11 @@ export function useJitsi({
 }: UseJitsiOptions) {
   const apiRef = useRef<JitsiExternalAPI | null>(null);
   const sessionKeyRef = useRef<string | null>(null);
+  const intentionalLeaveRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const iframeObserverRef = useRef<MutationObserver | null>(null);
+  const joinedRef = useRef(false);
   const callbacksRef = useRef({
     onReady,
     onLeave,
@@ -115,23 +122,92 @@ export function useJitsi({
   const [isPresenterLayout, setIsPresenterLayout] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(startMuted);
   const [isVideoMuted, setIsVideoMuted] = useState(startVideoMuted);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectNonce, setReconnectNonce] = useState(0);
+
+  const disposeSession = useCallback(() => {
+    iframeObserverRef.current?.disconnect();
+    iframeObserverRef.current = null;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (apiRef.current) {
+      apiRef.current.dispose();
+      apiRef.current = null;
+    }
+    sessionKeyRef.current = null;
+    joinedRef.current = false;
+  }, []);
+
+  const scheduleReconnect = useCallback(
+    (reason: string) => {
+      if (intentionalLeaveRef.current || !enabled || !roomName) return;
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        console.error('[media] max reconnect attempts reached', { roomName, reason });
+        return;
+      }
+
+      reconnectAttemptsRef.current += 1;
+      setIsReconnecting(true);
+      console.warn('[media] scheduling jitsi reconnect', {
+        roomName,
+        reason,
+        attempt: reconnectAttemptsRef.current,
+      });
+
+      disposeSession();
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        setIsReconnecting(false);
+        setReconnectNonce((n) => n + 1);
+      }, RECONNECT_DELAY_MS);
+    },
+    [enabled, roomName, disposeSession],
+  );
 
   useEffect(() => {
     if (!enabled || !roomName) return;
+
+    if (reconnectTimerRef.current) {
+      return;
+    }
 
     const sessionKey = roomName;
     if (apiRef.current && sessionKeyRef.current === sessionKey) return;
 
     if (apiRef.current) {
-      apiRef.current.dispose();
-      apiRef.current = null;
-      sessionKeyRef.current = null;
+      disposeSession();
     }
 
     let cancelled = false;
+    intentionalLeaveRef.current = false;
     const provider = getMeetingMediaProvider();
     const mediaDomain = provider.getDefaultDomain();
     const scriptUrl = provider.getExternalApiScriptUrl(mediaDomain);
+
+    const watchIframe = () => {
+      if (!containerRef.current || cancelled) return;
+      const iframe = containerRef.current.querySelector('iframe');
+      if (!iframe) return;
+
+      const checkSrc = () => {
+        const src = iframe.getAttribute('src') ?? '';
+        const looksLikeAd =
+          src.includes('8x8') ||
+          src.includes('/promo') ||
+          src.includes('jaas') ||
+          (src.length > 0 && !src.includes(encodeURIComponent(roomName)) && !src.includes(roomName));
+        if (looksLikeAd && joinedRef.current) {
+          scheduleReconnect('iframe-navigated-away');
+        }
+      };
+
+      iframeObserverRef.current?.disconnect();
+      iframeObserverRef.current = new MutationObserver(checkSrc);
+      iframeObserverRef.current.observe(iframe, { attributes: true, attributeFilter: ['src'] });
+      checkSrc();
+    };
 
     const initJitsi = () => {
       if (cancelled || apiRef.current || !containerRef.current) return;
@@ -164,10 +240,40 @@ export function useJitsi({
       });
 
       api.addListener('videoConferenceJoined', () => {
+        joinedRef.current = true;
+        reconnectAttemptsRef.current = 0;
+        setIsReconnecting(false);
         console.log('[media] video conference joined', { roomName, isHost: opts.isHost });
+        if (opts.isHost) {
+          try {
+            api.executeCommand('toggleLobby', false);
+          } catch {
+            // lobby may be disabled in config
+          }
+        }
+        watchIframe();
         callbacksRef.current.onReady?.();
       });
-      api.addListener('readyToClose', () => callbacksRef.current.onLeave?.());
+
+      api.addListener('readyToClose', () => {
+        intentionalLeaveRef.current = true;
+        callbacksRef.current.onLeave?.();
+      });
+
+      api.addListener('videoConferenceLeft', () => {
+        if (!intentionalLeaveRef.current) {
+          scheduleReconnect('videoConferenceLeft');
+        }
+      });
+
+      api.addListener('connectionFailed', () => {
+        scheduleReconnect('connectionFailed');
+      });
+
+      api.addListener('errorOccurred', (payload: unknown) => {
+        console.warn('[media] jitsi errorOccurred', payload);
+        scheduleReconnect('errorOccurred');
+      });
 
       api.addListener('audioMuteStatusChanged', (payload: unknown) => {
         const { muted } = payload as { muted?: boolean };
@@ -180,9 +286,8 @@ export function useJitsi({
       });
 
       api.addListener('loginRequired', () => {
-        console.warn(
-          '[media] Jitsi loginRequired suppressed — host joins first on community domain',
-        );
+        console.warn('[media] loginRequired — reconnecting to suppress Jitsi login/ad page');
+        scheduleReconnect('loginRequired');
       });
 
       api.addListener('screenSharingStatusChanged', (payload: unknown) => {
@@ -197,13 +302,6 @@ export function useJitsi({
         const presenter = !tileView;
         setIsPresenterLayout(presenter);
         callbacksRef.current.onPresenterLayoutChange?.(presenter);
-      });
-
-      api.addListener('participantRoleChanged', (payload: unknown) => {
-        const { role } = payload as { role?: string };
-        if (opts.isHost && role && role !== 'moderator') {
-          console.warn('[media] host is not Jitsi moderator — guests may see waiting screen');
-        }
       });
 
       apiRef.current = api;
@@ -225,36 +323,32 @@ export function useJitsi({
       })
       .catch((error) => {
         console.error('[media] failed to load Jitsi script', error);
+        scheduleReconnect('script-load-failed');
       });
 
     return () => {
       cancelled = true;
     };
-  }, [roomName, enabled, containerRef]);
+  }, [roomName, enabled, reconnectNonce, containerRef, disposeSession, scheduleReconnect]);
 
   useEffect(() => {
     if (enabled) return;
 
-    if (apiRef.current) {
-      apiRef.current.dispose();
-      apiRef.current = null;
-      sessionKeyRef.current = null;
-    }
+    intentionalLeaveRef.current = true;
+    disposeSession();
     setIsScreenSharing(false);
     setIsPresenterLayout(false);
     setIsAudioMuted(true);
     setIsVideoMuted(true);
-  }, [enabled]);
+    setIsReconnecting(false);
+  }, [enabled, disposeSession]);
 
   useEffect(() => {
     return () => {
-      if (apiRef.current) {
-        apiRef.current.dispose();
-        apiRef.current = null;
-        sessionKeyRef.current = null;
-      }
+      intentionalLeaveRef.current = true;
+      disposeSession();
     };
-  }, []);
+  }, [disposeSession]);
 
   const toggleAudio = useCallback(() => {
     apiRef.current?.executeCommand('toggleAudio');
@@ -273,6 +367,7 @@ export function useJitsi({
   }, []);
 
   const hangup = useCallback(() => {
+    intentionalLeaveRef.current = true;
     apiRef.current?.executeCommand('hangup');
   }, []);
 
@@ -291,5 +386,6 @@ export function useJitsi({
     isPresenterLayout,
     isAudioMuted,
     isVideoMuted,
+    isReconnecting,
   };
 }

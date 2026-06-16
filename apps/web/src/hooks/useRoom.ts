@@ -7,7 +7,7 @@ import { useRoomStore, RoomParticipant } from '@/stores/roomStore';
 import { api } from '@/lib/api';
 
 export function useRoom(meetingId: string, isHost: boolean) {
-  const { on } = useSocket(meetingId);
+  const { on, emit, socket } = useSocket(meetingId);
   const {
     roomMode,
     chatMode,
@@ -21,45 +21,50 @@ export function useRoom(meetingId: string, isHost: boolean) {
     setParticipants,
     setMyParticipantId,
     updateParticipant,
+    upsertParticipant,
     removeParticipant,
     reset,
   } = useRoomStore();
+
+  const refreshRoom = useCallback(async () => {
+    try {
+      const state = (await api.room.get(meetingId)) as {
+        roomMode: RoomMode;
+        settings: {
+          chatMode: ChatMode;
+          chatEnabled: boolean;
+          screenShareEnabled?: boolean;
+        };
+        participants: RoomParticipant[];
+      };
+      setRoomMode(state.roomMode);
+      setChatMode(state.settings.chatMode, state.settings.chatEnabled);
+      setScreenShareEnabled(state.settings.screenShareEnabled ?? true);
+      setParticipants(
+        state.participants.map((p) => ({
+          id: p.id,
+          displayName: p.displayName,
+          role: p.role,
+          isMuted: p.isMuted,
+          isVideoOff: p.isVideoOff,
+          isOnStage: p.isOnStage,
+          micAllowed: p.micAllowed,
+          cameraAllowed: p.cameraAllowed,
+          handRaised: p.handRaised,
+          userId: p.userId,
+        })),
+      );
+    } catch {
+      // Room state loads when API is available
+    }
+  }, [meetingId, setRoomMode, setChatMode, setScreenShareEnabled, setParticipants]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadRoom() {
-      try {
-        const state = (await api.room.get(meetingId)) as {
-          roomMode: RoomMode;
-          settings: {
-            chatMode: ChatMode;
-            chatEnabled: boolean;
-            screenShareEnabled?: boolean;
-          };
-          participants: RoomParticipant[];
-        };
-        if (cancelled) return;
-        setRoomMode(state.roomMode);
-        setChatMode(state.settings.chatMode, state.settings.chatEnabled);
-        setScreenShareEnabled(state.settings.screenShareEnabled ?? true);
-        setParticipants(
-          state.participants.map((p) => ({
-            id: p.id,
-            displayName: p.displayName,
-            role: p.role,
-            isMuted: p.isMuted,
-            isVideoOff: p.isVideoOff,
-            isOnStage: p.isOnStage,
-            micAllowed: p.micAllowed,
-            cameraAllowed: p.cameraAllowed,
-            handRaised: p.handRaised,
-            userId: p.userId,
-          })),
-        );
-      } catch {
-        // Room state loads when API is available
-      }
+      if (cancelled) return;
+      await refreshRoom();
     }
 
     loadRoom();
@@ -67,7 +72,25 @@ export function useRoom(meetingId: string, isHost: boolean) {
       cancelled = true;
       reset();
     };
-  }, [meetingId, setRoomMode, setChatMode, setScreenShareEnabled, setParticipants, reset]);
+  }, [meetingId, refreshRoom, reset]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onConnect = () => {
+      if (isHost) {
+        emit('host:present', {});
+      } else {
+        emit('host:status:request', {});
+      }
+      void refreshRoom();
+    };
+
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off('connect', onConnect);
+    };
+  }, [socket, isHost, emit, refreshRoom]);
 
   useEffect(() => {
     const unsubMode = on('room:mode-changed', (data: unknown) => {
@@ -115,6 +138,30 @@ export function useRoom(meetingId: string, isHost: boolean) {
       removeParticipant(participantId);
     });
 
+    const unsubJoined = on('participant:joined', (data: unknown) => {
+      const patch = data as {
+        participantId: string;
+        displayName: string;
+        role: string;
+        userId?: string | null;
+        isMuted?: boolean;
+        isVideoOff?: boolean;
+      };
+      if (!patch.participantId) return;
+      upsertParticipant({
+        id: patch.participantId,
+        displayName: patch.displayName,
+        role: patch.role,
+        userId: patch.userId ?? null,
+        isMuted: patch.isMuted ?? false,
+        isVideoOff: patch.isVideoOff ?? false,
+        isOnStage: true,
+        micAllowed: true,
+        cameraAllowed: true,
+        handRaised: false,
+      });
+    });
+
     const unsubRole = on('participant:role-changed', (data: unknown) => {
       const { participantId, role } = data as { participantId?: string; role?: string };
       if (participantId && role) {
@@ -128,9 +175,18 @@ export function useRoom(meetingId: string, isHost: boolean) {
       unsubChat?.();
       unsubSettings?.();
       unsubLeft?.();
+      unsubJoined?.();
       unsubRole?.();
     };
-  }, [on, setRoomMode, setChatMode, setScreenShareEnabled, updateParticipant, removeParticipant]);
+  }, [
+    on,
+    setRoomMode,
+    setChatMode,
+    setScreenShareEnabled,
+    updateParticipant,
+    upsertParticipant,
+    removeParticipant,
+  ]);
 
   const switchRoomMode = useCallback(
     async (mode: RoomMode) => {
@@ -196,6 +252,7 @@ export function useRoom(meetingId: string, isHost: boolean) {
     bringOnStage,
     removeFromStage,
     updateChatMode,
+    refreshRoom,
     isHost,
   };
 }

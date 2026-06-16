@@ -197,7 +197,9 @@ model Meeting {
   passcodeEncrypted String? @db.Text
   participantLimit Int     @default(100)
   isLocked    Boolean     @default(false)
-  scheduledAt DateTime?
+  scheduledAt    DateTime?
+  scheduledEndAt DateTime?
+  durationMinutes Int?
   startedAt   DateTime?
   endedAt     DateTime?
   durationLimitReachedAt DateTime?
@@ -208,6 +210,7 @@ model Meeting {
   host          User             @relation("MeetingHost", fields: [hostId], references: [id])
   settings      MeetingSettings?
   participants  Participant[]
+  registrants   MeetingRegistrant[]
   chatMessages  ChatMessage[]
   youtubeStream YouTubeStream?
 
@@ -231,10 +234,28 @@ model MeetingSettings {
   participantMicAccess     Boolean  @default(true)
   coHostPermissionsEnabled Boolean  @default(true)
   autoMuteParticipants     Boolean  @default(false)
+  registrationRequired     Boolean  @default(false)
 
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@map("meeting_settings")
+}
+
+model MeetingRegistrant {
+  id          String   @id @default(cuid())
+  meetingId   String
+  fullName    String
+  email       String
+  phone       String?
+  company     String?
+  designation String?
+  createdAt   DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, email])
+  @@index([meetingId])
+  @@map("meeting_registrants")
 }
 
 model Participant {

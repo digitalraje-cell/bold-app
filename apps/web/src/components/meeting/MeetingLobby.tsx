@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Calendar, Radio, Users } from 'lucide-react';
@@ -9,7 +9,7 @@ import { formatMeetingCode } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
-import { joinMeetingAndGetPath } from '@/lib/meeting-join';
+import { joinMeetingAndGetPath, readGuestJoinSession } from '@/lib/meeting-join';
 import { saveJoinMediaPrefs } from '@/lib/join-media-prefs';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,9 @@ export type PublicMeetingPreview = {
   endedAt?: string | null;
   participantCount?: number;
   hasPassword: boolean;
+  registrationRequired?: boolean;
+  scheduledEndAt?: string | null;
+  durationMinutes?: number | null;
 };
 
 const statusBadge = {
@@ -101,8 +104,20 @@ export function MeetingLobby({
   const meetingId = meetingIdProp ?? routeMeetingId;
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const entryViaCode = searchParams.get('entry') === 'code';
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [registrantEmail, setRegistrantEmail] = useState(session?.user?.email ?? '');
+  const [registrationDone, setRegistrationDone] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [regForm, setRegForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    company: '',
+    designation: '',
+  });
   const [joinLoading, setJoinLoading] = useState(false);
   const hasServerPreview = initialPreview !== null || Boolean(initialPreviewError);
   const [previewLoading, setPreviewLoading] = useState(!hasServerPreview);
@@ -112,12 +127,46 @@ export function MeetingLobby({
   const [joinWithMic, setJoinWithMic] = useState(true);
   const [joinWithCamera, setJoinWithCamera] = useState(true);
   const [meeting, setMeeting] = useState<PublicMeetingPreview | null>(initialPreview);
+  const [priorGuest, setPriorGuest] = useState(false);
+
+  useEffect(() => {
+    if (meetingId) {
+      setPriorGuest(Boolean(readGuestJoinSession(meetingId)));
+    }
+  }, [meetingId]);
 
   useEffect(() => {
     if (session?.user?.name) {
       setDisplayName(session.user.name);
     }
   }, [session?.user?.name]);
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      setRegistrantEmail(session.user.email);
+      setRegForm((prev) => ({ ...prev, email: session.user?.email ?? prev.email }));
+    }
+  }, [session?.user?.email]);
+
+  const showPasswordField =
+    Boolean(meeting?.hasPassword) && entryViaCode && !session?.user?.id;
+
+  const needsRegistration =
+    Boolean(meeting?.registrationRequired) &&
+    !registrationDone &&
+    !session?.user?.id;
+
+  const endTimePreview = useMemo(() => {
+    if (meeting?.scheduledEndAt) {
+      return new Date(meeting.scheduledEndAt).toLocaleString();
+    }
+    if (meeting?.scheduledAt && meeting.durationMinutes) {
+      return new Date(
+        new Date(meeting.scheduledAt).getTime() + meeting.durationMinutes * 60_000,
+      ).toLocaleString();
+    }
+    return null;
+  }, [meeting?.scheduledAt, meeting?.scheduledEndAt, meeting?.durationMinutes]);
 
   useEffect(() => {
     if (!meetingId || hasServerPreview) {
@@ -168,6 +217,29 @@ export function MeetingLobby({
     !previewError &&
     !previewLoading;
 
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (!meetingId) return;
+    setRegisterLoading(true);
+    setJoinError('');
+    try {
+      await api.meetings.register(meetingId, {
+        fullName: regForm.fullName.trim(),
+        email: regForm.email.trim(),
+        phone: regForm.phone.trim() || undefined,
+        company: regForm.company.trim() || undefined,
+        designation: regForm.designation.trim() || undefined,
+      });
+      setRegistrantEmail(regForm.email.trim());
+      setRegistrationDone(true);
+      setDisplayName(regForm.fullName.trim());
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setRegisterLoading(false);
+    }
+  }
+
   async function handleJoin() {
     if (!meetingId) {
       setJoinError('Invalid meeting link');
@@ -191,17 +263,14 @@ export function MeetingLobby({
         startWithAudio: joinWithMic,
         startWithVideo: joinWithCamera,
       });
-      console.log('[meeting-lobby] join clicked', {
-        meetingId,
-        displayName: displayName.trim(),
-        joinWithMic,
-        joinWithCamera,
+      const path = await joinMeetingAndGetPath(meetingId, displayName.trim(), {
+        password: showPasswordField ? password || undefined : undefined,
+        viaDirectLink: !entryViaCode,
+        participantId: meetingId ? readGuestJoinSession(meetingId)?.participantId : undefined,
+        registrantEmail: meeting?.registrationRequired
+          ? registrantEmail || session?.user?.email || undefined
+          : undefined,
       });
-      const path = await joinMeetingAndGetPath(
-        meetingId,
-        displayName.trim(),
-        password || undefined,
-      );
       setJoined(true);
       router.push(path);
     } catch (err) {
@@ -279,6 +348,13 @@ export function MeetingLobby({
                 </p>
               )}
 
+              {endTimePreview && meeting.status !== 'ENDED' && (
+                <p className="text-sm text-muted-foreground">
+                  Ends {endTimePreview}
+                  {meeting.durationMinutes ? ` · ${meeting.durationMinutes} min` : ''}
+                </p>
+              )}
+
               <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Meeting ID
@@ -308,7 +384,44 @@ export function MeetingLobby({
           </div>
         )}
 
-        {canJoin && !joined && (
+        {canJoin && needsRegistration && !joined && (
+          <form onSubmit={handleRegister} className="space-y-3 rounded-xl border border-border p-4">
+            <h2 className="font-semibold">Registration required</h2>
+            <Input
+              label="Full name"
+              value={regForm.fullName}
+              onChange={(e) => setRegForm((p) => ({ ...p, fullName: e.target.value }))}
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={regForm.email}
+              onChange={(e) => setRegForm((p) => ({ ...p, email: e.target.value }))}
+              required
+            />
+            <Input
+              label="Phone (optional)"
+              value={regForm.phone}
+              onChange={(e) => setRegForm((p) => ({ ...p, phone: e.target.value }))}
+            />
+            <Input
+              label="Company (optional)"
+              value={regForm.company}
+              onChange={(e) => setRegForm((p) => ({ ...p, company: e.target.value }))}
+            />
+            <Input
+              label="Designation (optional)"
+              value={regForm.designation}
+              onChange={(e) => setRegForm((p) => ({ ...p, designation: e.target.value }))}
+            />
+            <Button type="submit" className="w-full" loading={registerLoading}>
+              Register to join
+            </Button>
+          </form>
+        )}
+
+        {canJoin && !needsRegistration && !joined && (
           <>
             <Input
               label="Your name"
@@ -318,7 +431,7 @@ export function MeetingLobby({
               autoFocus
             />
 
-            {meeting?.hasPassword && (
+            {showPasswordField && (
               <Input
                 label="Meeting password"
                 type="password"
@@ -362,12 +475,12 @@ export function MeetingLobby({
               loading={joinLoading}
               disabled={previewLoading || joinLoading}
             >
-              Join Meeting
+              {priorGuest ? 'Join Meeting Again' : 'Join Meeting'}
             </Button>
           </>
         )}
 
-        {joined && (
+        {canJoin && joined && (
           <div className="rounded-lg border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
             Joining meeting…
           </div>

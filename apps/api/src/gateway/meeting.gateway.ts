@@ -242,6 +242,28 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.server.to(meetingId).emit('participant:left', { meetingId, participantId });
   }
 
+  broadcastParticipantJoined(
+    meetingId: string,
+    participant: {
+      id: string;
+      displayName: string;
+      role: string;
+      userId?: string | null;
+      isMuted?: boolean;
+      isVideoOff?: boolean;
+    },
+  ) {
+    this.server.to(meetingId).emit('participant:joined', {
+      meetingId,
+      participantId: participant.id,
+      displayName: participant.displayName,
+      role: participant.role,
+      userId: participant.userId ?? null,
+      isMuted: participant.isMuted ?? false,
+      isVideoOff: participant.isVideoOff ?? false,
+    });
+  }
+
   broadcastParticipantRoleChanged(meetingId: string, participantId: string, role: string) {
     this.server.to(meetingId).emit('participant:role-changed', { meetingId, participantId, role });
   }

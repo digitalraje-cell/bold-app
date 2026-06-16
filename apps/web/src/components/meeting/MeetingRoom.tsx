@@ -23,7 +23,6 @@ import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
 import { InviteModal } from '@/components/meeting/InviteModal';
 import { HostLeaveModal } from '@/components/meeting/HostLeaveModal';
 import { HostWaitingScreen } from '@/components/meeting/HostWaitingScreen';
-import { RoomModeSwitcher } from '@/components/meeting/RoomModeSwitcher';
 import { WebinarModeBanner } from '@/components/meeting/WebinarModeBanner';
 import {
   MeetingDurationModal,
@@ -74,6 +73,8 @@ function MeetingRoomInner({
   const [isLocked, setIsLocked] = useState(false);
   const [waitingRoomEnabled, setWaitingRoomEnabled] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [reactionsEnabled, setReactionsEnabled] = useState(true);
+  const [raiseHandEnabled, setRaiseHandEnabled] = useState(true);
 
   const guestSession = typeof window !== 'undefined' ? readGuestJoinSession(meetingId) : null;
   const participantId = participantIdProp || guestSession?.participantId;
@@ -151,6 +152,7 @@ function MeetingRoomInner({
     isPresenterLayout,
     isAudioMuted,
     isVideoMuted,
+    isReconnecting,
   } = useJitsi({
     roomName: jitsiRoom,
     displayName,
@@ -182,15 +184,20 @@ function MeetingRoomInner({
   const handleLeaveMeeting = useCallback(async () => {
     setLeaveLoading(true);
     try {
-      await api.meetings.leave(meetingId);
+      if (participantId && !session?.user?.id) {
+        await api.meetings.leaveGuest(meetingId, participantId);
+      } else {
+        await api.meetings.leave(meetingId);
+      }
     } catch {
       // Still leave the call if the API fails
     } finally {
       setLeaveLoading(false);
       setHostLeaveOpen(false);
+      hangupRef.current?.();
       handleLeave();
     }
-  }, [meetingId, handleLeave]);
+  }, [meetingId, participantId, session?.user?.id, handleLeave]);
 
   const handleEndMeetingForAll = useCallback(async () => {
     setLeaveLoading(true);
@@ -213,12 +220,19 @@ function MeetingRoomInner({
       .then((meeting) => {
         const m = meeting as {
           isLocked?: boolean;
-          settings?: { waitingRoomEnabled?: boolean; screenShareEnabled?: boolean };
+          settings?: {
+            waitingRoomEnabled?: boolean;
+            screenShareEnabled?: boolean;
+            reactionsEnabled?: boolean;
+            raiseHandEnabled?: boolean;
+          };
         };
         if (myRole === 'HOST') {
           setIsLocked(Boolean(m.isLocked));
           setWaitingRoomEnabled(Boolean(m.settings?.waitingRoomEnabled));
         }
+        setReactionsEnabled(m.settings?.reactionsEnabled ?? true);
+        setRaiseHandEnabled(m.settings?.raiseHandEnabled ?? true);
       })
       .catch(() => {
         // ignore
@@ -339,12 +353,12 @@ function MeetingRoomInner({
   };
 
   return (
-    <div className="relative flex flex-1 overflow-hidden">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0f172a]">
       {!canJoinMedia && <HostWaitingScreen meetingId={meetingId} title={title} />}
 
       <div
         ref={containerRef}
-        className={`meeting-jitsi-shell absolute inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0 ${
+        className={`meeting-jitsi-shell absolute inset-0 min-h-[200px] bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
           !canJoinMedia ? 'invisible pointer-events-none' : ''
         }`}
       />
@@ -355,6 +369,12 @@ function MeetingRoomInner({
       {shareError && (
         <div className="absolute left-1/2 top-20 z-40 -translate-x-1/2 rounded-lg bg-amber-600/95 px-4 py-2 text-sm text-white shadow-lg">
           {shareError}
+        </div>
+      )}
+
+      {isReconnecting && canJoinMedia && (
+        <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
+          Reconnecting…
         </div>
       )}
 
@@ -409,11 +429,9 @@ function MeetingRoomInner({
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </div>
         {isModerator && (
-          <RoomModeSwitcher
-            roomMode={roomMode}
-            onSwitch={handleSwitchRoomMode}
-            disabled={modeSwitching}
-          />
+          <div className="rounded-lg bg-black/50 px-2 py-1 text-[10px] capitalize text-white/70 backdrop-blur sm:px-3 sm:text-xs">
+            {roomMode.toLowerCase()} mode
+          </div>
         )}
       </div>
 
@@ -462,6 +480,10 @@ function MeetingRoomInner({
         onToggleParticipantScreenShare={
           myRole === 'HOST' ? handleToggleParticipantScreenShare : undefined
         }
+        roomMode={roomMode}
+        onSwitchRoomMode={isModerator ? handleSwitchRoomMode : undefined}
+        reactionsEnabled={reactionsEnabled}
+        raiseHandEnabled={raiseHandEnabled}
       />
 
       <MeetingDurationModal

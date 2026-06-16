@@ -19,6 +19,8 @@ import {
   CreateMeetingDto,
   JoinByCodeDto,
   JoinMeetingDto,
+  LeaveGuestDto,
+  RegisterMeetingDto,
   UpdateMeetingSettingsDto,
 } from './dto/meeting.dto';
 
@@ -75,7 +77,19 @@ export class MeetingsController {
     return this.meetingsService.join(meeting.id, req.user?.id ?? null, {
       displayName: dto.displayName,
       password: dto.password,
+      viaDirectLink: false,
     });
+  }
+
+  @Post(':id/register')
+  register(@Param('id') id: string, @Body() dto: RegisterMeetingDto) {
+    return this.meetingsService.registerForMeeting(id, dto);
+  }
+
+  @Get(':id/registrants')
+  @UseGuards(AuthGuard)
+  listRegistrants(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+    return this.meetingsService.listRegistrants(id, req.user.id);
   }
 
   @Post(':id/join')
@@ -124,5 +138,10 @@ export class MeetingsController {
   @UseGuards(AuthGuard)
   leaveMeeting(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
     return this.meetingsService.leaveMeeting(id, req.user.id);
+  }
+
+  @Post(':id/leave-guest')
+  leaveGuest(@Param('id') id: string, @Body() dto: LeaveGuestDto) {
+    return this.meetingsService.leaveGuest(id, dto.participantId);
   }
 }

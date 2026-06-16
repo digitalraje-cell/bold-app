@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { normalizeMeetingCode } from '@boldmeet/shared';
 import { fetchPublicMeetingServer } from '@/lib/api-server';
@@ -31,10 +32,12 @@ export default async function MeetingLobbyPage({
   }
 
   return (
-    <MeetingLobby
-      meetingId={meetingId}
-      initialPreview={initialPreview}
-      initialPreviewError={initialPreviewError}
-    />
+    <Suspense fallback={<div className="flex min-h-full items-center justify-center">Loading…</div>}>
+      <MeetingLobby
+        meetingId={meetingId}
+        initialPreview={initialPreview}
+        initialPreviewError={initialPreviewError}
+      />
+    </Suspense>
   );
 }
