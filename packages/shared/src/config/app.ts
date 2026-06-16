@@ -35,6 +35,10 @@ export function getMeetingRoomUrl(meetingId: string): string {
   return `${getAppOrigin()}/meeting/${meetingId}/room`;
 }
 
+export function getMeetingInviteUrl(meetingId: string): string {
+  return `${getAppOrigin()}/join/${meetingId}`;
+}
+
 export function formatMeetingInvite(options: {
   topic: string;
   meetingId: string;

@@ -45,6 +45,11 @@ export class MeetingsController {
     return this.meetingsService.findByCode(meetingCode);
   }
 
+  @Get(':id/public')
+  findPublic(@Param('id') id: string) {
+    return this.meetingsService.findPublic(id);
+  }
+
   @Get(':id/duration')
   getDurationStatus(@Param('id') id: string) {
     return this.meetingsService.getDurationStatus(id);

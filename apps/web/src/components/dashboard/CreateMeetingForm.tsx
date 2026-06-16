@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { api } from '@/lib/api';
+import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
 
@@ -43,9 +44,23 @@ export function CreateMeetingForm() {
         password: password || undefined,
         scheduledAt: isInstant ? undefined : scheduledAt,
         settings,
-      }) as { id: string };
+      }) as { id: string; meetingCode: string };
 
-      router.push(`/meeting/${meeting.id}`);
+      if (isInstant) {
+        const displayName =
+          session.user.name || session.user.email?.split('@')[0] || 'Host';
+        try {
+          const path = await joinMeetingAndGetPath(meeting.id, displayName, password || undefined);
+          router.push(path);
+          return;
+        } catch (joinErr) {
+          console.error('[meeting] host auto-join failed', joinErr);
+          router.push(`/meeting/${meeting.id}`);
+          return;
+        }
+      }
+
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create meeting');
       setLoading(false);

@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-import { MeetingStatus, ParticipantRole, ParticipantStatus } from '@prisma/client';
+import { Meeting, MeetingStatus, ParticipantRole, ParticipantStatus, Prisma } from '@prisma/client';
 import { generateMeetingCode, getWebinarParticipantDefaults, getMeetingParticipantDefaults, isStageVisibleRole } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
@@ -23,6 +23,36 @@ export class MeetingsService {
     return {
       OR: [{ id: idOrCode }, { meetingCode: idOrCode.toLowerCase() }],
     };
+  }
+
+  private async resolveMeeting<T extends Prisma.MeetingInclude | undefined>(
+    idOrCode: string,
+    include?: T,
+  ): Promise<
+    T extends Prisma.MeetingInclude
+      ? Prisma.MeetingGetPayload<{ include: T }>
+      : Meeting
+  > {
+    console.log('[meeting] join lookup', { idOrCode });
+
+    const meeting = await this.prisma.meeting.findFirst({
+      where: this.meetingIdentifierWhere(idOrCode),
+      include,
+    });
+
+    if (!meeting) {
+      console.error('[meeting] not found', { idOrCode });
+      throw new NotFoundException('Meeting not found');
+    }
+
+    console.log('[meeting] found', {
+      id: meeting.id,
+      meetingCode: meeting.meetingCode,
+    });
+
+    return meeting as T extends Prisma.MeetingInclude
+      ? Prisma.MeetingGetPayload<{ include: T }>
+      : Meeting;
   }
 
   async create(hostId: string, dto: CreateMeetingDto) {
@@ -97,6 +127,13 @@ export class MeetingsService {
       include: { settings: true, host: { select: { id: true, name: true, email: true } } },
     });
 
+    console.log('[meeting] created', {
+      id: updated.id,
+      meetingCode: updated.meetingCode,
+      hostId: updated.hostId,
+      status: updated.status,
+    });
+
     return this.sanitizeMeeting(updated, true);
   }
 
@@ -116,28 +153,42 @@ export class MeetingsService {
     return meetings.map((m) => this.sanitizeMeeting(m));
   }
 
-  async findById(idOrCode: string, userId?: string) {
-    const meeting = await this.prisma.meeting.findFirst({
-      where: this.meetingIdentifierWhere(idOrCode),
-      include: {
-        settings: true,
-        host: { select: { id: true, name: true, email: true } },
-        _count: { select: { participants: { where: { status: 'ADMITTED' } } } },
-      },
+  async findPublic(idOrCode: string) {
+    const meeting = await this.resolveMeeting(idOrCode, {
+      host: { select: { name: true, email: true } },
     });
 
-    if (!meeting) {
-      throw new NotFoundException('Meeting not found');
+    if (meeting.status === MeetingStatus.ENDED) {
+      throw new BadRequestException('This meeting has ended');
     }
+
+    return {
+      id: meeting.id,
+      title: meeting.title,
+      meetingCode: meeting.meetingCode,
+      hostName: meeting.host.name || meeting.host.email,
+      status: meeting.status,
+      startedAt: meeting.startedAt,
+      hasPassword: !!meeting.password,
+    };
+  }
+
+  async findById(idOrCode: string, userId?: string) {
+    const meeting = await this.resolveMeeting(idOrCode, {
+      settings: true,
+      host: { select: { id: true, name: true, email: true } },
+      _count: { select: { participants: { where: { status: 'ADMITTED' } } } },
+    });
 
     const isHost = userId === meeting.hostId;
     return this.sanitizeMeeting(meeting, isHost);
   }
 
-  async getInviteDetails(meetingId: string, hostId: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
-    if (!meeting) throw new NotFoundException('Meeting not found');
-    if (meeting.hostId !== hostId) throw new ForbiddenException('Only the host can view invite details');
+  async getInviteDetails(idOrCode: string, hostId: string) {
+    const meeting = await this.resolveMeeting(idOrCode);
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Only the host can view invite details');
+    }
 
     return {
       id: meeting.id,
@@ -175,14 +226,7 @@ export class MeetingsService {
   }
 
   async join(idOrCode: string, userId: string | null, dto: JoinMeetingDto) {
-    const meeting = await this.prisma.meeting.findFirst({
-      where: this.meetingIdentifierWhere(idOrCode),
-      include: { settings: true },
-    });
-
-    if (!meeting) {
-      throw new NotFoundException('Meeting not found');
-    }
+    const meeting = await this.resolveMeeting(idOrCode, { settings: true });
 
     const meetingId = meeting.id;
 

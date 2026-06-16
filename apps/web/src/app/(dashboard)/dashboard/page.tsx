@@ -17,17 +17,26 @@ export default async function DashboardPage() {
     ? await Promise.all([
         prisma.meeting.findMany({
           where: { hostId: userId, status: 'SCHEDULED' },
-          include: { _count: { select: { participants: true } } },
+          include: {
+            host: { select: { name: true, email: true } },
+            _count: { select: { participants: true } },
+          },
           orderBy: { scheduledAt: 'asc' },
         }),
         prisma.meeting.findMany({
           where: { hostId: userId, status: 'LIVE' },
-          include: { _count: { select: { participants: true } } },
+          include: {
+            host: { select: { name: true, email: true } },
+            _count: { select: { participants: true } },
+          },
           orderBy: { startedAt: 'desc' },
         }),
         prisma.meeting.findMany({
           where: { hostId: userId, status: 'ENDED' },
-          include: { _count: { select: { participants: true } } },
+          include: {
+            host: { select: { name: true, email: true } },
+            _count: { select: { participants: true } },
+          },
           orderBy: { endedAt: 'desc' },
           take: 10,
         }),

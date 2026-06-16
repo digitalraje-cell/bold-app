@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Clock, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
+import { getMeetingInviteUrl } from '@/lib/app-config';
 import { cn } from '@/lib/utils';
+import { CopyButton } from './CopyButton';
 
 export type MeetingSectionIcon = 'radio' | 'calendar' | 'history';
 
@@ -21,6 +24,7 @@ interface MeetingCardProps {
     scheduledAt?: string | Date | null;
     startedAt?: string | Date | null;
     endedAt?: string | Date | null;
+    host?: { name: string | null; email: string | null };
     _count?: { participants: number };
   };
 }
@@ -31,9 +35,17 @@ const statusConfig = {
   ENDED: { label: 'Ended', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' },
 };
 
+function hostLabel(host?: MeetingCardProps['meeting']['host']): string {
+  if (!host) return 'Unknown host';
+  return host.name || host.email || 'Unknown host';
+}
+
 export function MeetingCard({ meeting }: MeetingCardProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const status = statusConfig[meeting.status as keyof typeof statusConfig] || statusConfig.SCHEDULED;
   const date = meeting.scheduledAt || meeting.startedAt || meeting.endedAt;
+  const inviteLink = getMeetingInviteUrl(meeting.id);
+  const isJoinable = meeting.status === 'LIVE' || meeting.status === 'SCHEDULED';
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 transition hover:border-primary/30">
@@ -61,13 +73,26 @@ export function MeetingCard({ meeting }: MeetingCardProps) {
         </div>
 
         <div className="flex shrink-0 flex-col gap-2">
-          {meeting.status === 'LIVE' || meeting.status === 'SCHEDULED' ? (
-            <Link
-              href={`/meeting/${meeting.id}`}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              {meeting.status === 'LIVE' ? 'Join' : 'Start'}
-            </Link>
+          {isJoinable ? (
+            <>
+              <Link
+                href={`/meeting/${meeting.id}`}
+                className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
+                {meeting.status === 'LIVE' ? 'Join' : 'Start'}
+              </Link>
+              {meeting.status === 'LIVE' && (
+                <CopyButton text={inviteLink} label="Copy Invite Link" className="w-full" />
+              )}
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((open) => !open)}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Details
+                {detailsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+            </>
           ) : (
             <Link
               href={`/meetings/${meeting.id}`}
@@ -78,6 +103,29 @@ export function MeetingCard({ meeting }: MeetingCardProps) {
           )}
         </div>
       </div>
+
+      {detailsOpen && (
+        <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Meeting ID</p>
+            <p className="mt-1 font-mono text-sm">{meeting.meetingCode}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Host</p>
+            <p className="mt-1 text-sm">{hostLabel(meeting.host)}</p>
+          </div>
+          {meeting.startedAt && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Started</p>
+              <p className="mt-1 text-sm">{new Date(meeting.startedAt).toLocaleString()}</p>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <CopyButton text={meeting.meetingCode} label="Copy Meeting ID" />
+            <CopyButton text={inviteLink} label="Copy Invite Link" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

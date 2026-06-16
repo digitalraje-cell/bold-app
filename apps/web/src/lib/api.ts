@@ -41,6 +41,7 @@ export const api = {
   meetings: {
     list: (status?: string) =>
       apiFetch(`/meetings${status ? `?status=${status}` : ''}`),
+    getPublic: (id: string) => apiFetch(`/meetings/${id}/public`, {}, false),
     get: (id: string) => apiFetch(`/meetings/${id}`),
     getInvite: (id: string) => apiFetch(`/meetings/${id}/invite`),
     getDuration: (id: string) => apiFetch(`/meetings/${id}/duration`, {}, false),

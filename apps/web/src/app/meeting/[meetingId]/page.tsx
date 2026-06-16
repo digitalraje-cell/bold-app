@@ -1,22 +1,73 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
+import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
+
+type PublicMeeting = {
+  id: string;
+  title: string;
+  meetingCode: string;
+  hostName: string;
+  hasPassword: boolean;
+};
 
 export default function MeetingLobbyPage() {
   const meetingId = useMeetingRouteId();
   const { data: session } = useSession();
   const router = useRouter();
-  const [displayName, setDisplayName] = useState(session?.user?.name || '');
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMeeting, setLoadingMeeting] = useState(true);
   const [error, setError] = useState('');
+  const [meeting, setMeeting] = useState<PublicMeeting | null>(null);
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setDisplayName(session.user.name);
+    }
+  }, [session?.user?.name]);
+
+  useEffect(() => {
+    if (!meetingId) {
+      setLoadingMeeting(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingMeeting(true);
+    setError('');
+
+    api.meetings
+      .getPublic(meetingId)
+      .then((data) => {
+        if (!cancelled) {
+          setMeeting(data as PublicMeeting);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setMeeting(null);
+          setError(err instanceof Error ? err.message : 'Meeting not found');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingMeeting(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingId]);
 
   async function handleJoin() {
     if (!meetingId) {
@@ -33,16 +84,12 @@ export default function MeetingLobbyPage() {
     setError('');
 
     try {
-      const result = await api.meetings.join(meetingId, {
-        displayName: displayName.trim(),
-        password: password || undefined,
-      }) as { admitted: boolean };
-
-      if (result.admitted) {
-        router.push(`/meeting/${meetingId}/room`);
-      } else {
-        router.push(`/meeting/${meetingId}/waiting`);
-      }
+      const path = await joinMeetingAndGetPath(
+        meetingId,
+        displayName.trim(),
+        password || undefined,
+      );
+      router.push(path);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join meeting');
       setLoading(false);
@@ -71,10 +118,19 @@ export default function MeetingLobbyPage() {
               {displayName?.[0]?.toUpperCase() || '?'}
             </div>
           </div>
-          <h1 className="text-2xl font-semibold">Ready to join?</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enter your name and join the meeting
-          </p>
+          <h1 className="text-2xl font-semibold">
+            {loadingMeeting ? 'Loading meeting…' : meeting?.title || 'Join meeting'}
+          </h1>
+          {meeting && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Hosted by {meeting.hostName} · ID {meeting.meetingCode}
+            </p>
+          )}
+          {!loadingMeeting && !meeting && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Enter your name to join
+            </p>
+          )}
         </div>
 
         {error && (
@@ -96,10 +152,16 @@ export default function MeetingLobbyPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Optional"
+          placeholder={meeting?.hasPassword ? 'Required' : 'Optional'}
         />
 
-        <Button className="w-full" size="lg" onClick={handleJoin} loading={loading}>
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={handleJoin}
+          loading={loading}
+          disabled={loadingMeeting || (!meeting && !error)}
+        >
           Join Meeting
         </Button>
 
