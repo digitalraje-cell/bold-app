@@ -17,6 +17,8 @@ export type PublicMeetingPreview = {
   id: string;
   title: string;
   meetingCode: string;
+  hostId?: string;
+  jitsiRoom?: string;
   hostName: string;
   status: 'SCHEDULED' | 'LIVE' | 'ENDED';
   startedAt?: string | null;

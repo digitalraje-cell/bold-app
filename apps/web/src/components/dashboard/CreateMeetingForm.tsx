@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
@@ -12,12 +12,30 @@ import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
 
+function validateTitle(value: string): string | undefined {
+  if (!value.trim()) return 'Meeting title is required';
+  return undefined;
+}
+
+function validatePassword(value: string): string | undefined {
+  if (!value) return undefined;
+  if (value.length < 6) return 'Password must be at least 6 characters';
+  return undefined;
+}
+
+function validateScheduledAt(value: string, isInstant: boolean): string | undefined {
+  if (isInstant) return undefined;
+  if (!value) return 'Date and time are required';
+  return undefined;
+}
+
 export function CreateMeetingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const { plan, limits, can } = usePermissions();
+  const { plan, limits } = usePermissions();
   const isInstant = searchParams.get('type') !== 'schedule';
+  const submittingRef = useRef(false);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -26,25 +44,51 @@ export function CreateMeetingForm() {
   const [settings, setSettings] = useState(DEFAULT_MEETING_SETTINGS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState({
+    title: false,
+    password: false,
+    scheduledAt: false,
+  });
+
+  const fieldErrors = useMemo(
+    () => ({
+      title: validateTitle(title),
+      password: validatePassword(password),
+      scheduledAt: validateScheduledAt(scheduledAt, isInstant),
+    }),
+    [title, password, scheduledAt, isInstant],
+  );
+
+  const isFormValid = !fieldErrors.title && !fieldErrors.password && !fieldErrors.scheduledAt;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current || loading) return;
+
+    setTouched({ title: true, password: true, scheduledAt: true });
+
+    if (!isFormValid) return;
+
     if (!session?.user?.isVerified) {
       setError('Verify your account to host meetings');
       router.push('/verify');
       return;
     }
+
     setError('');
     setLoading(true);
+    submittingRef.current = true;
+
+    const trimmedTitle = title.trim();
 
     try {
-      const meeting = await api.meetings.create({
-        title: title || (isInstant ? 'Instant Meeting' : 'Scheduled Meeting'),
-        description: description || undefined,
+      const meeting = (await api.meetings.create({
+        title: trimmedTitle,
+        description: description.trim() || undefined,
         password: password || undefined,
         scheduledAt: isInstant ? undefined : scheduledAt,
         settings,
-      }) as { id: string; meetingCode: string };
+      })) as { id: string; meetingCode: string };
 
       if (isInstant) {
         const displayName =
@@ -59,7 +103,13 @@ export function CreateMeetingForm() {
           return;
         } catch (joinErr) {
           console.error('[meeting] host auto-join failed', joinErr);
-          router.push(`/meeting/${meeting.meetingCode}`);
+          setError(
+            joinErr instanceof Error
+              ? joinErr.message
+              : 'Meeting created but could not join. Try again from your dashboard.',
+          );
+          setLoading(false);
+          submittingRef.current = false;
           return;
         }
       }
@@ -68,6 +118,7 @@ export function CreateMeetingForm() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create meeting');
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 
@@ -84,15 +135,16 @@ export function CreateMeetingForm() {
         <p className="mt-1 text-muted-foreground">
           Configure your meeting settings before starting
           {plan === 'FREE' && limits.maxMeetingDurationMinutes && (
-            <span className="block mt-1 text-xs">
-              Free plan: {limits.maxMeetingDurationMinutes} min limit · up to {limits.meetingAttendeeLimit} attendees
+            <span className="mt-1 block text-xs">
+              Free plan: {limits.maxMeetingDurationMinutes} min limit · up to{' '}
+              {limits.meetingAttendeeLimit} attendees
             </span>
           )}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6" noValidate>
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {error}
             </div>
           )}
@@ -101,7 +153,10 @@ export function CreateMeetingForm() {
             label="Meeting title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={isInstant ? 'Instant Meeting' : 'Team Standup'}
+            onBlur={() => setTouched((prev) => ({ ...prev, title: true }))}
+            placeholder={isInstant ? 'Team sync' : 'Team Standup'}
+            required
+            error={touched.title ? fieldErrors.title : undefined}
           />
 
           <Input
@@ -117,7 +172,9 @@ export function CreateMeetingForm() {
               type="datetime-local"
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
+              onBlur={() => setTouched((prev) => ({ ...prev, scheduledAt: true }))}
               required
+              error={touched.scheduledAt ? fieldErrors.scheduledAt : undefined}
             />
           )}
 
@@ -126,7 +183,9 @@ export function CreateMeetingForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Leave empty for no password"
+            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+            placeholder="Minimum 6 characters"
+            error={touched.password ? fieldErrors.password : undefined}
           />
 
           <div className="rounded-2xl border border-border p-6">
@@ -172,7 +231,7 @@ export function CreateMeetingForm() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" loading={loading}>
+            <Button type="submit" loading={loading} disabled={!isFormValid || loading}>
               {isInstant ? 'Start Meeting' : 'Schedule Meeting'}
             </Button>
           </div>

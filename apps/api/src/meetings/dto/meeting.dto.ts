@@ -70,7 +70,7 @@ export class CreateMeetingDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(4)
+  @MinLength(6)
   password?: string;
 
   @IsOptional()

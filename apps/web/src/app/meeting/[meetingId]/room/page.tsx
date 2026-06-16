@@ -1,6 +1,10 @@
 import { normalizeMeetingCode } from '@boldmeet/shared';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import {
+  fetchAuthenticatedMeetingServer,
+  fetchPublicMeetingServer,
+  resolveJitsiRoom,
+} from '@/lib/api-server';
 import { notFound, redirect } from 'next/navigation';
 import { MeetingRoom } from '@/components/meeting/MeetingRoom';
 import { GuestRoomGate } from '@/components/meeting/GuestRoomGate';
@@ -16,36 +20,48 @@ export default async function MeetingRoomPage({
   const { meetingId } = await params;
   const session = await auth();
 
-  const meeting = await prisma.meeting.findFirst({
-    where: {
-      OR: [{ id: meetingId }, { meetingCode: normalizeMeetingCode(meetingId) }],
-    },
-    select: {
-      id: true,
-      meetingCode: true,
-      title: true,
-      jitsiRoom: true,
-      hostId: true,
-      status: true,
-    },
-  });
-
-  if (!meeting || meeting.status === 'ENDED') {
+  let meeting;
+  try {
+    meeting = await fetchPublicMeetingServer(meetingId);
+  } catch {
     notFound();
   }
 
-  if (meetingId === meeting.id && meeting.meetingCode) {
+  if (meeting.status === 'ENDED') {
+    notFound();
+  }
+
+  if (
+    normalizeMeetingCode(meetingId) !== meeting.meetingCode &&
+    meetingId === meeting.id
+  ) {
     redirect(`/meeting/${meeting.meetingCode}/room`);
   }
 
-  const isHost = session?.user?.id === meeting.hostId;
+  let hostId = meeting.hostId;
+  let jitsiRoom = resolveJitsiRoom(meeting);
+  let title = meeting.title;
+
+  if (session?.user && !hostId) {
+    try {
+      const authed = await fetchAuthenticatedMeetingServer(meetingId);
+      hostId = authed.hostId;
+      jitsiRoom = authed.jitsiRoom || resolveJitsiRoom(authed);
+      title = authed.title;
+      meeting = { ...meeting, id: authed.id, meetingCode: authed.meetingCode, hostId, jitsiRoom };
+    } catch {
+      // Fall back to public preview fields
+    }
+  }
+
+  const isHost = Boolean(session?.user?.id && hostId && session.user.id === hostId);
 
   if (session?.user) {
     return (
       <MeetingRoom
         meetingId={meeting.id}
-        jitsiRoom={meeting.jitsiRoom}
-        title={meeting.title}
+        jitsiRoom={jitsiRoom}
+        title={title}
         isHost={isHost}
         displayName={session.user.name || session.user.email || 'Guest'}
       />
@@ -55,8 +71,8 @@ export default async function MeetingRoomPage({
   return (
     <GuestRoomGate
       meetingId={meeting.id}
-      jitsiRoom={meeting.jitsiRoom}
-      title={meeting.title}
+      jitsiRoom={jitsiRoom}
+      title={title}
     />
   );
 }

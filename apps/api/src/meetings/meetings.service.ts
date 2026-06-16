@@ -71,6 +71,11 @@ export class MeetingsService {
   }
 
   async create(hostId: string, dto: CreateMeetingDto) {
+    const title = dto.title?.trim();
+    if (!title) {
+      throw new BadRequestException('Meeting title is required');
+    }
+
     const host = await this.prisma.user.findUniqueOrThrow({
       where: { id: hostId },
       select: { name: true, email: true, isVerified: true },
@@ -97,8 +102,8 @@ export class MeetingsService {
 
     const meeting = await this.prisma.meeting.create({
       data: {
-        title: dto.title,
-        description: dto.description,
+        title,
+        description: dto.description?.trim() || undefined,
         hostId,
         meetingCode,
         password: passwordHash,
@@ -190,6 +195,8 @@ export class MeetingsService {
       id: meeting.id,
       title: meeting.title,
       meetingCode: meeting.meetingCode,
+      hostId: meeting.hostId,
+      jitsiRoom: meeting.jitsiRoom,
       hostName: meeting.host.name || meeting.host.email || 'Unknown host',
       status: meeting.status,
       startedAt: meeting.startedAt,
