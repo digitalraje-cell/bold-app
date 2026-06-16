@@ -13,12 +13,14 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "tsc --noEmit"
+    "build": "pnpm exec tsc",
+    "dev": "pnpm exec tsc --watch",
+    "lint": "pnpm exec tsc --noEmit"
+  },
+  "dependencies": {
+    "typescript": "^5.7.0"
   },
   "devDependencies": {
-    "@types/node": "^22.19.21",
-    "typescript": "^5.7.0"
+    "@types/node": "^22.19.21"
   }
 }

@@ -17,5 +17,6 @@ if command -v corepack >/dev/null 2>&1; then
   corepack prepare pnpm@9.15.0 --activate
 fi
 
-pnpm install --frozen-lockfile
+# Railway sets NODE_ENV=production, which skips devDependencies required for build.
+NODE_ENV=development pnpm install --frozen-lockfile
 pnpm build:web
