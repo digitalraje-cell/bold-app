@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, ReactNode, useRef } from 'react';
+import { ReactNode, useRef } from 'react';
 import { Minimize2 } from 'lucide-react';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { MeetingFullscreenContext } from '@/contexts/MeetingFullscreenContext';
@@ -11,14 +11,7 @@ interface FullscreenWrapperProps {
 
 export function FullscreenWrapper({ children }: FullscreenWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
   const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen(containerRef);
-
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-slate-900">{children}</div>;
-  }
 
   return (
     <MeetingFullscreenContext.Provider value={{ isFullscreen, toggleFullscreen }}>

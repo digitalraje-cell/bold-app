@@ -9,27 +9,30 @@ import { useSocket } from '@/hooks/useSocket';
 import { readGuestJoinSession } from '@/lib/meeting-join';
 
 export default function WaitingRoomPage() {
-  const meetingId = useMeetingRouteId();
+  const routeId = useMeetingRouteId();
   const router = useRouter();
-  const { on } = useSocket(meetingId || '');
+  const guestSession = routeId ? readGuestJoinSession(routeId) : null;
+  // Socket rooms use internal meeting id; route param is the public numeric code.
+  const socketMeetingId = guestSession?.meetingId || routeId || '';
+  const { on } = useSocket(socketMeetingId);
 
   useEffect(() => {
-    if (!meetingId) return;
+    if (!routeId) return;
 
-    const guest = readGuestJoinSession(meetingId);
+    const guest = readGuestJoinSession(routeId);
     if (!guest?.participantId) return;
 
     const unsubAdmit = on('waiting:admit', (data: unknown) => {
       const { participantId } = data as { participantId?: string };
       if (participantId === guest.participantId) {
-        router.push(`/meeting/${meetingId}/room`);
+        router.push(`/meeting/${routeId}/room`);
       }
     });
 
     return () => {
       unsubAdmit?.();
     };
-  }, [meetingId, on, router]);
+  }, [routeId, on, router]);
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
@@ -41,9 +44,9 @@ export default function WaitingRoomPage() {
         <p className="mt-2 text-muted-foreground">
           The host will let you in shortly. Please wait...
         </p>
-        {meetingId ? (
+        {routeId ? (
           <Link
-            href={`/meeting/${meetingId}`}
+            href={`/meeting/${routeId}`}
             className="mt-8 inline-block text-sm text-primary hover:underline"
           >
             Back to lobby
