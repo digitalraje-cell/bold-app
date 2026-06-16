@@ -1,22 +1,13 @@
-import dns from 'node:dns';
-import nodemailer from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { Resend } from 'resend';
 import { APP_CONFIG } from '@boldmeet/shared';
+
+const OTP_EMAIL_FROM = 'onboarding@resend.dev';
+const OTP_EMAIL_SUBJECT = 'Your BoldMeet Verification Code';
 
 /** Read env at request time — bracket access avoids Next.js build-time inlining. */
 function runtimeEnv(key: string): string | undefined {
   const value = process.env[key];
   return value?.trim() ? value.trim() : undefined;
-}
-
-let ipv4DnsConfigured = false;
-
-function ensureIpv4FirstDns(): void {
-  if (ipv4DnsConfigured) {
-    return;
-  }
-  dns.setDefaultResultOrder('ipv4first');
-  ipv4DnsConfigured = true;
 }
 
 function getOtpExpiryMinutes(): number {
@@ -27,201 +18,125 @@ export function getOtpExpiryDate(): Date {
   return new Date(Date.now() + getOtpExpiryMinutes() * 60 * 1000);
 }
 
-function getSmtpPassword(): { pass: string | undefined; passSource: 'SMTP_PASS' | 'SMTP_PASSWORD' | 'none' } {
-  const fromPass = runtimeEnv('SMTP_PASS');
-  if (fromPass) {
-    return { pass: fromPass, passSource: 'SMTP_PASS' };
-  }
-  const fromPassword = runtimeEnv('SMTP_PASSWORD');
-  if (fromPassword) {
-    return { pass: fromPassword, passSource: 'SMTP_PASSWORD' };
-  }
-  return { pass: undefined, passSource: 'none' };
-}
-
-export type SmtpConfigSnapshot = {
-  host: string | undefined;
-  port: number;
-  secure: boolean;
-  hasUser: boolean;
-  hasPass: boolean;
-  passSource: 'SMTP_PASS' | 'SMTP_PASSWORD' | 'none';
-  from: string;
-  nodeEnv: string | undefined;
-  railwayService: string | undefined;
-};
-
-type ResolvedSmtpHost = {
-  hostname: string;
-  address: string;
-  family: number;
-};
-
-export function getSmtpConfigSnapshot(): SmtpConfigSnapshot {
-  const host = runtimeEnv('SMTP_HOST');
-  const port = Number(runtimeEnv('SMTP_PORT') ?? 587);
-  const secure =
-    runtimeEnv('SMTP_SECURE') === 'true' || String(port) === '465';
-  const user = runtimeEnv('SMTP_USER');
-  const { pass, passSource } = getSmtpPassword();
-  const from =
-    runtimeEnv('SMTP_FROM') ||
-    `${APP_CONFIG.name} <noreply@${APP_CONFIG.domain}>`;
-
-  return {
-    host,
-    port,
-    secure,
-    hasUser: Boolean(user),
-    hasPass: Boolean(pass),
-    passSource,
-    from,
-    nodeEnv: process.env.NODE_ENV,
-    railwayService: runtimeEnv('RAILWAY_SERVICE_NAME'),
-  };
-}
-
-function logSmtpConfig(snapshot: SmtpConfigSnapshot): void {
-  console.log('[otp-email] effective SMTP config', snapshot);
-}
-
-function formatError(error: unknown): { message: string; stack?: string; code?: string } {
+function formatError(error: unknown): { message: string; stack?: string } {
   if (error instanceof Error) {
-    const smtpError = error as Error & { code?: string; response?: string; responseCode?: number };
-    return {
-      message: smtpError.message,
-      stack: smtpError.stack,
-      code: smtpError.code,
-    };
+    return { message: error.message, stack: error.stack };
   }
   return { message: String(error) };
 }
 
-async function resolveSmtpIpv4Host(hostname: string): Promise<ResolvedSmtpHost> {
-  ensureIpv4FirstDns();
-  const result = await dns.promises.lookup(hostname, { family: 4 });
-  console.log('[otp-email] DNS resolved SMTP host', {
-    hostname,
-    address: result.address,
-    family: result.family,
-  });
-  return {
-    hostname,
-    address: result.address,
-    family: result.family,
-  };
+function buildOtpEmailHtml(code: string, expiryMinutes: number): string {
+  const appName = 'BoldMeet';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${OTP_EMAIL_SUBJECT}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:480px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e1b4b 0%,#4338ca 100%);padding:32px 24px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">${appName}</h1>
+              <p style="margin:8px 0 0;color:#c7d2fe;font-size:14px;">Verify your account</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 24px;">
+              <p style="margin:0 0 16px;color:#374151;font-size:16px;line-height:1.5;">
+                Use the verification code below to complete your ${appName} account setup.
+              </p>
+              <div style="margin:24px 0;padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+                <p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Verification code</p>
+                <p style="margin:0;color:#1e1b4b;font-size:36px;font-weight:700;letter-spacing:0.25em;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">${code}</p>
+              </div>
+              <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.5;text-align:center;">
+                This code expires in <strong style="color:#374151;">${expiryMinutes} minutes</strong>.
+              </p>
+              <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;">
+                If you did not request this code, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                &copy; ${new Date().getFullYear()} ${appName} &middot; ${APP_CONFIG.supportEmail}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-function createTransporter(snapshot: SmtpConfigSnapshot, resolved: ResolvedSmtpHost) {
-  const user = runtimeEnv('SMTP_USER');
-  const { pass } = getSmtpPassword();
-
-  console.log('[otp-email] using IPv4 transport', {
-    connectHost: resolved.address,
-    servername: resolved.hostname,
-    family: 4,
-  });
-
-  // Nodemailer 9 resolves IPv4+IPv6 and may pick IPv6 at random; connect to the
-  // IPv4 literal and keep servername for STARTTLS/SNI.
-  const options = {
-    host: resolved.address,
-    servername: resolved.hostname,
-    port: snapshot.port,
-    secure: snapshot.secure,
-    family: 4,
-    auth: user
-      ? {
-          user,
-          pass,
-        }
-      : undefined,
-  } as SMTPTransport.Options;
-
-  return nodemailer.createTransport(options);
-}
-
-export async function sendOtpEmail(email: string, code: string): Promise<void> {
-  ensureIpv4FirstDns();
-
-  const snapshot = getSmtpConfigSnapshot();
-  logSmtpConfig(snapshot);
-
-  const otpExpiryMinutes = getOtpExpiryMinutes();
-  const subject = `${APP_CONFIG.name} verification code: ${code}`;
-  const text = [
-    `Your ${APP_CONFIG.name} verification code is: ${code}`,
+function buildOtpEmailText(code: string, expiryMinutes: number): string {
+  return [
+    'BoldMeet — Verify your account',
     '',
-    `This code expires in ${otpExpiryMinutes} minutes.`,
+    `Your verification code is: ${code}`,
+    '',
+    `This code expires in ${expiryMinutes} minutes.`,
     '',
     'If you did not request this, you can ignore this email.',
   ].join('\n');
+}
 
-  if (!snapshot.host) {
+export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  const apiKey = runtimeEnv('RESEND_API_KEY');
+  const otpExpiryMinutes = getOtpExpiryMinutes();
+
+  if (!apiKey) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[otp-email] SMTP_HOST missing at runtime — check Railway env on web service');
-      throw new Error('SMTP is not configured on the web service');
+      console.error('[otp-email] resend failed', {
+        to: email,
+        error: 'RESEND_API_KEY missing at runtime — check Railway env on web service',
+      });
+      throw new Error('Email service is not configured on the web service');
     }
-    console.log(`[otp-email] SMTP not configured — dev code for ${email}: ${code}`);
+    console.log(`[otp-email] RESEND_API_KEY not set — dev code for ${email}: ${code}`);
     return;
   }
 
-  if (!snapshot.hasPass && snapshot.hasUser) {
-    console.error('[otp-email] SMTP_USER set but neither SMTP_PASS nor SMTP_PASSWORD is set');
-  }
-
-  const resolved = await resolveSmtpIpv4Host(snapshot.host);
-  const transporter = createTransporter(snapshot, resolved);
+  const resend = new Resend(apiKey);
 
   try {
-    await transporter.verify();
-    console.log('[otp-email] SMTP transporter.verify() succeeded', {
-      hostname: resolved.hostname,
-      connectHost: resolved.address,
-      family: resolved.family,
-      port: snapshot.port,
-      secure: snapshot.secure,
+    const { data, error } = await resend.emails.send({
+      from: OTP_EMAIL_FROM,
+      to: email,
+      subject: OTP_EMAIL_SUBJECT,
+      html: buildOtpEmailHtml(code, otpExpiryMinutes),
+      text: buildOtpEmailText(code, otpExpiryMinutes),
+    });
+
+    if (error) {
+      console.error('[otp-email] resend failed', {
+        to: email,
+        from: OTP_EMAIL_FROM,
+        error: error.message,
+        name: error.name,
+      });
+      throw new Error(error.message);
+    }
+
+    console.log('[otp-email] resend success', {
+      to: email,
+      from: OTP_EMAIL_FROM,
+      id: data?.id,
     });
   } catch (error) {
     const details = formatError(error);
-    console.error('[otp-email] SMTP transporter.verify() failed', {
-      ...snapshot,
-      connectHost: resolved.address,
-      servername: resolved.hostname,
-      family: resolved.family,
+    console.error('[otp-email] resend failed', {
+      to: email,
+      from: OTP_EMAIL_FROM,
       error: details.message,
-      code: details.code,
-      stack: details.stack,
-    });
-    throw new Error(`SMTP connection failed: ${details.message}`);
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: snapshot.from,
-      to: email,
-      subject,
-      text,
-    });
-
-    console.log('[otp-email] sendMail() succeeded', {
-      to: email,
-      from: snapshot.from,
-      connectHost: resolved.address,
-      messageId: info.messageId,
-      accepted: info.accepted,
-      rejected: info.rejected,
-      response: info.response,
-    });
-  } catch (error) {
-    const details = formatError(error);
-    console.error('[otp-email] sendMail() failed', {
-      ...snapshot,
-      to: email,
-      connectHost: resolved.address,
-      servername: resolved.hostname,
-      error: details.message,
-      code: details.code,
       stack: details.stack,
     });
     throw error;

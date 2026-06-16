@@ -57,12 +57,12 @@ export async function sendVerificationOtp(email: string): Promise<OtpResult> {
     console.log('[otp] verification code sent', { email: normalizedEmail });
     return { ok: true, message: 'Verification code sent to your email' };
   } catch (error) {
-    console.error('[otp] SMTP send failed', {
+    console.error('[otp] email send failed', {
       email: normalizedEmail,
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return { ok: false, error: 'Failed to send verification email. Check SMTP settings.', status: 500 };
+    return { ok: false, error: 'Failed to send verification email. Please try again.', status: 500 };
   }
 }
 
