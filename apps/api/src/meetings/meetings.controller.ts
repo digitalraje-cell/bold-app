@@ -68,6 +68,16 @@ export class MeetingsController {
     return this.meetingsService.findById(id, req.user.id);
   }
 
+  @Post('join-by-code')
+  @UseGuards(OptionalAuthGuard)
+  async joinByCode(@Body() dto: JoinByCodeDto, @Req() req: Request & { user?: AuthUser }) {
+    const meeting = await this.meetingsService.findByCode(dto.meetingCode);
+    return this.meetingsService.join(meeting.id, req.user?.id ?? null, {
+      displayName: dto.displayName,
+      password: dto.password,
+    });
+  }
+
   @Post(':id/join')
   @UseGuards(OptionalAuthGuard)
   join(
@@ -82,15 +92,6 @@ export class MeetingsController {
       userId: req.user?.id ?? null,
     });
     return this.meetingsService.join(id, req.user?.id ?? null, dto);
-  }
-
-  @Post('join-by-code')
-  async joinByCode(@Body() dto: JoinByCodeDto, @Req() req: Request & { user?: AuthUser }) {
-    const meeting = await this.meetingsService.findByCode(dto.meetingCode);
-    return this.meetingsService.join(meeting.id, req.user?.id ?? null, {
-      displayName: dto.displayName,
-      password: dto.password,
-    });
   }
 
   @Patch(':id/settings')

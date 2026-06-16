@@ -3,13 +3,14 @@
 import { useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+import { getSocketOrigin } from '@/lib/api-base';
 
 let socket: Socket | null = null;
 
 export function useSocket(meetingId: string) {
   useEffect(() => {
-    socket = io(`${SOCKET_URL}/meetings`, {
+    const socketUrl = getSocketOrigin();
+    socket = io(`${socketUrl}/meetings`, {
       query: { meetingId },
       transports: ['websocket'],
     });

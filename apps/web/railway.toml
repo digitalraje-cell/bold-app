@@ -27,7 +27,8 @@ restartPolicyType = "ON_FAILURE"
 # AUTH_URL + NEXTAUTH_URL — https://bold.robozant.com
 # DATABASE_URL — same Postgres as API (NextAuth + Prisma on web)
 # JWT_SECRET — must match API service
-# NEXT_PUBLIC_API_URL — optional if using /api/backend proxy
-# API_URL — Nest API origin (required on WEB for guest join proxy), e.g. https://api.bold.robozant.com
-# NEXT_PUBLIC_SOCKET_URL — https://api.bold.robozant.com
+# API_URL — Railway API service public URL (required for /api/backend proxy + SSR meeting preview)
+#   Example: https://your-api-service.up.railway.app  (no trailing /api)
+# NEXT_PUBLIC_API_URL — same as API_URL if you want direct browser calls / sockets
+# NEXT_PUBLIC_SOCKET_URL — same as API_URL
 # RESEND_API_KEY, EMAIL_FROM — OTP email delivery

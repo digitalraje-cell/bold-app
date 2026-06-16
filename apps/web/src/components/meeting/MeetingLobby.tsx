@@ -84,17 +84,27 @@ function statusSubtitle(meeting: PublicMeetingPreview): string {
   return `Ended · ${participants}`;
 }
 
-export function MeetingLobby() {
-  const meetingId = useMeetingRouteId();
+export function MeetingLobby({
+  meetingId: meetingIdProp,
+  initialPreview = null,
+  initialPreviewError = null,
+}: {
+  meetingId?: string | null;
+  initialPreview?: PublicMeetingPreview | null;
+  initialPreviewError?: string | null;
+}) {
+  const routeMeetingId = useMeetingRouteId();
+  const meetingId = meetingIdProp ?? routeMeetingId;
   const { data: session } = useSession();
   const router = useRouter();
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(true);
-  const [previewError, setPreviewError] = useState('');
+  const hasServerPreview = initialPreview !== null || Boolean(initialPreviewError);
+  const [previewLoading, setPreviewLoading] = useState(!hasServerPreview);
+  const [previewError, setPreviewError] = useState(initialPreviewError || '');
   const [joinError, setJoinError] = useState('');
-  const [meeting, setMeeting] = useState<PublicMeetingPreview | null>(null);
+  const [meeting, setMeeting] = useState<PublicMeetingPreview | null>(initialPreview);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -103,8 +113,10 @@ export function MeetingLobby() {
   }, [session?.user?.name]);
 
   useEffect(() => {
-    if (!meetingId) {
-      setPreviewLoading(false);
+    if (!meetingId || hasServerPreview) {
+      if (!meetingId) {
+        setPreviewLoading(false);
+      }
       return;
     }
 
@@ -141,7 +153,7 @@ export function MeetingLobby() {
     return () => {
       cancelled = true;
     };
-  }, [meetingId]);
+  }, [meetingId, hasServerPreview]);
 
   const canJoin =
     Boolean(meeting) &&

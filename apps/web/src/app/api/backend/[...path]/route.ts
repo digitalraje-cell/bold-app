@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerApiOrigin } from '@/lib/api-base';
+import { buildNestApiUrl, getServerApiOrigin } from '@/lib/api-base';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +12,7 @@ async function proxyRequest(
   const { path } = await params;
   const apiOrigin = getServerApiOrigin();
   const targetPath = path.join('/');
-  const targetUrl = `${apiOrigin}/api/${targetPath}${request.nextUrl.search}`;
+  const targetUrl = buildNestApiUrl(`/${targetPath}${request.nextUrl.search}`);
 
   const headers = new Headers();
   for (const name of FORWARD_HEADERS) {

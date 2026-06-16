@@ -29,9 +29,10 @@ function formatApiError(body: ApiErrorBody | null, status: number, rawBody: stri
 
   if (rawBody.trim()) {
     const trimmed = rawBody.trim().slice(0, 300);
-    if (!trimmed.startsWith('<!DOCTYPE') && !trimmed.startsWith('<html')) {
-      return trimmed;
+    if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      return `API route not found (${status}). If this persists after deploy, set API_URL on the web service.`;
     }
+    return trimmed;
   }
 
   return `API error ${status}`;
