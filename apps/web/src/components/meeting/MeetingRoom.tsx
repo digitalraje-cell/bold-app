@@ -331,14 +331,12 @@ function MeetingRoomInner({
     <div className="relative flex flex-1 overflow-hidden">
       {!canJoinMedia && <HostWaitingScreen meetingId={meetingId} title={title} />}
 
-      {canJoinMedia && (
-        <div
-          ref={containerRef}
-          className={`absolute inset-0 [&_iframe]:border-0 ${
-            isPresenterLayout || isScreenSharing ? 'presenter-stage' : ''
-          }`}
-        />
-      )}
+      <div
+        ref={containerRef}
+        className={`absolute inset-0 [&_iframe]:border-0 ${
+          !canJoinMedia ? 'invisible pointer-events-none' : ''
+        } ${isPresenterLayout || isScreenSharing ? 'presenter-stage' : ''}`}
+      />
 
       <ReactionsOverlay reactions={reactions} />
       <WebinarModeBanner roomMode={roomMode} />

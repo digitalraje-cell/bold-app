@@ -5,12 +5,13 @@ import type {
 } from '@boldmeet/shared';
 
 /**
- * meet.jit.si requires OAuth for the first (moderator) join in embedded iframes.
- * Use a community instance for Phase 1 anonymous embed.
+ * Default public Jitsi instance for MVP embeds.
+ * Guests wait for host media-ready (useMeetingPresence) so the host joins first.
  */
-const DEFAULT_JITSI_DOMAIN = 'meet.ffmuc.net';
+const DEFAULT_JITSI_DOMAIN = 'meet.jit.si';
 
-const BLOCKED_JITSI_DOMAINS = new Set(['meet.jit.si', 'jit.si', '8x8.vc']);
+/** Instances that block cross-origin iframe embeds (X-Frame-Options / CSP). */
+const BLOCKED_EMBED_DOMAINS = new Set(['meet.ffmuc.net']);
 
 function normalizeDomain(value: string): string {
   return value.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
@@ -19,15 +20,16 @@ function normalizeDomain(value: string): string {
 export function getJitsiDomain(): string {
   const configured = process.env.NEXT_PUBLIC_JITSI_DOMAIN?.trim();
   const candidate = configured ? normalizeDomain(configured) : DEFAULT_JITSI_DOMAIN;
+  const resolved = candidate || DEFAULT_JITSI_DOMAIN;
 
-  if (BLOCKED_JITSI_DOMAINS.has(candidate)) {
+  if (BLOCKED_EMBED_DOMAINS.has(resolved)) {
     console.warn(
-      `[media] ${candidate} triggers Jitsi OAuth for moderators — using ${DEFAULT_JITSI_DOMAIN}`,
+      `[media] ${resolved} blocks cross-origin iframe embed — using ${DEFAULT_JITSI_DOMAIN}`,
     );
     return DEFAULT_JITSI_DOMAIN;
   }
 
-  return candidate || DEFAULT_JITSI_DOMAIN;
+  return resolved;
 }
 
 export const jitsiMediaProvider: MeetingMediaProvider = {
