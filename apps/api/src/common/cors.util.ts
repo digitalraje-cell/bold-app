@@ -13,6 +13,9 @@ function collectAllowedOrigins(): string[] {
   add(process.env.CORS_ORIGIN || 'http://localhost:3000');
   add(process.env.AUTH_URL);
   add(process.env.NEXTAUTH_URL);
+  add(process.env.NEXT_PUBLIC_APP_URL);
+  origins.add('https://bold.robozant.com');
+  origins.add('http://bold.robozant.com');
 
   return [...origins];
 }

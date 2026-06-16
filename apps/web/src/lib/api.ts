@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '@/lib/api-base';
+import { getApiBaseUrl, getClientApiTransport } from '@/lib/api-base';
 
 async function getAuthToken(): Promise<string | null> {
   const res = await fetch('/api/token');
@@ -73,8 +73,9 @@ async function apiFetch<T>(
 
   const url = `${getApiBaseUrl()}${path}`;
   const method = options.method || 'GET';
+  const transport = getClientApiTransport();
 
-  console.log('[api]', method, url, auth ? '(auth optional)' : '(public)');
+  console.log('[api]', method, url, { transport, auth: auth ? 'optional' : 'none' });
 
   let res: Response;
   try {
@@ -117,7 +118,7 @@ export const api = {
       apiFetch(`/meetings/${id}/join`, {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
+      }, false),
     joinByCode: (data: { meetingCode: string; displayName: string; password?: string }) =>
       apiFetch('/meetings/join-by-code', {
         method: 'POST',

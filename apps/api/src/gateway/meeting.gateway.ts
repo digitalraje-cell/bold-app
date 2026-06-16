@@ -8,11 +8,12 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { getAllowedOrigins } from '../common/cors.util';
 
 @WebSocketGateway({
   namespace: '/meetings',
   cors: {
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map((o) => o.trim()),
+    origin: getAllowedOrigins(),
     credentials: true,
   },
 })

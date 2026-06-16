@@ -40,20 +40,13 @@ function isLocalOrigin(origin: string): boolean {
 }
 
 /**
- * Browser REST base URL.
- * 1. Same-origin proxy `/api/backend` (works when API_URL is set on the web service)
- * 2. Direct NEXT_PUBLIC_API_URL when set to a non-local host
+ * Browser REST always uses the same-origin Next.js proxy to avoid CORS failures.
+ * Server code talks to API_URL directly.
  */
 export function getClientApiBaseUrl(): string {
   if (typeof window === 'undefined') {
     return getServerApiBaseUrl();
   }
-
-  const direct = normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL);
-  if (direct && !isLocalOrigin(direct)) {
-    return `${direct}/api`;
-  }
-
   return `${window.location.origin}/api/backend`;
 }
 
@@ -61,21 +54,19 @@ export function getApiBaseUrl(): string {
   return typeof window === 'undefined' ? getServerApiBaseUrl() : getClientApiBaseUrl();
 }
 
-/** Socket.io connects to the API host root (namespace appended separately). */
+export function getClientApiTransport(): 'proxy' | 'direct-server' {
+  return typeof window === 'undefined' ? 'direct-server' : 'proxy';
+}
+
+/** Socket.io must connect to the API host (cannot use HTTP rewrite proxy). */
 export function getSocketOrigin(): string {
   const configured =
     normalizeApiOrigin(process.env.NEXT_PUBLIC_SOCKET_URL) ||
-    normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL);
+    normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL) ||
+    getServerApiOrigin();
 
   if (configured && !isLocalOrigin(configured)) {
     return configured;
-  }
-
-  if (typeof window !== 'undefined') {
-    const direct = normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL);
-    if (direct && !isLocalOrigin(direct)) {
-      return direct;
-    }
   }
 
   return getServerApiOrigin();

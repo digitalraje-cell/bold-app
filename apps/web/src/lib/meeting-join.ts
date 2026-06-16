@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { joinMeetingAction } from '@/lib/meeting-join-actions';
 
 type JoinMeetingResponse = {
   admitted: boolean;
@@ -36,38 +36,39 @@ export async function joinMeetingAndGetPath(
   displayName: string,
   password?: string,
 ): Promise<string> {
-  const payload: { displayName: string; password?: string } = {
-    displayName,
-  };
-  if (password) {
-    payload.password = password;
-  }
-
-  console.log('[meeting-join] requesting join', {
+  console.log('[meeting-join] requesting join via server action', {
     meetingIdOrCode,
     displayName,
     hasPassword: Boolean(password),
   });
 
-  const result = (await api.meetings.join(meetingIdOrCode, payload)) as JoinMeetingResponse;
+  const result = await joinMeetingAction(meetingIdOrCode, displayName, password);
+
+  if (!result.ok) {
+    console.error('[meeting-join] join failed', {
+      meetingIdOrCode,
+      error: result.error,
+    });
+    throw new Error(result.error);
+  }
 
   console.log('[meeting-join] join success', {
-    meetingId: result.meeting?.id,
-    participantId: result.participant?.id,
+    meetingId: result.meetingId,
+    participantId: result.participantId,
     admitted: result.admitted,
+    path: result.path,
   });
 
-  const meetingId = result.meeting?.id ?? meetingIdOrCode;
-
-  if (result.participant) {
+  if (result.participantId) {
     saveGuestJoinSession({
-      meetingId,
-      participantId: result.participant.id,
-      displayName: result.participant.displayName || displayName,
+      meetingId: result.meetingId,
+      participantId: result.participantId,
+      displayName: result.displayName,
     });
   }
 
-  return result.admitted
-    ? `/meeting/${meetingId}/room`
-    : `/meeting/${meetingId}/waiting`;
+  return result.path;
 }
+
+/** @deprecated internal type kept for callers expecting response shape */
+export type { JoinMeetingResponse };

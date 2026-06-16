@@ -30,7 +30,7 @@ async function proxyRequest(
     init.body = await request.text();
   }
 
-  console.log('[api-proxy]', request.method, targetUrl);
+  console.log('[api-proxy]', request.method, targetUrl, { path: targetPath });
 
   let upstream: Response;
   try {
