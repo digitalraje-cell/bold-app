@@ -11,58 +11,70 @@ export type OtpResult =
 
 export async function sendVerificationOtp(email: string): Promise<OtpResult> {
   const normalizedEmail = email.toLowerCase().trim();
-
-  if (!normalizedEmail) {
-    return { ok: false, error: 'Email is required', status: 400 };
-  }
-
-  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (!user) {
-    console.error('[otp] send failed: user not found', normalizedEmail);
-    return { ok: false, error: 'Account not found', status: 404 };
-  }
-
-  if (user.isVerified) {
-    return { ok: true, message: 'Account already verified' };
-  }
-
-  const recent = await prisma.otpVerification.findFirst({
-    where: { email: normalizedEmail, used: false },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (
-    recent &&
-    Date.now() - recent.createdAt.getTime() < RESEND_COOLDOWN_SECONDS * 1000
-  ) {
-    return {
-      ok: false,
-      error: `Please wait ${RESEND_COOLDOWN_SECONDS} seconds before resending`,
-      status: 429,
-    };
-  }
-
-  const code = generateOtpCode(6);
-
-  await prisma.otpVerification.create({
-    data: {
-      email: normalizedEmail,
-      codeHash: hashOtpCode(code),
-      expiresAt: getOtpExpiryDate(),
-    },
-  });
+  console.log('[otp] sendVerificationOtp started', { email: normalizedEmail });
 
   try {
+    if (!normalizedEmail) {
+      console.log('[otp] send aborted: email required');
+      return { ok: false, error: 'Email is required', status: 400 };
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user) {
+      console.error('[otp] send aborted: user not found', { email: normalizedEmail });
+      return { ok: false, error: 'Account not found', status: 404 };
+    }
+
+    if (user.isVerified) {
+      console.log('[otp] send skipped: account already verified', { email: normalizedEmail });
+      return { ok: true, message: 'Account already verified' };
+    }
+
+    const recent = await prisma.otpVerification.findFirst({
+      where: { email: normalizedEmail, used: false },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (
+      recent &&
+      Date.now() - recent.createdAt.getTime() < RESEND_COOLDOWN_SECONDS * 1000
+    ) {
+      const waitSeconds = Math.ceil(
+        (RESEND_COOLDOWN_SECONDS * 1000 - (Date.now() - recent.createdAt.getTime())) / 1000,
+      );
+      console.log('[otp] send blocked: resend cooldown active', {
+        email: normalizedEmail,
+        waitSeconds,
+      });
+      return {
+        ok: false,
+        error: `Please wait ${RESEND_COOLDOWN_SECONDS} seconds before resending`,
+        status: 429,
+      };
+    }
+
+    const code = generateOtpCode(6);
+    console.log('[otp] OTP generated, persisting record', { email: normalizedEmail });
+
+    await prisma.otpVerification.create({
+      data: {
+        email: normalizedEmail,
+        codeHash: hashOtpCode(code),
+        expiresAt: getOtpExpiryDate(),
+      },
+    });
+
+    console.log('[otp] calling sendOtpEmail (Resend)', { email: normalizedEmail });
     await sendOtpEmail(normalizedEmail, code);
     console.log('[otp] verification code sent', { email: normalizedEmail });
     return { ok: true, message: 'Verification code sent to your email' };
   } catch (error) {
-    console.error('[otp] email send failed', {
+    console.error('[otp] sendVerificationOtp failed', {
       email: normalizedEmail,
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return { ok: false, error: 'Failed to send verification email. Please try again.', status: 500 };
+    throw error;
   }
 }
 

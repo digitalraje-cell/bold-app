@@ -18,13 +18,6 @@ export function getOtpExpiryDate(): Date {
   return new Date(Date.now() + getOtpExpiryMinutes() * 60 * 1000);
 }
 
-function formatError(error: unknown): { message: string; stack?: string } {
-  if (error instanceof Error) {
-    return { message: error.message, stack: error.stack };
-  }
-  return { message: String(error) };
-}
-
 function buildOtpEmailHtml(code: string, expiryMinutes: number): string {
   const appName = 'BoldMeet';
   return `<!DOCTYPE html>
@@ -90,16 +83,24 @@ function buildOtpEmailText(code: string, expiryMinutes: number): string {
 }
 
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  console.log('[otp-email] attempting resend send', { email });
+
   const apiKey = runtimeEnv('RESEND_API_KEY');
   const otpExpiryMinutes = getOtpExpiryMinutes();
+  const hasApiKey = Boolean(apiKey);
+
+  console.log('[otp-email] resend config', {
+    email,
+    hasApiKey,
+    from: OTP_EMAIL_FROM,
+    nodeEnv: process.env.NODE_ENV,
+  });
 
   if (!apiKey) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[otp-email] resend failed', {
-        to: email,
-        error: 'RESEND_API_KEY missing at runtime — check Railway env on web service',
-      });
-      throw new Error('Email service is not configured on the web service');
+      const error = new Error('RESEND_API_KEY missing at runtime — check Railway env on web service');
+      console.error('[otp-email] resend failed', error);
+      throw error;
     }
     console.log(`[otp-email] RESEND_API_KEY not set — dev code for ${email}: ${code}`);
     return;
@@ -108,7 +109,7 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
   const resend = new Resend(apiKey);
 
   try {
-    const { data, error } = await resend.emails.send({
+    const result = await resend.emails.send({
       from: OTP_EMAIL_FROM,
       to: email,
       subject: OTP_EMAIL_SUBJECT,
@@ -116,29 +117,14 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
       text: buildOtpEmailText(code, otpExpiryMinutes),
     });
 
-    if (error) {
-      console.error('[otp-email] resend failed', {
-        to: email,
-        from: OTP_EMAIL_FROM,
-        error: error.message,
-        name: error.name,
-      });
-      throw new Error(error.message);
+    if (result.error) {
+      console.error('[otp-email] resend failed', result.error);
+      throw new Error(result.error.message);
     }
 
-    console.log('[otp-email] resend success', {
-      to: email,
-      from: OTP_EMAIL_FROM,
-      id: data?.id,
-    });
+    console.log('[otp-email] resend success', result);
   } catch (error) {
-    const details = formatError(error);
-    console.error('[otp-email] resend failed', {
-      to: email,
-      from: OTP_EMAIL_FROM,
-      error: details.message,
-      stack: details.stack,
-    });
+    console.error('[otp-email] resend failed', error);
     throw error;
   }
 }

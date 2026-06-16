@@ -16,10 +16,27 @@ export async function sendVerificationCodeAction(): Promise<{
   }
 
   console.log('[otp-action] send requested', { email: session.user.email });
-  const result = await sendVerificationOtp(session.user.email);
-  return result.ok
-    ? { ok: true, message: result.message }
-    : { ok: false, error: result.error };
+
+  try {
+    const result = await sendVerificationOtp(session.user.email);
+    console.log('[otp-action] send completed', {
+      email: session.user.email,
+      ok: result.ok,
+      message: result.ok ? result.message : undefined,
+      error: result.ok ? undefined : result.error,
+      status: result.ok ? undefined : result.status,
+    });
+    return result.ok
+      ? { ok: true, message: result.message }
+      : { ok: false, error: result.error };
+  } catch (error) {
+    console.error('[otp-action] send unexpected error', {
+      email: session.user.email,
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return { ok: false, error: 'Failed to send verification email. Please try again.' };
+  }
 }
 
 export async function verifyAccountCodeAction(code: string): Promise<{
