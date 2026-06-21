@@ -45,14 +45,13 @@ const RECONNECT_DELAY_MS = 2000;
 const BOLD_MEDIA_ERROR =
   'Unable to connect to meeting audio and video. Please try again or rejoin from the lobby.';
 
+/** Jitsi auth/promo destinations — do NOT match bare "8x8" (legitimate meet.jit.si URLs include it). */
 const EXTERNAL_NAV_PATTERNS = [
   '/login',
   '/oauth',
   '/auth',
-  '8x8',
   '/promo',
   'jaas',
-  'moderator',
   'grantmoderator',
 ];
 
@@ -87,18 +86,10 @@ function loadJitsiScript(url: string): Promise<void> {
   return jitsiScriptPromise;
 }
 
-function looksLikeExternalJitsiNavigation(src: string, roomName: string): boolean {
+function looksLikeExternalJitsiNavigation(src: string): boolean {
   if (!src) return false;
   const lower = src.toLowerCase();
-  if (EXTERNAL_NAV_PATTERNS.some((pattern) => lower.includes(pattern))) {
-    return true;
-  }
-  return (
-    src.length > 0 &&
-    !src.includes(encodeURIComponent(roomName)) &&
-    !src.includes(roomName) &&
-    !src.includes('external_api')
-  );
+  return EXTERNAL_NAV_PATTERNS.some((pattern) => lower.includes(pattern));
 }
 
 export function useJitsi({
@@ -127,6 +118,8 @@ export function useJitsi({
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeObserverRef = useRef<MutationObserver | null>(null);
   const joinedRef = useRef(false);
+  const disposingRef = useRef(false);
+  const reconnectScheduledRef = useRef(false);
   const callbacksRef = useRef({
     onReady,
     onLeave,
@@ -178,8 +171,13 @@ export function useJitsi({
       reconnectTimerRef.current = null;
     }
     if (apiRef.current) {
-      apiRef.current.dispose();
-      apiRef.current = null;
+      disposingRef.current = true;
+      try {
+        apiRef.current.dispose();
+      } finally {
+        apiRef.current = null;
+        disposingRef.current = false;
+      }
     }
     sessionKeyRef.current = null;
     joinedRef.current = false;
@@ -198,18 +196,29 @@ export function useJitsi({
 
   const scheduleReconnect = useCallback(
     (reason: string) => {
-      if (intentionalLeaveRef.current || authErrorRef.current || !enabled || !roomName) return;
+      if (
+        intentionalLeaveRef.current ||
+        authErrorRef.current ||
+        disposingRef.current ||
+        reconnectScheduledRef.current ||
+        !enabled ||
+        !roomName
+      ) {
+        return;
+      }
       if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
         reportMediaError(BOLD_MEDIA_ERROR);
         return;
       }
 
+      reconnectScheduledRef.current = true;
       reconnectAttemptsRef.current += 1;
       setIsReconnecting(true);
 
       disposeSession();
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
+        reconnectScheduledRef.current = false;
         setIsReconnecting(false);
         setReconnectNonce((n) => n + 1);
       }, RECONNECT_DELAY_MS);
@@ -245,8 +254,9 @@ export function useJitsi({
       if (!iframe) return;
 
       const checkSrc = () => {
+        if (!joinedRef.current || disposingRef.current) return;
         const src = iframe.getAttribute('src') ?? '';
-        if (looksLikeExternalJitsiNavigation(src, roomName)) {
+        if (looksLikeExternalJitsiNavigation(src)) {
           reportMediaError(BOLD_MEDIA_ERROR);
         }
       };
@@ -310,25 +320,38 @@ export function useJitsi({
       });
 
       api.addListener('videoConferenceLeft', () => {
-        if (!intentionalLeaveRef.current && !authErrorRef.current) {
+        if (disposingRef.current || intentionalLeaveRef.current || authErrorRef.current) {
+          return;
+        }
+        if (joinedRef.current) {
           scheduleReconnect('videoConferenceLeft');
         }
       });
 
       api.addListener('connectionFailed', () => {
+        if (disposingRef.current) return;
         if (opts.jwtEnabled) {
           reportMediaError(BOLD_MEDIA_ERROR);
           return;
         }
-        scheduleReconnect('connectionFailed');
+        if (joinedRef.current) {
+          scheduleReconnect('connectionFailed');
+        } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS - 1) {
+          reportMediaError(BOLD_MEDIA_ERROR);
+        } else {
+          scheduleReconnect('connectionFailed');
+        }
       });
 
       api.addListener('errorOccurred', () => {
+        if (disposingRef.current) return;
         if (opts.jwtEnabled) {
           reportMediaError(BOLD_MEDIA_ERROR);
           return;
         }
-        scheduleReconnect('errorOccurred');
+        if (joinedRef.current) {
+          scheduleReconnect('errorOccurred');
+        }
       });
 
       api.addListener('audioMuteStatusChanged', (payload: unknown) => {
