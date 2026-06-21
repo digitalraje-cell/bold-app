@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SubscriptionPlan } from '@boldmeet/shared';
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isActive = (href: string) => mounted && pathname.startsWith(href);
   const plan = (session?.user?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+  const isAdmin = mounted && session?.user?.role === 'ADMIN';
 
   return (
     <div className="flex min-h-full">
@@ -87,6 +89,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin/payments"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                isActive('/admin')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Shield className="h-4 w-4" />
+              Admin Payments
+            </Link>
+          )}
         </nav>
 
         <div className="border-t border-border p-4">

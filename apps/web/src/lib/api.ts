@@ -175,6 +175,27 @@ export const api = {
     summary: () => apiFetch('/billing/summary'),
     createProCheckout: () =>
       apiFetch('/billing/checkout/pro', { method: 'POST' }),
+    createProPaymentLink: () =>
+      apiFetch('/billing/payment-link/pro', { method: 'POST' }),
+    markPendingPaid: (id: string) =>
+      apiFetch(`/billing/pending/${id}/mark-paid`, { method: 'POST' }),
+    cancelPending: (id: string) =>
+      apiFetch(`/billing/pending/${id}/cancel`, { method: 'POST' }),
+  },
+  admin: {
+    listPendingPayments: () => apiFetch('/admin/payments/pending'),
+    activatePayment: (id: string) =>
+      apiFetch(`/admin/payments/${id}/activate`, { method: 'POST' }),
+  },
+  roadmap: {
+    votes: (auth = false) => apiFetch('/roadmap/votes', {}, auth),
+    vote: (featureKey: string) =>
+      apiFetch('/roadmap/votes', {
+        method: 'POST',
+        body: JSON.stringify({ featureKey }),
+      }),
+    removeVote: (featureKey: string) =>
+      apiFetch(`/roadmap/votes/${featureKey}`, { method: 'DELETE' }),
   },
   youtube: {
     status: () => apiFetch('/youtube/status'),

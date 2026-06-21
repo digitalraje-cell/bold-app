@@ -129,6 +129,8 @@ model User {
   youtubeAccount YouTubeAccount?
   chatMessages   ChatMessage[]
   subscriptionPayments SubscriptionPayment[]
+  pendingPayments      PendingPayment[]
+  roadmapVotes         RoadmapVote[]
 
   @@map("users")
 }
@@ -424,4 +426,34 @@ model SubscriptionPayment {
 
   @@index([userId, createdAt])
   @@map("subscription_payments")
+}
+
+model PendingPayment {
+  id                    String           @id @default(cuid())
+  userId                String           @map("user_id")
+  name                  String
+  email                 String
+  plan                  SubscriptionPlan
+  paymentStatus         String           @default("pending") @map("payment_status")
+  razorpayPaymentLinkId String?          @map("razorpay_payment_link_id")
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([paymentStatus])
+  @@map("pending_payments")
+}
+
+model RoadmapVote {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  featureKey String   @map("feature_key")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureKey])
+  @@index([featureKey])
+  @@map("roadmap_votes")
 }

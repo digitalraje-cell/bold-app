@@ -53,7 +53,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
         </ul>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <Link href="/billing" className="flex-1" onClick={onClose}>
+          <Link href="/billing/upgrade" className="flex-1" onClick={onClose}>
             <Button className="w-full">View plans & upgrade</Button>
           </Link>
           <Button variant="secondary" className="flex-1" onClick={onClose}>

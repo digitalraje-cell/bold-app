@@ -2,6 +2,7 @@ declare module 'next-auth' {
   interface User {
     isVerified?: boolean;
     subscriptionPlan?: string;
+    role?: string;
   }
 
   interface Session {
@@ -12,6 +13,7 @@ declare module 'next-auth' {
       image?: string | null;
       isVerified: boolean;
       subscriptionPlan: string;
+      role: string;
     };
   }
 }
@@ -21,6 +23,7 @@ declare module '@auth/core/jwt' {
     id?: string;
     isVerified?: boolean;
     subscriptionPlan?: string;
+    role?: string;
   }
 }
 

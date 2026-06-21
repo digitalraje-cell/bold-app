@@ -36,7 +36,6 @@ type BillingSummary = {
 export default function BillingPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,29 +48,6 @@ export default function BillingPage() {
 
   const plan = summary?.plan ?? SubscriptionPlan.FREE;
   const isPro = plan === SubscriptionPlan.PRO;
-
-  async function handleUpgrade() {
-    setCheckoutLoading(true);
-    setMessage(null);
-    try {
-      const result = (await api.billing.createProCheckout()) as {
-        checkoutUrl?: string | null;
-        message?: string;
-      };
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
-        return;
-      }
-      setMessage(
-        result.message ||
-          'Payment is not configured yet. Contact support or add Razorpay credentials to enable checkout.',
-      );
-    } catch {
-      setMessage('Unable to start checkout. Please try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  }
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -118,9 +94,9 @@ export default function BillingPage() {
                 )}
               </div>
               {!isPro && (
-                <Button onClick={() => void handleUpgrade()} loading={checkoutLoading}>
-                  Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo
-                </Button>
+                <Link href="/billing/upgrade">
+                  <Button>Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
+                </Link>
               )}
             </div>
           </section>

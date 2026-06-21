@@ -1,43 +1,11 @@
 import Link from 'next/link';
-import { APP_CONFIG } from '@/lib/app-config';
 import { PricingSection } from '@/components/marketing/PricingSection';
+import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 
 export default function HomePage() {
-  const appName = APP_CONFIG.name;
-  const logoLetter = appName.charAt(0).toUpperCase();
-
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              {logoLetter}
-            </div>
-            <span className="text-xl font-semibold tracking-tight">{appName}</span>
-          </div>
-          <nav className="flex items-center gap-3">
-            <Link
-              href="#pricing"
-              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground sm:inline-block"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-            >
-              Get started
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <MarketingHeader active="pricing" />
 
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-20">
         <div className="mx-auto max-w-3xl text-center">
@@ -103,9 +71,7 @@ export default function HomePage() {
         <PricingSection />
       </main>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} {appName}. All rights reserved.
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

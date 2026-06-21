@@ -13,7 +13,7 @@ export function UpgradeBanner({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <Link
-        href="/billing"
+        href="/billing/upgrade"
         className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
       >
         <Sparkles className="h-3.5 w-3.5" />
@@ -29,15 +29,18 @@ export function UpgradeBanner({ compact = false }: { compact?: boolean }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
             Current plan: Free
           </p>
-          <h2 className="mt-1 text-lg font-semibold">
-            Unlock recordings, co-hosts, and YouTube Live for ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upgrade to Pro for meeting history, attendee reports, and streaming to your channel.
+          <h2 className="mt-1 text-lg font-semibold">Unlock Pro features</h2>
+          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <li>• YouTube Recording</li>
+            <li>• Multiple Co-hosts</li>
+            <li>• Attendee Reports</li>
+          </ul>
+          <p className="mt-2 text-sm font-medium">
+            Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
           </p>
         </div>
         <Link
-          href="/billing"
+          href="/billing/upgrade"
           className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:opacity-90"
         >
           Upgrade to Pro

@@ -66,6 +66,7 @@ const providers: NextAuthConfig['providers'] = [
           image: user.avatarUrl,
           isVerified: user.isVerified,
           subscriptionPlan: user.subscriptionPlan,
+          role: user.role,
         };
       } catch (error) {
         console.error('[auth] Credentials authorize failed:', error);
@@ -124,10 +125,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               isVerified: true,
               subscriptionPlan: true,
               subscriptionExpiresAt: true,
+              role: true,
             },
           });
           token.isVerified = dbUser?.isVerified ?? false;
           token.subscriptionPlan = dbUser?.subscriptionPlan ?? 'FREE';
+          token.role = dbUser?.role ?? 'USER';
           if (
             dbUser?.subscriptionExpiresAt &&
             dbUser.subscriptionExpiresAt < new Date()

@@ -8,7 +8,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth?.user;
 
-  const protectedPaths = ['/dashboard', '/settings', '/meetings', '/verify'];
+  const protectedPaths = ['/dashboard', '/settings', '/meetings', '/verify', '/billing', '/recordings', '/admin'];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected && !isLoggedIn) {
@@ -29,5 +29,13 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/settings/:path*', '/meetings/:path*', '/verify/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/settings/:path*',
+    '/meetings/:path*',
+    '/verify/:path*',
+    '/billing/:path*',
+    '/recordings/:path*',
+    '/admin/:path*',
+  ],
 };

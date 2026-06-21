@@ -34,6 +34,10 @@ export const authConfig = {
         token.subscriptionPlan = user.subscriptionPlan;
       }
 
+      if (user && 'role' in user) {
+        token.role = user.role;
+      }
+
       if (trigger === 'update' && (session as { isVerified?: boolean })?.isVerified) {
         token.isVerified = true;
       }
@@ -45,6 +49,7 @@ export const authConfig = {
         session.user.id = token.id as string;
         session.user.isVerified = Boolean(token.isVerified);
         session.user.subscriptionPlan = (token.subscriptionPlan as string) || 'FREE';
+        session.user.role = (token.role as string) || 'USER';
       }
       return session;
     },

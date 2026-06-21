@@ -130,6 +130,7 @@ export * from './types/user';
 export * from './config/app';
 export * from './subscriptions/plans';
 export * from './subscriptions/pricing';
+export * from './roadmap/features';
 export * from './recording/types';
 export * from './stream/types';
 export * from './webinar/types';
