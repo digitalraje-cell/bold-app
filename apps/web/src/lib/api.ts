@@ -112,6 +112,16 @@ export const api = {
     get: (id: string) => apiFetch(`/meetings/${id}`),
     getInvite: (id: string) => apiFetch(`/meetings/${id}/invite`),
     getDuration: (id: string) => apiFetch(`/meetings/${id}/duration`, {}, false),
+    getJitsiToken: (id: string, data?: { participantId?: string }) =>
+      apiFetch<{
+        jwtEnabled: boolean;
+        token: string | null;
+        domain: string;
+        expiresAt: number | null;
+      }>(`/meetings/${id}/jitsi-token`, {
+        method: 'POST',
+        body: JSON.stringify(data ?? {}),
+      }, false),
     create: (data: Record<string, unknown>) =>
       apiFetch('/meetings', { method: 'POST', body: JSON.stringify(data) }),
     join: (id: string, data: {

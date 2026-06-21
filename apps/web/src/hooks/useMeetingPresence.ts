@@ -4,15 +4,24 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 
 /**
- * Bold controls when guests may load Jitsi.
- * Guests wait until the host has joined the media conference (not just the Bold room).
- * This prevents Jitsi "waiting for moderator" / meet.jit.si OAuth popups.
+ * Bold controls when guests may load the media iframe.
+ * When JWT auth is enabled, guests join directly with a Bold-issued token.
+ * Otherwise guests wait until the host has joined media to avoid public Jitsi login screens.
  */
-export function useMeetingPresence(meetingId: string, isHost: boolean) {
-  const [hostMediaReady, setHostMediaReady] = useState(isHost);
+export function useMeetingPresence(
+  meetingId: string,
+  isHost: boolean,
+  skipHostMediaGate = false,
+) {
+  const [hostMediaReady, setHostMediaReady] = useState(isHost || skipHostMediaGate);
   const { emit, on } = useSocket(meetingId);
 
   useEffect(() => {
+    if (skipHostMediaGate) {
+      setHostMediaReady(true);
+      return;
+    }
+
     const applyStatus = (data: unknown) => {
       const { mediaReady, present } = data as { mediaReady?: boolean; present?: boolean };
       if (mediaReady) {
@@ -46,7 +55,7 @@ export function useMeetingPresence(meetingId: string, isHost: boolean) {
       unsubMediaLeft?.();
       unsubAbsent?.();
     };
-  }, [meetingId, isHost, emit, on]);
+  }, [meetingId, isHost, skipHostMediaGate, emit, on]);
 
   const notifyHostMediaReady = useCallback(() => {
     if (isHost) emit('host:media-ready', {});
@@ -56,7 +65,7 @@ export function useMeetingPresence(meetingId: string, isHost: boolean) {
     if (isHost) emit('host:media-left', {});
   }, [isHost, emit]);
 
-  const canJoinMedia = isHost || hostMediaReady;
+  const canJoinMedia = skipHostMediaGate || isHost || hostMediaReady;
 
   return {
     hostMediaReady,

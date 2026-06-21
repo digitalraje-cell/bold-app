@@ -5,8 +5,8 @@ import type {
 } from '@boldmeet/shared';
 
 /**
- * Default public Jitsi instance for MVP embeds.
- * Guests wait for host media-ready (useMeetingPresence) so the host joins first.
+ * Self-hosted Jitsi with JWT is required to fully suppress Jitsi login/moderator UI.
+ * Public meet.jit.si is used only as a fallback when JWT is not configured.
  */
 const DEFAULT_JITSI_DOMAIN = 'meet.jit.si';
 
@@ -32,6 +32,24 @@ export function getJitsiDomain(): string {
   return resolved;
 }
 
+function buildAntiAuthConfig(jwtEnabled: boolean): Record<string, unknown> {
+  return {
+    enableLobby: false,
+    lobby: { autoKnock: false, enableChat: false },
+    enableAuthentication: false,
+    enableUserRolesBasedOnToken: jwtEnabled,
+    enableFeaturesBasedOnToken: jwtEnabled,
+    hideLobbyButton: true,
+    disableLogin: true,
+    enableGuestDomain: false,
+    enableAutoLogin: false,
+    securityUi: {
+      hideLobbyButton: true,
+      disableLobbyPassword: true,
+    },
+  };
+}
+
 export const jitsiMediaProvider: MeetingMediaProvider = {
   name: 'jitsi',
 
@@ -49,13 +67,17 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
     const startWithAudioMuted = config.startAudioMuted ?? false;
     const startWithVideoMuted = config.startVideoMuted ?? false;
     const startSilent = startWithAudioMuted && startWithVideoMuted;
+    const jwtEnabled = Boolean(config.jwtEnabled && config.jwt);
+    const antiAuth = buildAntiAuthConfig(jwtEnabled);
 
     return {
       domain,
       roomName: config.roomName,
       displayName: config.displayName,
+      jwt: jwtEnabled ? config.jwt! : undefined,
       userInfo: { displayName: config.displayName },
       configOverwrite: {
+        ...antiAuth,
         startWithAudioMuted,
         startWithVideoMuted,
         startSilent,
@@ -69,11 +91,6 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
         disableRemoteMute: false,
         hideConferenceSubject: true,
         hideConferenceTimer: false,
-        enableLobby: false,
-        lobby: { autoKnock: false, enableChat: false },
-        enableUserRolesBasedOnToken: false,
-        enableFeaturesBasedOnToken: false,
-        enableAuthentication: false,
         disableProfile: true,
         hideEmailInSettings: true,
         enableInsecureRoomNameWarning: false,
@@ -90,7 +107,6 @@ export const jitsiMediaProvider: MeetingMediaProvider = {
         recordingService: { enabled: false, hideStorageWarning: true },
         whiteboard: { enabled: false },
         disableRemoteControl: true,
-        hideLobbyButton: true,
         disableInitialGUM: false,
         subject: 'Bold Meeting',
         defaultLogoUrl: 'data:',

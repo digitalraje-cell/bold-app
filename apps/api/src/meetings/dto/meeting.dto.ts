@@ -153,6 +153,13 @@ export class LeaveGuestDto {
   participantId: string;
 }
 
+export class JitsiTokenDto {
+  /** Guest participant id from Bold join flow. */
+  @IsOptional()
+  @IsString()
+  participantId?: string;
+}
+
 export class JoinByCodeDto {
   @IsString()
   meetingCode: string;

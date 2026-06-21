@@ -11,7 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
 import { MeetingGateway } from '../gateway/meeting.gateway';
 import { encryptText, decryptText } from '../common/crypto.util';
-import { CreateMeetingDto, JoinMeetingDto, RegisterMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
+import { CreateMeetingDto, JoinMeetingDto, JitsiTokenDto, RegisterMeetingDto, UpdateMeetingSettingsDto } from './dto/meeting.dto';
+import { JitsiTokenService } from './jitsi-token.service';
 
 @Injectable()
 export class MeetingsService {
@@ -19,6 +20,7 @@ export class MeetingsService {
     private prisma: PrismaService,
     private permissionsService: PermissionsService,
     private gateway: MeetingGateway,
+    private jitsiTokenService: JitsiTokenService,
   ) {}
 
   private meetingIdentifierWhere(idOrCode: string) {
@@ -249,6 +251,65 @@ export class MeetingsService {
 
     const isHost = userId === meeting.hostId;
     return this.sanitizeMeeting(meeting, isHost);
+  }
+
+  async issueJitsiToken(idOrCode: string, userId: string | null, dto: JitsiTokenDto) {
+    const meeting = await this.resolveMeeting(idOrCode, {
+      host: { select: { email: true } },
+    });
+
+    if (this.getEffectiveStatus(meeting) === MeetingStatus.ENDED) {
+      throw new BadRequestException('This meeting has ended');
+    }
+
+    let participant = null as {
+      id: string;
+      displayName: string;
+      role: ParticipantRole;
+      status: ParticipantStatus;
+      userId: string | null;
+    } | null;
+
+    if (userId) {
+      participant = await this.prisma.participant.findFirst({
+        where: {
+          meetingId: meeting.id,
+          userId,
+          status: { in: [ParticipantStatus.ADMITTED, ParticipantStatus.WAITING] },
+        },
+      });
+    } else if (dto.participantId) {
+      participant = await this.prisma.participant.findFirst({
+        where: {
+          id: dto.participantId,
+          meetingId: meeting.id,
+          status: ParticipantStatus.ADMITTED,
+        },
+      });
+    }
+
+    if (!participant) {
+      throw new ForbiddenException('Join the meeting before connecting to audio and video');
+    }
+
+    const isModerator =
+      participant.role === ParticipantRole.HOST || participant.role === ParticipantRole.CO_HOST;
+
+    let email: string | undefined;
+    if (userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      email = user?.email;
+    }
+
+    return this.jitsiTokenService.createToken({
+      roomName: meeting.jitsiRoom,
+      displayName: participant.displayName,
+      email,
+      moderator: isModerator,
+    });
   }
 
   async getInviteDetails(idOrCode: string, hostId: string) {

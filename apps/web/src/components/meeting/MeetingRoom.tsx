@@ -23,6 +23,7 @@ import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
 import { InviteModal } from '@/components/meeting/InviteModal';
 import { HostLeaveModal } from '@/components/meeting/HostLeaveModal';
 import { HostWaitingScreen } from '@/components/meeting/HostWaitingScreen';
+import { MediaConnectionError } from '@/components/meeting/MediaConnectionError';
 import { WebinarModeBanner } from '@/components/meeting/WebinarModeBanner';
 import {
   MeetingDurationModal,
@@ -75,6 +76,19 @@ function MeetingRoomInner({
   const [shareError, setShareError] = useState<string | null>(null);
   const [reactionsEnabled, setReactionsEnabled] = useState(true);
   const [raiseHandEnabled, setRaiseHandEnabled] = useState(true);
+  const [mediaSession, setMediaSession] = useState<{
+    loading: boolean;
+    jwtEnabled: boolean;
+    token: string | null;
+    error: string | null;
+    fetchKey: number;
+  }>({
+    loading: true,
+    jwtEnabled: false,
+    token: null,
+    error: null,
+    fetchKey: 0,
+  });
 
   const guestSession = typeof window !== 'undefined' ? readGuestJoinSession(meetingId) : null;
   const participantId = participantIdProp || guestSession?.participantId;
@@ -87,6 +101,7 @@ function MeetingRoomInner({
   const { canJoinMedia, notifyHostMediaReady, notifyHostMediaLeft } = useMeetingPresence(
     meetingId,
     isHost,
+    mediaSession.jwtEnabled,
   );
 
   notifyHostMediaReadyRef.current = notifyHostMediaReady;
@@ -142,6 +157,72 @@ function MeetingRoomInner({
     handleLeave();
   }, [isHost, handleLeave]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setMediaSession((prev) => ({ ...prev, loading: true, error: null }));
+
+    void api.meetings
+      .getJitsiToken(meetingId, participantId ? { participantId } : undefined)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.jwtEnabled && !response.token) {
+          setMediaSession((prev) => ({
+            ...prev,
+            loading: false,
+            jwtEnabled: true,
+            token: null,
+            error: 'Unable to connect to meeting audio and video. Please try again.',
+          }));
+          return;
+        }
+        setMediaSession((prev) => ({
+          ...prev,
+          loading: false,
+          jwtEnabled: response.jwtEnabled,
+          token: response.token,
+          error: null,
+        }));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unable to connect to meeting audio and video. Please try again.';
+        setMediaSession((prev) => ({
+          ...prev,
+          loading: false,
+          error: message,
+        }));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingId, participantId, mediaSession.fetchKey]);
+
+  const handleMediaError = useCallback((message: string) => {
+    setMediaSession((prev) => ({ ...prev, error: message }));
+  }, []);
+
+  const retryMediaSession = useCallback(() => {
+    setMediaSession((prev) => ({
+      ...prev,
+      loading: true,
+      error: null,
+      fetchKey: prev.fetchKey + 1,
+    }));
+  }, []);
+
+  const mediaReady =
+    canJoinMedia &&
+    !mediaSession.loading &&
+    !mediaSession.error &&
+    (!mediaSession.jwtEnabled || Boolean(mediaSession.token));
+
+  const showHostWait = !canJoinMedia && !mediaSession.error && !mediaSession.loading;
+  const showMediaLoading = canJoinMedia && mediaSession.loading && !mediaSession.error;
+
   const {
     toggleAudio,
     toggleVideo,
@@ -157,12 +238,16 @@ function MeetingRoomInner({
     roomName: jitsiRoom,
     displayName,
     isHost,
-    enabled: canJoinMedia,
+    isModerator,
+    jwt: mediaSession.token,
+    jwtEnabled: mediaSession.jwtEnabled,
+    enabled: mediaReady,
     // Bold gates sharing in controls; keep Jitsi embed stable when host toggles permissions.
     allowDesktopSharing: true,
     containerRef,
     onReady: handleJitsiReady,
     onLeave: handleJitsiLeave,
+    onMediaError: handleMediaError,
     startMuted: !joinMediaPrefs.startWithAudio,
     startVideoMuted: !joinMediaPrefs.startWithVideo,
   });
@@ -354,12 +439,27 @@ function MeetingRoomInner({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0f172a]">
-      {!canJoinMedia && <HostWaitingScreen meetingId={meetingId} title={title} />}
+      {showHostWait && <HostWaitingScreen meetingId={meetingId} title={title} />}
+
+      {showMediaLoading && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950 px-6 text-center">
+          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
+          <p className="text-sm text-white/70">Connecting to meeting…</p>
+        </div>
+      )}
+
+      {mediaSession.error && (
+        <MediaConnectionError
+          meetingId={meetingId}
+          message={mediaSession.error}
+          onRetry={retryMediaSession}
+        />
+      )}
 
       <div
         ref={containerRef}
         className={`meeting-jitsi-shell absolute inset-0 min-h-[200px] bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
-          !canJoinMedia ? 'invisible pointer-events-none' : ''
+          !mediaReady ? 'invisible pointer-events-none' : ''
         }`}
       />
 
@@ -372,13 +472,13 @@ function MeetingRoomInner({
         </div>
       )}
 
-      {isReconnecting && canJoinMedia && (
+      {isReconnecting && mediaReady && (
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
           Reconnecting…
         </div>
       )}
 
-      {(isScreenSharing || isPresenterLayout) && canJoinMedia && (
+      {(isScreenSharing || isPresenterLayout) && mediaReady && (
         <div className="absolute right-4 top-4 z-30 rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
           {isScreenSharing ? 'You are presenting' : 'Presenter view'}
         </div>

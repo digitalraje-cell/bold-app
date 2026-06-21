@@ -22,6 +22,7 @@ import {
   LeaveGuestDto,
   RegisterMeetingDto,
   UpdateMeetingSettingsDto,
+  JitsiTokenDto,
 } from './dto/meeting.dto';
 
 @Controller('meetings')
@@ -90,6 +91,16 @@ export class MeetingsController {
   @UseGuards(AuthGuard)
   listRegistrants(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
     return this.meetingsService.listRegistrants(id, req.user.id);
+  }
+
+  @Post(':id/jitsi-token')
+  @UseGuards(OptionalAuthGuard)
+  issueJitsiToken(
+    @Param('id') id: string,
+    @Body() dto: JitsiTokenDto,
+    @Req() req: Request & { user?: AuthUser },
+  ) {
+    return this.meetingsService.issueJitsiToken(id, req.user?.id ?? null, dto);
   }
 
   @Post(':id/join')
