@@ -52,12 +52,6 @@ export function ChatPanel({
     e.preventDefault();
     if (!message.trim() || !canSend) return;
 
-    const msg = {
-      senderName: 'You',
-      content: message.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, msg]);
     onSend(message.trim());
     setMessage('');
   }

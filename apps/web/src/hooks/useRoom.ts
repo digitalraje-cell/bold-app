@@ -169,6 +169,20 @@ export function useRoom(meetingId: string, isHost: boolean) {
       }
     });
 
+    const unsubHandRaise = on('hand:raise', (data: unknown) => {
+      const { participantId } = data as { participantId?: string };
+      if (participantId) {
+        updateParticipant(participantId, { handRaised: true });
+      }
+    });
+
+    const unsubHandLower = on('hand:lower', (data: unknown) => {
+      const { participantId } = data as { participantId?: string };
+      if (participantId) {
+        updateParticipant(participantId, { handRaised: false });
+      }
+    });
+
     return () => {
       unsubMode?.();
       unsubStage?.();
@@ -177,6 +191,8 @@ export function useRoom(meetingId: string, isHost: boolean) {
       unsubLeft?.();
       unsubJoined?.();
       unsubRole?.();
+      unsubHandRaise?.();
+      unsubHandLower?.();
     };
   }, [
     on,

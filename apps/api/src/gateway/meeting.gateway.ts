@@ -8,7 +8,9 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { ParticipantStatus } from '@prisma/client';
 import { getAllowedOrigins } from '../common/cors.util';
+import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
   namespace: '/meetings',
@@ -20,6 +22,8 @@ import { getAllowedOrigins } from '../common/cors.util';
 export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
+
+  constructor(private readonly prisma: PrismaService) {}
 
   /** meetingId → host socket ids (Bold HOST role in room) */
   private hostSockets = new Map<string, Set<string>>();
@@ -164,21 +168,45 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   @SubscribeMessage('hand:raise')
-  handleRaiseHand(
+  async handleRaiseHand(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { participantId: string; displayName: string },
   ) {
     const meetingId = client.handshake.query.meetingId as string;
+    if (!meetingId || !data.participantId) return { success: false };
+
+    await this.prisma.participant.updateMany({
+      where: {
+        id: data.participantId,
+        meetingId,
+        status: ParticipantStatus.ADMITTED,
+      },
+      data: { handRaised: true, handRaisedAt: new Date() },
+    });
+
     this.server.to(meetingId).emit('hand:raise', data);
+    return { success: true };
   }
 
   @SubscribeMessage('hand:lower')
-  handleLowerHand(
+  async handleLowerHand(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { participantId: string },
   ) {
     const meetingId = client.handshake.query.meetingId as string;
+    if (!meetingId || !data.participantId) return { success: false };
+
+    await this.prisma.participant.updateMany({
+      where: {
+        id: data.participantId,
+        meetingId,
+        status: ParticipantStatus.ADMITTED,
+      },
+      data: { handRaised: false, handRaisedAt: null },
+    });
+
     this.server.to(meetingId).emit('hand:lower', data);
+    return { success: true };
   }
 
   @SubscribeMessage('settings:update')

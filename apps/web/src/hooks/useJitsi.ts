@@ -26,6 +26,7 @@ interface UseJitsiOptions {
   isModerator?: boolean;
   jwt?: string | null;
   jwtEnabled?: boolean;
+  moderatorPassword?: string | null;
   enabled?: boolean;
   allowDesktopSharing?: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -92,6 +93,51 @@ function looksLikeExternalJitsiNavigation(src: string): boolean {
   return EXTERNAL_NAV_PATTERNS.some((pattern) => lower.includes(pattern));
 }
 
+function applyInitialMediaState(
+  api: JitsiExternalAPI,
+  wantsAudio: boolean,
+  wantsVideo: boolean,
+) {
+  window.setTimeout(() => {
+    try {
+      api.executeCommand('setAudioMuted', !wantsAudio);
+    } catch {
+      // Older Jitsi builds may not support setAudioMuted
+    }
+    try {
+      api.executeCommand('setVideoMuted', !wantsVideo);
+    } catch {
+      // Older Jitsi builds may not support setVideoMuted
+    }
+  }, 600);
+}
+
+function claimJitsiModerator(
+  api: JitsiExternalAPI,
+  opts: {
+    isHost: boolean;
+    isModerator: boolean;
+    jwtEnabled: boolean;
+    moderatorPassword: string | null;
+  },
+) {
+  if (!opts.isHost && !opts.isModerator) return;
+
+  try {
+    api.executeCommand('toggleLobby', false);
+  } catch {
+    // lobby disabled in config
+  }
+
+  if (!opts.jwtEnabled && opts.moderatorPassword) {
+    try {
+      api.executeCommand('password', opts.moderatorPassword);
+    } catch {
+      // password command unavailable on this Jitsi build
+    }
+  }
+}
+
 export function useJitsi({
   roomName,
   displayName,
@@ -99,6 +145,7 @@ export function useJitsi({
   isModerator = false,
   jwt = null,
   jwtEnabled = false,
+  moderatorPassword = null,
   enabled = true,
   allowDesktopSharing = true,
   containerRef,
@@ -136,6 +183,7 @@ export function useJitsi({
     startVideoMuted,
     jwt,
     jwtEnabled,
+    moderatorPassword,
   });
 
   callbacksRef.current = {
@@ -154,6 +202,7 @@ export function useJitsi({
     startVideoMuted,
     jwt,
     jwtEnabled,
+    moderatorPassword,
   };
 
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -234,7 +283,7 @@ export function useJitsi({
       return;
     }
 
-    const sessionKey = `${roomName}:${jwt ?? 'open'}`;
+    const sessionKey = `${roomName}:${jwt ?? 'open'}:${moderatorPassword ?? 'none'}`;
     if (apiRef.current && sessionKeyRef.current === sessionKey) return;
 
     if (apiRef.current) {
@@ -303,13 +352,13 @@ export function useJitsi({
         joinedRef.current = true;
         reconnectAttemptsRef.current = 0;
         setIsReconnecting(false);
-        if (opts.isHost || opts.isModerator) {
-          try {
-            api.executeCommand('toggleLobby', false);
-          } catch {
-            // lobby disabled in config
-          }
-        }
+        claimJitsiModerator(api, {
+          isHost: opts.isHost,
+          isModerator: opts.isModerator,
+          jwtEnabled: opts.jwtEnabled,
+          moderatorPassword: opts.moderatorPassword,
+        });
+        applyInitialMediaState(api, !opts.startMuted, !opts.startVideoMuted);
         watchIframe();
         callbacksRef.current.onReady?.();
       });
@@ -412,6 +461,7 @@ export function useJitsi({
     enabled,
     jwt,
     jwtEnabled,
+    moderatorPassword,
     reconnectNonce,
     containerRef,
     disposeSession,

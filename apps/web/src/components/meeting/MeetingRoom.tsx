@@ -80,12 +80,14 @@ function MeetingRoomInner({
     loading: boolean;
     jwtEnabled: boolean;
     token: string | null;
+    moderatorPassword: string | null;
     error: string | null;
     fetchKey: number;
   }>({
     loading: true,
     jwtEnabled: false,
     token: null,
+    moderatorPassword: null,
     error: null,
     fetchKey: 0,
   });
@@ -124,6 +126,8 @@ function MeetingRoomInner({
   const myParticipant =
     participants.find((p) => p.userId === session?.user?.id) ||
     (participantId ? participants.find((p) => p.id === participantId) : undefined);
+
+  const mySocketParticipantId = myParticipant?.id ?? participantId ?? null;
 
   const myRole = myParticipant?.role ?? (isHost ? 'HOST' : 'PARTICIPANT');
   const isModerator = myRole === 'HOST' || myRole === 'CO_HOST';
@@ -180,6 +184,7 @@ function MeetingRoomInner({
           loading: false,
           jwtEnabled: response.jwtEnabled,
           token: response.token,
+          moderatorPassword: response.moderatorPassword ?? null,
           error: null,
         }));
       })
@@ -241,6 +246,7 @@ function MeetingRoomInner({
     isModerator,
     jwt: mediaSession.token,
     jwtEnabled: mediaSession.jwtEnabled,
+    moderatorPassword: mediaSession.moderatorPassword,
     enabled: mediaReady,
     // Bold gates sharing in controls; keep Jitsi embed stable when host toggles permissions.
     allowDesktopSharing: true,
@@ -337,11 +343,38 @@ function MeetingRoomInner({
       }
     });
 
+    const unsubReaction = on('reaction:send', (data: unknown) => {
+      const { reaction } = data as { reaction?: string };
+      if (!reaction) return;
+      const id = `${Date.now()}-${Math.random()}`;
+      setReactions((prev) => [...prev, { id, reaction }]);
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== id));
+      }, 3000);
+    });
+
+    const unsubHandRaise = on('hand:raise', (data: unknown) => {
+      const { participantId: raisedId } = data as { participantId?: string };
+      if (raisedId && raisedId === mySocketParticipantId) {
+        setHandRaised(true);
+      }
+    });
+
+    const unsubHandLower = on('hand:lower', (data: unknown) => {
+      const { participantId: loweredId } = data as { participantId?: string };
+      if (loweredId && loweredId === mySocketParticipantId) {
+        setHandRaised(false);
+      }
+    });
+
     return () => {
       unsubEnded?.();
       unsubLeft?.();
+      unsubReaction?.();
+      unsubHandRaise?.();
+      unsubHandLower?.();
     };
-  }, [on, handleLeave, participantId]);
+  }, [on, handleLeave, participantId, mySocketParticipantId]);
 
   useEffect(() => {
     if (roomMode === RoomMode.WEBINAR && myParticipant && !canMic && !isAudioMuted) {
@@ -354,6 +387,12 @@ function MeetingRoomInner({
       toggleVideo();
     }
   }, [roomMode, myParticipant, canCamera, isVideoMuted, toggleVideo]);
+
+  useEffect(() => {
+    if (typeof myParticipant?.handRaised === 'boolean') {
+      setHandRaised(myParticipant.handRaised);
+    }
+  }, [myParticipant?.handRaised, myParticipant?.id]);
 
   const handleToggleMic = () => {
     if (!canMic) return;
@@ -380,21 +419,18 @@ function MeetingRoomInner({
   };
 
   const handleRaiseHand = () => {
+    if (!mySocketParticipantId) return;
     const next = !handRaised;
     setHandRaised(next);
     emit(next ? 'hand:raise' : 'hand:lower', {
-      participantId: participantId || session?.user?.id,
+      participantId: mySocketParticipantId,
       displayName,
     });
   };
 
   const handleReaction = (reaction: string) => {
-    emit('reaction:send', { participantId: participantId || session?.user?.id, reaction });
-    const id = `${Date.now()}-${Math.random()}`;
-    setReactions((prev) => [...prev, { id, reaction }]);
-    setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== id));
-    }, 3000);
+    if (!mySocketParticipantId) return;
+    emit('reaction:send', { participantId: mySocketParticipantId, reaction });
   };
 
   const handleSwitchRoomMode = async (mode: RoomMode) => {
@@ -495,7 +531,7 @@ function MeetingRoomInner({
           onChatModeChange={isModerator ? (mode) => updateChatMode(mode) : undefined}
           onSend={(content) =>
             emit('chat:message', {
-              senderId: participantId || session?.user?.id,
+              senderId: mySocketParticipantId,
               senderName: displayName,
               content,
               createdAt: new Date().toISOString(),
@@ -551,8 +587,9 @@ function MeetingRoomInner({
         onToggleParticipants={() =>
           setActivePanel((p) => (p === 'participants' ? null : 'participants'))
         }
-        onToggleReactions={() => handleReaction('👍')}
+        onReaction={handleReaction}
         onRaiseHand={handleRaiseHand}
+        handRaised={handRaised}
         onToggleFullscreen={() => void toggleFullscreen()}
         onInvite={isModerator ? () => setInviteOpen(true) : undefined}
         onLeave={() => {

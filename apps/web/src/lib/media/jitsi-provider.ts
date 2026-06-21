@@ -43,6 +43,9 @@ function buildAntiAuthConfig(jwtEnabled: boolean): Record<string, unknown> {
     disableLogin: true,
     enableGuestDomain: false,
     enableAutoLogin: false,
+    enableMandatoryLogin: false,
+    hideLoginButton: true,
+    disableChat: true,
     securityUi: {
       hideLobbyButton: true,
       disableLobbyPassword: true,

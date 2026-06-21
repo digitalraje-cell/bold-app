@@ -8,6 +8,7 @@ import {
   VideoOff,
   Check,
   MoreHorizontal,
+  Hand,
 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { RoomMode } from '@boldmeet/shared';
@@ -62,7 +63,13 @@ export function ParticipantsPanel({
 
   useEffect(() => {
     if (storeParticipants.length > 0) {
-      setParticipants(storeParticipants as ParticipantRecord[]);
+      setParticipants((prev) => {
+        const handById = new Map(storeParticipants.map((p) => [p.id, p.handRaised]));
+        return prev.map((p) => ({
+          ...p,
+          handRaised: handById.get(p.id) ?? p.handRaised,
+        }));
+      });
     }
     void refresh();
   }, [meetingId, storeParticipants, refresh]);
@@ -159,6 +166,9 @@ export function ParticipantsPanel({
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-white/40">
+              {p.handRaised && (
+                <Hand className="h-4 w-4 text-amber-400" aria-label="Hand raised" />
+              )}
               {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
             </div>

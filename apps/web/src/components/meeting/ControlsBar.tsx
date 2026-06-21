@@ -41,8 +41,9 @@ interface ControlsBarProps {
   shareDisabled?: boolean;
   onToggleChat: () => void;
   onToggleParticipants: () => void;
-  onToggleReactions: () => void;
+  onReaction: (reaction: string) => void;
   onRaiseHand: () => void;
+  handRaised?: boolean;
   onToggleFullscreen: () => void;
   onInvite?: () => void;
   onLeave: () => void;
@@ -104,6 +105,8 @@ function ControlButton({
   );
 }
 
+const MEETING_REACTIONS = ['👍', '👏', '❤️', '😂', '🎉', '🔥', '👋'] as const;
+
 export function ControlsBar({
   isMuted,
   isVideoOff,
@@ -118,8 +121,9 @@ export function ControlsBar({
   shareDisabled,
   onToggleChat,
   onToggleParticipants,
-  onToggleReactions,
+  onReaction,
   onRaiseHand,
+  handRaised = false,
   onToggleFullscreen,
   onInvite,
   onLeave,
@@ -144,6 +148,7 @@ export function ControlsBar({
   canManageBroadcast,
 }: ControlsBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -221,10 +226,44 @@ export function ControlsBar({
             {moreOpen && (
               <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl">
                 {reactionsEnabled && (
-                  <MenuItem label="Reactions" onClick={() => { setMoreOpen(false); onToggleReactions(); }} />
+                  <div className="border-b border-white/10 px-3 py-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between text-left text-sm text-white hover:text-white/90"
+                      onClick={() => setReactionsOpen((open) => !open)}
+                    >
+                      <span>Reactions</span>
+                      <Smile className="h-4 w-4 text-white/60" />
+                    </button>
+                    {reactionsOpen && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {MEETING_REACTIONS.map((reaction) => (
+                          <button
+                            key={reaction}
+                            type="button"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg hover:bg-white/20"
+                            aria-label={`Send ${reaction} reaction`}
+                            onClick={() => {
+                              setReactionsOpen(false);
+                              setMoreOpen(false);
+                              onReaction(reaction);
+                            }}
+                          >
+                            {reaction}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {raiseHandEnabled && (
-                  <MenuItem label="Raise hand" onClick={() => { setMoreOpen(false); onRaiseHand(); }} />
+                  <MenuItem
+                    label={handRaised ? 'Lower hand' : 'Raise hand'}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      onRaiseHand();
+                    }}
+                  />
                 )}
                 {onInvite && (
                   <MenuItem label="Invite" onClick={() => { setMoreOpen(false); onInvite(); }} />

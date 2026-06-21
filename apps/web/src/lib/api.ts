@@ -118,6 +118,7 @@ export const api = {
         token: string | null;
         domain: string;
         expiresAt: number | null;
+        moderatorPassword: string | null;
       }>(`/meetings/${id}/jitsi-token`, {
         method: 'POST',
         body: JSON.stringify(data ?? {}),

@@ -143,7 +143,9 @@ async function main() {
     });
     if (!res.ok) fail('Host jitsi-token', JSON.stringify(body));
     else if (body.jwtEnabled && !body.token) fail('Host jitsi-token', 'JWT enabled but no token');
-    else pass('Host jitsi-token endpoint');
+    else if (!body.jwtEnabled && !body.moderatorPassword) {
+      fail('Host jitsi-token', 'missing moderatorPassword for host');
+    } else pass('Host jitsi-token endpoint');
   } catch (error) {
     fail('Host jitsi-token', error.message);
   }
@@ -174,6 +176,7 @@ async function main() {
         body: JSON.stringify({ participantId: guestParticipantId }),
       });
       if (!res.ok) fail('Guest jitsi-token', JSON.stringify(body));
+      else if (body.moderatorPassword) fail('Guest jitsi-token', 'guest received moderatorPassword');
       else pass('Guest jitsi-token endpoint');
     } catch (error) {
       fail('Guest jitsi-token', error.message);
