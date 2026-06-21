@@ -5,8 +5,9 @@ import type {
 } from '@boldmeet/shared';
 
 /**
- * Self-hosted Jitsi with JWT is required to fully suppress Jitsi login/moderator UI.
- * Public meet.jit.si is used only as a fallback when JWT is not configured.
+ * Bold owns auth; Jitsi is media-only. JWT from Bold API is required in production
+ * (8x8 JaaS or self-hosted Prosody JWT). Public meet.jit.si without JWT always
+ * shows native moderator/login screens — do not use that in production.
  */
 const DEFAULT_JITSI_DOMAIN = 'meet.jit.si';
 
@@ -46,6 +47,8 @@ function buildAntiAuthConfig(jwtEnabled: boolean): Record<string, unknown> {
     enableMandatoryLogin: false,
     hideLoginButton: true,
     disableChat: true,
+    requireMembership: false,
+    enableModeratorLogin: false,
     securityUi: {
       hideLobbyButton: true,
       disableLobbyPassword: true,

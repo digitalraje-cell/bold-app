@@ -117,6 +117,8 @@ export const api = {
         jwtEnabled: boolean;
         token: string | null;
         domain: string;
+        roomName: string;
+        scriptUrl: string;
         expiresAt: number | null;
         moderatorPassword: string | null;
       }>(`/meetings/${id}/jitsi-token`, {

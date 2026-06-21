@@ -309,6 +309,7 @@ export class MeetingsService {
       displayName: participant.displayName,
       email,
       moderator: isModerator,
+      userId: participant.userId ?? userId ?? participant.id,
     });
   }
 

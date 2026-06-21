@@ -80,6 +80,9 @@ function MeetingRoomInner({
     loading: boolean;
     jwtEnabled: boolean;
     token: string | null;
+    embedDomain: string | null;
+    embedRoomName: string | null;
+    scriptUrl: string | null;
     moderatorPassword: string | null;
     error: string | null;
     fetchKey: number;
@@ -87,6 +90,9 @@ function MeetingRoomInner({
     loading: true,
     jwtEnabled: false,
     token: null,
+    embedDomain: null,
+    embedRoomName: null,
+    scriptUrl: null,
     moderatorPassword: null,
     error: null,
     fetchKey: 0,
@@ -184,6 +190,9 @@ function MeetingRoomInner({
           loading: false,
           jwtEnabled: response.jwtEnabled,
           token: response.token,
+          embedDomain: response.domain,
+          embedRoomName: response.roomName,
+          scriptUrl: response.scriptUrl,
           moderatorPassword: response.moderatorPassword ?? null,
           error: null,
         }));
@@ -223,7 +232,8 @@ function MeetingRoomInner({
     canJoinMedia &&
     !mediaSession.loading &&
     !mediaSession.error &&
-    (!mediaSession.jwtEnabled || Boolean(mediaSession.token));
+    Boolean(mediaSession.embedRoomName) &&
+    (mediaSession.jwtEnabled ? Boolean(mediaSession.token) : true);
 
   const showHostWait = !canJoinMedia && !mediaSession.error && !mediaSession.loading;
   const showMediaLoading = canJoinMedia && mediaSession.loading && !mediaSession.error;
@@ -240,7 +250,9 @@ function MeetingRoomInner({
     isVideoMuted,
     isReconnecting,
   } = useJitsi({
-    roomName: jitsiRoom,
+    roomName: mediaSession.embedRoomName ?? jitsiRoom,
+    jitsiDomain: mediaSession.embedDomain ?? undefined,
+    scriptUrl: mediaSession.scriptUrl ?? undefined,
     displayName,
     isHost,
     isModerator,

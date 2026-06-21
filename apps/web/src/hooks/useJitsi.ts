@@ -21,6 +21,8 @@ interface JitsiExternalAPI {
 
 interface UseJitsiOptions {
   roomName: string;
+  jitsiDomain?: string;
+  scriptUrl?: string;
   displayName: string;
   isHost?: boolean;
   isModerator?: boolean;
@@ -121,6 +123,10 @@ function claimJitsiModerator(
     moderatorPassword: string | null;
   },
 ) {
+  if (opts.jwtEnabled) {
+    return;
+  }
+
   if (!opts.isHost && !opts.isModerator) return;
 
   try {
@@ -129,17 +135,19 @@ function claimJitsiModerator(
     // lobby disabled in config
   }
 
-  if (!opts.jwtEnabled && opts.moderatorPassword) {
+  if (opts.moderatorPassword) {
     try {
       api.executeCommand('password', opts.moderatorPassword);
     } catch {
-      // password command unavailable on this Jitsi build
+      // dev fallback only
     }
   }
 }
 
 export function useJitsi({
   roomName,
+  jitsiDomain,
+  scriptUrl,
   displayName,
   isHost = false,
   isModerator = false,
@@ -294,8 +302,8 @@ export function useJitsi({
     intentionalLeaveRef.current = false;
     authErrorRef.current = false;
     const provider = getMeetingMediaProvider();
-    const mediaDomain = provider.getDefaultDomain();
-    const scriptUrl = provider.getExternalApiScriptUrl(mediaDomain);
+    const mediaDomain = jitsiDomain ?? provider.getDefaultDomain();
+    const resolvedScriptUrl = scriptUrl ?? provider.getExternalApiScriptUrl(mediaDomain);
 
     const watchIframe = () => {
       if (!containerRef.current || cancelled) return;
@@ -333,7 +341,7 @@ export function useJitsi({
       });
 
       const apiOptions: Record<string, unknown> = {
-        roomName: embed.roomName,
+        roomName,
         parentNode: containerRef.current,
         width: '100%',
         height: '100%',
@@ -342,11 +350,11 @@ export function useJitsi({
         userInfo: embed.userInfo,
       };
 
-      if (embed.jwt) {
-        apiOptions.jwt = embed.jwt;
+      if (opts.jwt) {
+        apiOptions.jwt = opts.jwt;
       }
 
-      const api = new window.JitsiMeetExternalAPI(embed.domain, apiOptions);
+      const api = new window.JitsiMeetExternalAPI(mediaDomain, apiOptions);
 
       api.addListener('videoConferenceJoined', () => {
         joinedRef.current = true;
@@ -417,6 +425,10 @@ export function useJitsi({
         reportMediaError(BOLD_MEDIA_ERROR);
       });
 
+      api.addListener('passwordRequired', () => {
+        reportMediaError(BOLD_MEDIA_ERROR);
+      });
+
       api.addListener('screenSharingStatusChanged', (payload: unknown) => {
         const { on: sharing } = payload as { on?: boolean };
         const active = Boolean(sharing);
@@ -444,7 +456,7 @@ export function useJitsi({
       requestAnimationFrame(mountWhenReady);
     };
 
-    loadJitsiScript(scriptUrl)
+    loadJitsiScript(resolvedScriptUrl)
       .then(() => {
         if (!cancelled) mountWhenReady();
       })
@@ -458,6 +470,8 @@ export function useJitsi({
     };
   }, [
     roomName,
+    jitsiDomain,
+    scriptUrl,
     enabled,
     jwt,
     jwtEnabled,

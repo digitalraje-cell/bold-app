@@ -143,8 +143,10 @@ async function main() {
     });
     if (!res.ok) fail('Host jitsi-token', JSON.stringify(body));
     else if (body.jwtEnabled && !body.token) fail('Host jitsi-token', 'JWT enabled but no token');
-    else if (!body.jwtEnabled && !body.moderatorPassword) {
-      fail('Host jitsi-token', 'missing moderatorPassword for host');
+    else if (!body.roomName || !body.scriptUrl) fail('Host jitsi-token', 'missing embed targets');
+    else if (body.jwtEnabled) pass('Host jitsi-token endpoint');
+    else if (!body.moderatorPassword) {
+      fail('Host jitsi-token', 'missing moderatorPassword for host (dev fallback)');
     } else pass('Host jitsi-token endpoint');
   } catch (error) {
     fail('Host jitsi-token', error.message);
