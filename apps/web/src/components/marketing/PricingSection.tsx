@@ -6,6 +6,7 @@ import {
   PLAN_PRICING_INR,
   PLAN_DISPLAY,
   FREE_FEATURE_LIST,
+  FREE_RESTRICTIONS,
   PRO_FEATURE_LIST,
   FEATURE_COMPARISON,
 } from '@boldmeet/shared';
@@ -23,10 +24,10 @@ export function PricingSection() {
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-2">
-          <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/signup" ctaLabel="Start free" />
+          <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/login" ctaLabel="Start free" />
           <PlanCard
             plan={SubscriptionPlan.PRO}
-            ctaHref="/signup"
+            ctaHref="/login"
             ctaLabel="Upgrade to Pro"
             recommended
           />
@@ -91,8 +92,14 @@ function PlanCard({
       <h3 className="text-xl font-bold">{display.name}</h3>
       <p className="mt-1 text-sm text-muted-foreground">{display.tagline}</p>
       <p className="mt-6 text-4xl font-bold">
-        ₹{price}
-        <span className="text-base font-normal text-muted-foreground">/month</span>
+        {price === 0 ? (
+          '₹0'
+        ) : (
+          <>
+            ₹{price}
+            <span className="text-base font-normal text-muted-foreground">/month</span>
+          </>
+        )}
       </p>
       <ul className="mt-6 flex-1 space-y-2 text-sm text-muted-foreground">
         {features.map((feature) => (
@@ -101,6 +108,13 @@ function PlanCard({
             {feature}
           </li>
         ))}
+        {plan === SubscriptionPlan.FREE &&
+          FREE_RESTRICTIONS.map((item) => (
+            <li key={item} className="flex gap-2 text-muted-foreground/80">
+              <span>—</span>
+              {item}
+            </li>
+          ))}
       </ul>
       <Link
         href={ctaHref}

@@ -183,6 +183,11 @@ export const api = {
       apiFetch(`/billing/pending/${id}/cancel`, { method: 'POST' }),
   },
   admin: {
+    listUsers: () => apiFetch('/admin/users'),
+    activateUserPro: (id: string) =>
+      apiFetch(`/admin/users/${id}/activate-pro`, { method: 'POST' }),
+    deactivateUserPro: (id: string) =>
+      apiFetch(`/admin/users/${id}/deactivate-pro`, { method: 'POST' }),
     listPendingPayments: () => apiFetch('/admin/payments/pending'),
     activatePayment: (id: string) =>
       apiFetch(`/admin/payments/${id}/activate`, { method: 'POST' }),

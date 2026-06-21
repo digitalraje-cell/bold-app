@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { APP_CONFIG } from '@boldmeet/shared';
 
 const DEV_OTP_EMAIL_FROM = 'onboarding@resend.dev';
-const OTP_EMAIL_SUBJECT = 'Your BoldMeet Verification Code';
+const OTP_EMAIL_SUBJECT = 'Your BoldMeet login code';
 
 /** Read env at request time — bracket access avoids Next.js build-time inlining. */
 function runtimeEnv(key: string): string | undefined {

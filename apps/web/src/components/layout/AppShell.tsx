@@ -6,26 +6,27 @@ import { signOut, useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
   Video,
-  Film,
   CreditCard,
   Settings,
   LogOut,
   Menu,
   X,
   Shield,
+  Map,
+  Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { SubscriptionPlan } from '@boldmeet/shared';
+import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { appConfig } from '@/lib/app-config';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard', label: 'Meetings', icon: Video },
-  { href: '/recordings', label: 'Recordings', icon: Film },
-  { href: '/billing', label: 'Billing & Plans', icon: CreditCard },
-  { href: '/settings/profile', label: 'Settings', icon: Settings },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: '/dashboard' },
+  { href: '/dashboard', label: 'Meetings', icon: Video, match: '/dashboard', meetingsTab: true },
+  { href: '/billing', label: 'Billing', icon: CreditCard, match: '/billing' },
+  { href: '/roadmap', label: 'Roadmap', icon: Map, match: '/roadmap' },
+  { href: '/settings/profile', label: 'Settings', icon: Settings, match: '/settings' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -38,9 +39,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const isActive = (href: string) => mounted && pathname.startsWith(href);
   const plan = (session?.user?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
   const isAdmin = mounted && session?.user?.role === 'ADMIN';
+  const isPro = plan === SubscriptionPlan.PRO;
+
+  function isNavActive(item: (typeof navItems)[number]) {
+    if (!mounted) return false;
+    if (item.meetingsTab) return pathname === '/dashboard';
+    if (item.label === 'Dashboard') return pathname === '/dashboard';
+    return pathname.startsWith(item.match);
+  }
 
   return (
     <div className="flex min-h-full">
@@ -71,60 +79,71 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
-          {navItems.map(({ href, label, icon: Icon }) => (
+          {navItems.map((item) => (
             <Link
-              key={`${href}-${label}`}
-              href={href}
+              key={item.label}
+              href={item.href}
               onClick={() => setSidebarOpen(false)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                isActive(href) && label !== 'Meetings'
-                  ? 'bg-primary/10 text-primary'
-                  : label === 'Meetings' && pathname === '/dashboard'
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-          {isAdmin && (
-            <Link
-              href="/admin/payments"
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                isActive('/admin')
+                isNavActive(item)
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Shield className="h-4 w-4" />
-              Admin Payments
+              <item.icon className="h-4 w-4" />
+              {item.label}
             </Link>
+          ))}
+          {isAdmin && (
+            <>
+              <Link
+                href="/admin/users"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                  pathname.startsWith('/admin/users')
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <Users className="h-4 w-4" />
+                Admin Users
+              </Link>
+              <Link
+                href="/admin/payments"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                  pathname.startsWith('/admin/payments')
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin Payments
+              </Link>
+            </>
           )}
         </nav>
 
         <div className="border-t border-border p-4">
           <div className="mb-3 px-3" suppressHydrationWarning>
-            <div className="flex items-center justify-between gap-2">
-              <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase',
-                  plan === SubscriptionPlan.PRO
-                    ? 'bg-primary/15 text-primary'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {plan === SubscriptionPlan.PRO ? 'Pro' : 'Free'}
-              </span>
-            </div>
+            <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
             <p className="truncate text-sm text-muted-foreground">
               {mounted ? session?.user?.email : null}
             </p>
-            {mounted && plan === SubscriptionPlan.FREE && (
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Current plan
+            </p>
+            <p className="mt-1 text-sm font-semibold">
+              {mounted
+                ? isPro
+                  ? `PRO — ₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month`
+                  : 'FREE'
+                : null}
+            </p>
+            {mounted && !isPro && (
               <div className="mt-3">
                 <UpgradeBanner compact />
               </div>

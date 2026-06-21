@@ -39,7 +39,7 @@ export function MarketingHeader({ active }: { active?: 'pricing' | 'roadmap' }) 
             Sign in
           </Link>
           <Link
-            href="/signup"
+            href="/login"
             className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 sm:px-4"
           >
             Get started
@@ -76,7 +76,7 @@ export function MarketingFooter() {
           <Link href="/contact" className="hover:text-foreground">
             Contact
           </Link>
-          <Link href="/signup" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-medium text-primary hover:underline">
             Start free
           </Link>
         </div>

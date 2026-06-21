@@ -16,7 +16,7 @@ Production URLs (current):
 | `JITSI_JAAS` | API | Set to `true` for 8x8 JaaS |
 | `JITSI_APP_ID` | API | JaaS App ID (`vpaas-magic-cookie-…`) |
 | `JITSI_API_KEY_ID` | API | API Key ID (`kid` in JWT header) |
-| `JITSI_APP_SECRET` | API | RSA private key PEM (full key, `\n` escaped in env) |
+| `JITSI_PRIVATE_KEY` | API | RSA private key PEM (alias: `JITSI_APP_SECRET`) |
 | `NEXT_PUBLIC_JITSI_DOMAIN` | Web | `8x8.vc` |
 
 Without these, **production meetings return 503** for media (by design — no public Jitsi login screens).
@@ -35,14 +35,17 @@ Without these, **production meetings return 503** for media (by design — no pu
 | `NEXT_PUBLIC_SOCKET_URL` | Web | Socket.IO origin (usually same as API) |
 | `NEXTAUTH_URL` / `AUTH_URL` | Web | `https://bold.robozant.com` |
 
-### Google Sign-In (BoldMeet login)
+### Email OTP (BoldMeet login — required for production)
 
-| Variable | Service |
-|----------|---------|
-| `GOOGLE_CLIENT_ID` | Web |
-| `GOOGLE_CLIENT_SECRET` | Web |
+| Variable | Service | Description |
+|----------|---------|-------------|
+| `RESEND_API_KEY` | Web | [Resend](https://resend.com) API key |
+| `EMAIL_FROM` | Web | Verified sender address |
+| `OTP_EXPIRY_MINUTES` | Web | Default `10` |
 
-### YouTube OAuth (Pro — channel connection)
+Without Resend in production, OTP codes only appear in server logs (dev mode).
+
+### YouTube RTMP relay (Pro — optional)
 
 | Variable | Service |
 |----------|---------|
@@ -99,8 +102,7 @@ You can launch **Free plan meetings** with only the above. Pro features show upg
 | **Railway** | $5 credit/month (Hobby) | API + Web + Postgres |
 | **8x8 JaaS** | ~25 MAU free | Enough for early beta |
 | **Vercel** | Hobby free | Alternative to Railway for Next.js |
-| **Resend** | 3k emails/month | Dev OTP |
-| **Google OAuth** | Free | Login + YouTube scopes |
+| **Resend** | 3k emails/month | Production OTP email |
 | **Razorpay** | No monthly fee | Pay per transaction (~2%) |
 
 ---

@@ -15,7 +15,7 @@ export const PLAN_DISPLAY: Record<
   },
   [SubscriptionPlan.PRO]: {
     name: 'Pro',
-    tagline: 'Recordings, co-hosts, and YouTube Live',
+    tagline: 'Co-hosts, YouTube Live, and advanced attendee tools',
     badge: 'Recommended',
   },
 };
@@ -27,18 +27,25 @@ export const FREE_FEATURE_LIST = [
   'Raise hand',
   'Reactions',
   'Single host',
-  'Host transfer',
+] as const;
+
+export const FREE_RESTRICTIONS = [
+  'No co-hosts',
+  'No recording',
+  'No YouTube Live',
+  'No attendee management',
 ] as const;
 
 export const PRO_FEATURE_LIST = [
-  'Everything in Free',
+  'Host transfer',
   'Multiple co-hosts',
-  'Attendee list & reports',
+  'Attendee list',
   'Attendee comments',
-  'Meeting history',
-  'Recording support',
-  'YouTube Live streaming',
-  'Future webinar features',
+  'YouTube Live integration',
+  'YouTube recording',
+  'Meeting analytics (Coming Soon)',
+  'Recording library (Coming Soon)',
+  'Webinar Mode (Coming Soon)',
 ] as const;
 
 export const FEATURE_COMPARISON: {
@@ -46,14 +53,17 @@ export const FEATURE_COMPARISON: {
   free: boolean | string;
   pro: boolean | string;
 }[] = [
-  { feature: 'HD meetings', free: true, pro: true },
+  { feature: 'Meetings', free: true, pro: true },
   { feature: 'Chat', free: true, pro: true },
   { feature: 'Screen share', free: true, pro: true },
   { feature: 'Raise hand & reactions', free: true, pro: true },
-  { feature: 'Host transfer', free: true, pro: true },
-  { feature: 'Co-hosts', free: '1 host only', pro: 'Up to 5' },
-  { feature: 'Meeting recordings', free: false, pro: true },
+  { feature: 'Single host', free: true, pro: true },
+  { feature: 'Host transfer', free: false, pro: true },
+  { feature: 'Multiple co-hosts', free: false, pro: true },
+  { feature: 'Attendee list & comments', free: false, pro: true },
   { feature: 'YouTube Live', free: false, pro: true },
-  { feature: 'Meeting history & reports', free: 'Basic', pro: 'Full' },
-  { feature: 'Webinar mode (preview)', free: false, pro: 'Coming soon' },
+  { feature: 'YouTube recording', free: false, pro: true },
+  { feature: 'Meeting analytics', free: false, pro: 'Coming Soon' },
+  { feature: 'Recording library', free: false, pro: 'Coming Soon' },
+  { feature: 'Webinar Mode', free: false, pro: 'Coming Soon' },
 ];

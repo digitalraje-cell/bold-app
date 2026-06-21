@@ -15,7 +15,10 @@ function resolveAuthSecret(): string | undefined {
 export const authConfig = {
   secret: resolveAuthSecret(),
   providers: [],
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
   trustHost: true,
   pages: {
     signIn: '/login',

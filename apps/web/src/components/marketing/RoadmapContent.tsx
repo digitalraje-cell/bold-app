@@ -6,8 +6,7 @@ import { useSession } from 'next-auth/react';
 import { ThumbsUp, Loader2, Sparkles } from 'lucide-react';
 import {
   ROADMAP_AVAILABLE_NOW,
-  ROADMAP_Q3_2026,
-  ROADMAP_Q4_2026,
+  ROADMAP_COMING_SOON,
   ROADMAP_VOTABLE_FEATURES,
   SubscriptionPlan,
   PLAN_PRICING_INR,
@@ -92,8 +91,7 @@ export function RoadmapContent() {
         <section className="px-6 py-12">
           <div className="mx-auto max-w-6xl">
             <RoadmapSection title="Available now" items={[...ROADMAP_AVAILABLE_NOW]} status="live" />
-            <RoadmapSection title="Coming Q3 2026" items={[...ROADMAP_Q3_2026]} status="soon" />
-            <RoadmapSection title="Coming Q4 2026" items={[...ROADMAP_Q4_2026]} status="future" />
+            <ComingSoonSection />
           </div>
         </section>
 
@@ -121,6 +119,11 @@ export function RoadmapContent() {
                       className="rounded-2xl border border-border bg-surface p-5"
                     >
                       <h3 className="font-semibold">{feature.title}</h3>
+                      {feature.proIncluded && (
+                        <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                          Included in Pro
+                        </span>
+                      )}
                       <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
                       <p className="mt-4 text-sm font-medium text-primary">
                         {count} user{count === 1 ? '' : 's'} requested this feature
@@ -162,7 +165,7 @@ export function RoadmapContent() {
               <Link href="/billing/upgrade">
                 <Button size="lg">Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/login">
                 <Button size="lg" variant="secondary">
                   Start free
                 </Button>
@@ -173,6 +176,37 @@ export function RoadmapContent() {
       </main>
 
       <MarketingFooter />
+    </div>
+  );
+}
+
+function ComingSoonSection() {
+  return (
+    <div className="mb-12">
+      <div className="mb-4 flex items-center gap-3">
+        <h2 className="text-xl font-bold">Coming soon</h2>
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+          On the roadmap
+        </span>
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {ROADMAP_COMING_SOON.map((item) => (
+          <li
+            key={item.title}
+            className="rounded-xl border border-border bg-surface px-4 py-3 text-sm"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
+              <span className="font-medium">{item.title}</span>
+              {item.proIncluded && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                  Included in Pro
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { verifyOtpCode } from '@/lib/otp-service';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** Verify OTP for logged-in users who still need email verification (e.g. legacy accounts). */
 export async function POST(request: Request) {
   try {
     const session = await auth();

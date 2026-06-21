@@ -8,7 +8,7 @@ A production-ready browser-based meeting platform built with Next.js, NestJS, Po
 - **Backend:** NestJS, Prisma, PostgreSQL
 - **Realtime:** Socket.io
 - **Meetings:** Jitsi Meet Open Source
-- **Auth:** NextAuth.js (Email + Google OAuth)
+- **Auth:** NextAuth.js (Email OTP)
 - **Streaming:** YouTube Live API
 
 ## Project Structure
@@ -58,15 +58,12 @@ pnpm dev
 
 ## Documentation
 
+- **[Final Launch Checklist](./docs/FINAL_LAUNCH_CHECKLIST.md)** — credentials, auth flow, deploy steps
+- [Launch Deployment Guide](./docs/LAUNCH_DEPLOYMENT.md)
+- [V1 Launch Report](./docs/V1_LAUNCH_REPORT.md)
 - [Architecture Plan](./docs/ARCHITECTURE.md)
-- [Folder Structure](./docs/FOLDER_STRUCTURE.md)
-- [Database Schema](./docs/DATABASE_SCHEMA.md)
-- [Component Plan](./docs/COMPONENT_PLAN.md)
-- [Development Roadmap](./docs/ROADMAP.md)
 - [Subscriptions & Permissions](./docs/SUBSCRIPTIONS.md)
-- [Webinar Architecture](./docs/WEBINAR_ARCHITECTURE.md)
 - [Deployment Plan](./docs/DEPLOYMENT.md)
-- [Testing Checklists](./docs/TESTING.md)
 
 ## License
 

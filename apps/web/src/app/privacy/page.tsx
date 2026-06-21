@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
 
       <h2>Information we collect</h2>
       <ul>
-        <li>Account information: name, email address, and authentication credentials.</li>
+        <li>Account information: name, email address, and one-time login codes.</li>
         <li>Meeting data: meeting titles, participant display names, and usage metrics.</li>
         <li>Payment information: processed by Razorpay; we store payment status and plan records, not card numbers.</li>
         <li>Technical data: browser type, IP address, and service logs for security and reliability.</li>

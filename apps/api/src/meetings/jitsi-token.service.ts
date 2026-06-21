@@ -70,12 +70,16 @@ function signJwtRs256(
   return `${data}.${signature}`;
 }
 
+function resolveJitsiPrivateKey(): string | undefined {
+  return process.env.JITSI_PRIVATE_KEY?.trim() || process.env.JITSI_APP_SECRET?.trim();
+}
+
 function resolveAuthMode(appId: string | undefined): JitsiAuthMode {
   if (!appId) return 'unconfigured';
   if (process.env.JITSI_JAAS === 'true' || appId.startsWith('vpaas-magic-cookie')) {
     return 'jaas';
   }
-  if (process.env.JITSI_APP_SECRET?.trim()) {
+  if (resolveJitsiPrivateKey()) {
     return 'self-hosted';
   }
   return 'unconfigured';
@@ -199,7 +203,7 @@ export class JitsiTokenService {
     if (mode === 'unconfigured') {
       if (process.env.NODE_ENV === 'production') {
         throw new ServiceUnavailableException(
-          'Meeting media is not configured. Set JITSI_APP_ID and JITSI_APP_SECRET (8x8 JaaS or self-hosted JWT) on the API service.',
+          'Meeting media is not configured. Set JITSI_APP_ID and JITSI_PRIVATE_KEY (or JITSI_APP_SECRET) on the API service.',
         );
       }
 
@@ -218,7 +222,7 @@ export class JitsiTokenService {
       };
     }
 
-    const appSecret = process.env.JITSI_APP_SECRET!.trim();
+    const appSecret = resolveJitsiPrivateKey()!;
     const now = Math.floor(Date.now() / 1000);
     const exp = now + TOKEN_TTL_SECONDS;
     const payload = this.buildJwtPayload(

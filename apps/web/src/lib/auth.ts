@@ -1,10 +1,9 @@
 import NextAuth, { type NextAuthConfig } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
 import { prisma } from './prisma';
+import { verifyAuthOtp } from './otp-service';
 
 if (process.env.NEXT_RUNTIME !== 'edge') {
   console.log('[auth] runtime = nodejs');
@@ -28,86 +27,54 @@ if (!authSecret && process.env.NODE_ENV === 'production') {
 
 if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
   console.error(
-    '[auth] Missing DATABASE_URL on web service. Credentials sign-in requires Postgres.',
+    '[auth] Missing DATABASE_URL on web service. OTP sign-in requires Postgres.',
   );
 }
 
 const providers: NextAuthConfig['providers'] = [
   Credentials({
-    name: 'credentials',
+    id: 'credentials',
+    name: 'Email OTP',
     credentials: {
       email: { label: 'Email', type: 'email' },
-      password: { label: 'Password', type: 'password' },
+      otp: { label: 'OTP', type: 'text' },
     },
     async authorize(credentials) {
-      if (!credentials?.email || !credentials?.password) {
+      const email = credentials?.email as string | undefined;
+      const otp = credentials?.otp as string | undefined;
+
+      if (!email?.trim() || !otp?.trim()) {
         return null;
       }
 
-      const email = credentials.email as string;
-      const password = credentials.password as string;
-
       try {
-        const user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user || !user.passwordHash) {
+        const result = await verifyAuthOtp(email, otp);
+        if (!result.ok) {
           return null;
         }
 
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
-
+        const user = result.user;
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.avatarUrl,
           isVerified: user.isVerified,
           subscriptionPlan: user.subscriptionPlan,
           role: user.role,
         };
       } catch (error) {
-        console.error('[auth] Credentials authorize failed:', error);
+        console.error('[auth] OTP authorize failed:', error);
         return null;
       }
     },
   }),
 ];
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  providers.unshift(
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  );
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   secret: authSecret,
   providers,
-  events: {
-    async signIn({ user, account }) {
-      if (account?.provider === 'google' && user.email) {
-        try {
-          await prisma.user.update({
-            where: { email: user.email },
-            data: {
-              isVerified: true,
-              verifiedAt: new Date(),
-              emailVerified: new Date(),
-            },
-          });
-        } catch (error) {
-          console.error('[auth] Google sign-in profile update failed:', error);
-        }
-      }
-    },
-  },
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {

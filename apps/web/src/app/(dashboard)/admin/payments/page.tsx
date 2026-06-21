@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
@@ -52,11 +53,16 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Admin — Payments</h1>
-        <p className="mt-1 text-muted-foreground">
-          Manually activate Pro after verifying Razorpay payment.
-        </p>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Admin — Payments</h1>
+          <p className="mt-1 text-muted-foreground">
+            Manually activate Pro after verifying Razorpay payment.
+          </p>
+        </div>
+        <Link href="/admin/users" className="text-sm text-primary hover:underline">
+          View all users →
+        </Link>
       </div>
 
       {error && (

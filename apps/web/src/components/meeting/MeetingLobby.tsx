@@ -52,6 +52,10 @@ function normalizePreviewError(message: string): string {
   if (lower.includes('not found') || lower.includes('no longer available')) {
     return 'Meeting not found or no longer available';
   }
+  if (lower.includes('passcode') || lower.includes('password')) {
+    if (lower.includes('invalid')) return 'Invalid meeting passcode';
+    if (lower.includes('required')) return 'Meeting passcode required';
+  }
   return message;
 }
 
@@ -107,7 +111,7 @@ export function MeetingLobby({
   const searchParams = useSearchParams();
   const entryViaCode = searchParams.get('entry') === 'code';
   const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [registrantEmail, setRegistrantEmail] = useState(session?.user?.email ?? '');
   const [registrationDone, setRegistrationDone] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
@@ -148,7 +152,7 @@ export function MeetingLobby({
     }
   }, [session?.user?.email]);
 
-  const showPasswordField =
+  const showPasscodeField =
     Boolean(meeting?.hasPassword) && entryViaCode && !session?.user?.id;
 
   const needsRegistration =
@@ -264,7 +268,7 @@ export function MeetingLobby({
         startWithVideo: joinWithCamera,
       });
       const path = await joinMeetingAndGetPath(meetingId, displayName.trim(), {
-        password: showPasswordField ? password || undefined : undefined,
+        password: showPasscodeField ? passcode || undefined : undefined,
         viaDirectLink: !entryViaCode,
         participantId: meetingId ? readGuestJoinSession(meetingId)?.participantId : undefined,
         registrantEmail: meeting?.registrationRequired
@@ -431,13 +435,13 @@ export function MeetingLobby({
               autoFocus
             />
 
-            {showPasswordField && (
+            {showPasscodeField && (
               <Input
-                label="Meeting password"
+                label="Meeting passcode"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Required"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                placeholder="Required to join"
               />
             )}
 

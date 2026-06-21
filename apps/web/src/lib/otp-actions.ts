@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { sendVerificationOtp, verifyOtpCode } from '@/lib/otp-service';
+import { sendAuthOtp, verifyOtpCode } from '@/lib/otp-service';
 
 export async function sendVerificationCodeAction(): Promise<{
   ok: boolean;
@@ -18,7 +18,7 @@ export async function sendVerificationCodeAction(): Promise<{
   console.log('[otp-action] send requested', { email: session.user.email });
 
   try {
-    const result = await sendVerificationOtp(session.user.email);
+    const result = await sendAuthOtp(session.user.email);
     console.log('[otp-action] send completed', {
       email: session.user.email,
       ok: result.ok,

@@ -16,9 +16,9 @@ function validateTitle(value: string): string | undefined {
   return undefined;
 }
 
-function validatePassword(value: string): string | undefined {
+function validatePasscode(value: string): string | undefined {
   if (!value) return undefined;
-  if (value.length < 6) return 'Password must be at least 6 characters';
+  if (value.length < 6) return 'Passcode must be at least 6 characters';
   return undefined;
 }
 
@@ -38,7 +38,7 @@ export function CreateMeetingForm() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [password, setPassword] = useState('');
+  const [passcode, setPasscode] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [customDuration, setCustomDuration] = useState('');
@@ -47,20 +47,20 @@ export function CreateMeetingForm() {
   const [error, setError] = useState('');
   const [touched, setTouched] = useState({
     title: false,
-    password: false,
+    passcode: false,
     scheduledAt: false,
   });
 
   const fieldErrors = useMemo(
     () => ({
       title: validateTitle(title),
-      password: validatePassword(password),
+      passcode: validatePasscode(passcode),
       scheduledAt: validateScheduledAt(scheduledAt, isInstant),
     }),
-    [title, password, scheduledAt, isInstant],
+    [title, passcode, scheduledAt, isInstant],
   );
 
-  const isFormValid = !fieldErrors.title && !fieldErrors.password && !fieldErrors.scheduledAt;
+  const isFormValid = !fieldErrors.title && !fieldErrors.passcode && !fieldErrors.scheduledAt;
 
   const resolvedDuration = useMemo(() => {
     if (isInstant) return undefined;
@@ -80,7 +80,7 @@ export function CreateMeetingForm() {
     e.preventDefault();
     if (submittingRef.current || loading) return;
 
-    setTouched({ title: true, password: true, scheduledAt: true });
+    setTouched({ title: true, passcode: true, scheduledAt: true });
 
     if (!isFormValid) return;
 
@@ -100,7 +100,7 @@ export function CreateMeetingForm() {
       const meeting = (await api.meetings.create({
         title: trimmedTitle,
         description: description.trim() || undefined,
-        password: password || undefined,
+        password: passcode || undefined,
         scheduledAt: isInstant ? undefined : scheduledAt,
         durationMinutes: resolvedDuration,
         settings,
@@ -113,7 +113,7 @@ export function CreateMeetingForm() {
           const path = await joinMeetingAndGetPath(
             meeting.meetingCode,
             displayName,
-            { password: password || undefined, viaDirectLink: true },
+            { password: passcode || undefined, viaDirectLink: true },
           );
           router.push(path);
           return;
@@ -225,13 +225,13 @@ export function CreateMeetingForm() {
           )}
 
           <Input
-            label="Password (optional)"
+            label="Meeting passcode (optional)"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-            placeholder="Minimum 6 characters"
-            error={touched.password ? fieldErrors.password : undefined}
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, passcode: true }))}
+            placeholder="Optional — minimum 6 characters"
+            error={touched.passcode ? fieldErrors.passcode : undefined}
           />
 
           <div className="rounded-2xl border border-border p-6">

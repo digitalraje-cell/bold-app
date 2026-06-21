@@ -412,11 +412,11 @@ export class MeetingsService {
     const skipPassword = isHost || dto.viaDirectLink === true || !!userId;
     if (meeting.password && !skipPassword) {
       if (!dto.password) {
-        throw new BadRequestException('Password required');
+        throw new BadRequestException('Meeting passcode required');
       }
       const valid = await bcrypt.compare(dto.password, meeting.password);
       if (!valid) {
-        throw new ForbiddenException('Invalid password');
+        throw new ForbiddenException('Invalid meeting passcode');
       }
     }
 
