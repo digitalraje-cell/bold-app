@@ -2,20 +2,13 @@
 
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
+/** Shown on dashboard only when the user still needs to verify their email. */
 export function VerificationBanner() {
   const { data: session } = useSession();
 
   if (!session?.user || session.user.isVerified) {
-    if (session?.user?.isVerified) {
-      return (
-        <div className="mb-6 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          Verified User ✓
-        </div>
-      );
-    }
     return null;
   }
 
@@ -23,7 +16,7 @@ export function VerificationBanner() {
     <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
       <div className="flex items-center gap-2">
         <ShieldAlert className="h-4 w-4 shrink-0" />
-        Verify your account to host meetings
+        Please verify your email.
       </div>
       <Link
         href="/verify"

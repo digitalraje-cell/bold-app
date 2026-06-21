@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
-import { APP_CONFIG } from '@/lib/app-config';
+import { LEGAL_CONFIG } from '@/lib/legal-config';
 
 export function LegalPageLayout({
   title,
@@ -16,14 +16,23 @@ export function LegalPageLayout({
         <article className="prose prose-neutral mx-auto max-w-3xl dark:prose-invert">
           <h1>{title}</h1>
           <p className="text-sm text-muted-foreground">
-            Last updated: {new Date().toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {LEGAL_CONFIG.productName} · operated by {LEGAL_CONFIG.companyName} ·{' '}
+            {LEGAL_CONFIG.websiteUrl.replace(/^https?:\/\//, '')}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Last updated:{' '}
+            {new Date().toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
           {children}
           <hr />
           <p className="text-sm text-muted-foreground">
             Questions? Contact{' '}
             <Link href="/contact" className="text-primary hover:underline">
-              {APP_CONFIG.supportEmail ?? 'support'}
+              {LEGAL_CONFIG.supportEmail}
+            </Link>{' '}
+            or visit our{' '}
+            <Link href="/cookies" className="text-primary hover:underline">
+              Cookie Policy
             </Link>
             .
           </p>

@@ -140,3 +140,46 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
     throw error;
   }
 }
+
+export async function sendContactEmail(input: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const apiKey = runtimeEnv('RESEND_API_KEY');
+  const supportTo = runtimeEnv('CONTACT_INBOX_EMAIL') || runtimeEnv('NEXT_PUBLIC_SUPPORT_EMAIL') || 'support@boldmeet.com';
+
+  const bodyText = [
+    `New contact form submission for BoldMeet`,
+    '',
+    `Name: ${input.name}`,
+    `Email: ${input.email}`,
+    `Subject: ${input.subject}`,
+    '',
+    input.message,
+  ].join('\n');
+
+  if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY missing — cannot deliver contact form in production');
+    }
+    console.log('[contact-email] dev mode — message logged', { to: supportTo, ...input });
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  const from = getOtpEmailFrom();
+
+  const result = await resend.emails.send({
+    from,
+    to: supportTo,
+    replyTo: input.email,
+    subject: `[BoldMeet Contact] ${input.subject}`,
+    text: bodyText,
+  });
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+}

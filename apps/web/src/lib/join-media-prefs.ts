@@ -1,3 +1,6 @@
+import type { MeetingPrefSettings } from './user-settings';
+import { readUserSettings } from './user-settings';
+
 const JOIN_MEDIA_PREFS_KEY = 'boldmeet-join-media';
 
 export type JoinMediaPrefs = {
@@ -15,17 +18,29 @@ export function saveJoinMediaPrefs(prefs: JoinMediaPrefs): void {
   sessionStorage.setItem(JOIN_MEDIA_PREFS_KEY, JSON.stringify(prefs));
 }
 
-export function readJoinMediaPrefs(): JoinMediaPrefs {
-  if (typeof window === 'undefined') return DEFAULT_PREFS;
+export function readJoinMediaPrefs(overrides?: Partial<MeetingPrefSettings>): JoinMediaPrefs {
+  const fromSettings = typeof window !== 'undefined' ? readUserSettings().meeting : null;
+
+  const startWithAudio = overrides?.joinWithMic ?? fromSettings?.joinWithMic ?? DEFAULT_PREFS.startWithAudio;
+  const startWithVideo =
+    overrides?.joinWithCamera ?? fromSettings?.joinWithCamera ?? DEFAULT_PREFS.startWithVideo;
+
+  if (typeof window === 'undefined') {
+    return { startWithAudio, startWithVideo };
+  }
+
   try {
     const raw = sessionStorage.getItem(JOIN_MEDIA_PREFS_KEY);
-    if (!raw) return DEFAULT_PREFS;
-    const parsed = JSON.parse(raw) as Partial<JoinMediaPrefs>;
-    return {
-      startWithAudio: parsed.startWithAudio ?? DEFAULT_PREFS.startWithAudio,
-      startWithVideo: parsed.startWithVideo ?? DEFAULT_PREFS.startWithVideo,
-    };
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<JoinMediaPrefs>;
+      return {
+        startWithAudio: parsed.startWithAudio ?? startWithAudio,
+        startWithVideo: parsed.startWithVideo ?? startWithVideo,
+      };
+    }
   } catch {
-    return DEFAULT_PREFS;
+    // fall through
   }
+
+  return { startWithAudio, startWithVideo };
 }

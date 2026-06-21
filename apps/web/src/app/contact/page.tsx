@@ -1,40 +1,93 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ContactForm } from '@/components/marketing/ContactForm';
 import { LegalPageLayout } from '@/components/marketing/LegalPageLayout';
-import { APP_CONFIG } from '@/lib/app-config';
+import { LEGAL_CONFIG } from '@/lib/legal-config';
+import { createLegalMetadata } from '@/lib/legal-metadata';
+
+export const metadata: Metadata = createLegalMetadata({
+  title: 'Contact Us',
+  description:
+    'Contact BoldMeet support — Lifetop Academy help with meetings, billing, Pro subscriptions, and technical issues. Response within 48 business hours.',
+  path: '/contact',
+});
 
 export default function ContactPage() {
-  const supportEmail =
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bold.robozant.com';
+  const {
+    productName,
+    companyName,
+    websiteUrl,
+    supportEmail,
+    businessEmail,
+    responseTime,
+  } = LEGAL_CONFIG;
 
   return (
     <LegalPageLayout title="Contact Us">
       <p>
-        We&apos;re here to help with account access, billing, meetings, and Pro upgrades for{' '}
-        {APP_CONFIG.name}.
+        We&apos;re here to help with account access, meetings, billing, Pro upgrades, refunds, and
+        technical support for {productName}.
       </p>
 
-      <h2>Support email</h2>
-      <p>
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
-          {supportEmail}
-        </a>
-      </p>
+      <h2>Company information</h2>
+      <dl className="not-prose grid gap-3 text-sm">
+        <div>
+          <dt className="font-medium text-foreground">Product</dt>
+          <dd className="text-muted-foreground">{productName}</dd>
+        </div>
+        <div>
+          <dt className="font-medium text-foreground">Company</dt>
+          <dd className="text-muted-foreground">{companyName}</dd>
+        </div>
+        <div>
+          <dt className="font-medium text-foreground">Website</dt>
+          <dd className="text-muted-foreground">{websiteUrl}</dd>
+        </div>
+        <div>
+          <dt className="font-medium text-foreground">Support email</dt>
+          <dd>
+            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+              {supportEmail}
+            </a>
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium text-foreground">Business email</dt>
+          <dd>
+            <a href={`mailto:${businessEmail}`} className="text-primary hover:underline">
+              {businessEmail}
+            </a>
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium text-foreground">Response time</dt>
+          <dd className="text-muted-foreground">{responseTime}</dd>
+        </div>
+      </dl>
 
-      <h2>Billing &amp; Pro activation</h2>
-      <p>
-        After paying via Razorpay, include your account email and payment receipt if Pro is not
-        activated within 24 hours. Visit{' '}
-        <Link href="/billing" className="text-primary hover:underline">
-          Billing &amp; Plans
-        </Link>{' '}
-        when signed in.
-      </p>
+      <h2>Common topics</h2>
+      <ul>
+        <li>
+          <strong>Login &amp; OTP</strong> — trouble receiving or verifying your email code.
+        </li>
+        <li>
+          <strong>Meetings</strong> — audio, video, screen share, or join issues.
+        </li>
+        <li>
+          <strong>Billing &amp; Pro</strong> — payment confirmation, Pro activation, refunds. See{' '}
+          <Link href="/billing" className="text-primary hover:underline">
+            Billing
+          </Link>{' '}
+          when signed in.
+        </li>
+        <li>
+          <strong>Partnerships</strong> — enterprise, education, or custom integrations via{' '}
+          {businessEmail}.
+        </li>
+      </ul>
 
-      <h2>Business inquiries</h2>
-      <p>For partnerships, enterprise plans, or custom branding, email us with your company name and requirements.</p>
-
-      <h2>Response time</h2>
-      <p>We typically respond within 1–2 business days.</p>
+      <h2>Send us a message</h2>
+      <ContactForm />
     </LegalPageLayout>
   );
 }

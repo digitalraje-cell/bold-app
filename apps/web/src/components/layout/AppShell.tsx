@@ -16,9 +16,10 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
+import { SubscriptionPlan } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { appConfig } from '@/lib/app-config';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 
 const navItems = [
@@ -129,24 +130,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="border-t border-border p-4">
           <div className="mb-3 px-3" suppressHydrationWarning>
-            <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
+              {mounted && isPro && (
+                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                  Pro
+                </span>
+              )}
+            </div>
             <p className="truncate text-sm text-muted-foreground">
               {mounted ? session?.user?.email : null}
-            </p>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Current plan
-            </p>
-            <p className="mt-1 text-sm font-semibold">
-              {mounted
-                ? isPro
-                  ? `PRO — ₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month`
-                  : 'FREE'
-                : null}
             </p>
             {mounted && !isPro && (
               <div className="mt-3">
                 <UpgradeBanner compact />
               </div>
+            )}
+            {mounted && (
+              <Link
+                href="/settings/account"
+                className="mt-2 inline-block text-xs text-muted-foreground hover:text-primary"
+              >
+                Account settings
+              </Link>
             )}
           </div>
           <button
@@ -167,6 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="font-semibold">{appConfig.name}</span>
         </header>
         <main className="flex-1 p-6">{children}</main>
+        <AppFooter />
       </div>
     </div>
   );

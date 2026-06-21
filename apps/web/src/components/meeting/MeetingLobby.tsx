@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { joinMeetingAndGetPath, readGuestJoinSession } from '@/lib/meeting-join';
 import { saveJoinMediaPrefs } from '@/lib/join-media-prefs';
+import { readUserSettings } from '@/lib/user-settings';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 import { cn } from '@/lib/utils';
 
@@ -132,6 +133,12 @@ export function MeetingLobby({
   const [joinWithCamera, setJoinWithCamera] = useState(true);
   const [meeting, setMeeting] = useState<PublicMeetingPreview | null>(initialPreview);
   const [priorGuest, setPriorGuest] = useState(false);
+
+  useEffect(() => {
+    const prefs = readUserSettings().meeting;
+    setJoinWithMic(prefs.joinWithMic);
+    setJoinWithCamera(prefs.joinWithCamera);
+  }, []);
 
   useEffect(() => {
     if (meetingId) {

@@ -6,11 +6,9 @@ import {
   SubscriptionPlan,
   PLAN_DISPLAY,
   PLAN_PRICING_INR,
-  FREE_FEATURE_LIST,
-  PRO_FEATURE_LIST,
+  FEATURE_COMPARISON,
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
-import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +31,34 @@ type BillingSummary = {
   razorpayConfigured: boolean;
 };
 
+const FAQ_ITEMS = [
+  {
+    question: 'How do I upgrade?',
+    answer: 'Click Upgrade to Pro on this page. You will be redirected to a secure Razorpay payment link.',
+  },
+  {
+    question: 'How is billing handled?',
+    answer: 'Secure payment via Razorpay. We do not store your card details on our servers.',
+  },
+  {
+    question: 'Can I cancel anytime?',
+    answer: 'Yes. Contact support to cancel. Your Pro access remains active until the end of the current billing period.',
+  },
+  {
+    question: 'What happens when Pro expires?',
+    answer: 'Your account returns to the Free plan. Meeting history and account data are retained.',
+  },
+] as const;
+
+function formatStatus(status: string): string {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatComparisonCell(value: boolean | string): string {
+  if (typeof value === 'boolean') return value ? '✓' : '—';
+  return value;
+}
+
 export default function BillingPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,15 +74,14 @@ export default function BillingPage() {
 
   const plan = summary?.plan ?? SubscriptionPlan.FREE;
   const isPro = plan === SubscriptionPlan.PRO;
+  const planName = PLAN_DISPLAY[plan as SubscriptionPlan.FREE | SubscriptionPlan.PRO]?.name ?? plan;
 
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Billing &amp; Plans</h1>
-        <p className="mt-1 text-muted-foreground">Manage your subscription and usage.</p>
+        <p className="mt-1 text-muted-foreground">Manage your subscription, usage, and payments.</p>
       </div>
-
-      {!isPro && <UpgradeBanner />}
 
       {message && (
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
@@ -69,40 +94,60 @@ export default function BillingPage() {
       ) : (
         <div className="space-y-6">
           <section className="rounded-2xl border border-border bg-surface p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Current plan</p>
-                <div className="mt-1 flex items-center gap-2">
-                  <h2 className="text-xl font-semibold">{PLAN_DISPLAY[plan as SubscriptionPlan.FREE | SubscriptionPlan.PRO]?.name ?? plan}</h2>
-                  <span
-                    className={cn(
-                      'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                      isPro ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {isPro ? 'Pro' : 'Free'}
-                  </span>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Current subscription
+            </h2>
+            <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
+              <dl className="grid gap-4 sm:grid-cols-2 sm:gap-x-10">
+                <div>
+                  <dt className="text-sm text-muted-foreground">Current plan</dt>
+                  <dd className="mt-1 flex items-center gap-2">
+                    <span className="text-lg font-semibold">{planName}</span>
+                    <span
+                      className={cn(
+                        'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                        isPro ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {isPro
+                        ? `₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo`
+                        : '₹0'}
+                    </span>
+                  </dd>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  ₹{summary?.priceInr ?? PLAN_PRICING_INR[SubscriptionPlan.FREE]}/month · Status:{' '}
-                  {summary?.subscriptionStatus ?? 'active'}
-                </p>
-                {summary?.renewsAt && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Renews {new Date(summary.renewsAt).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
+                <div>
+                  <dt className="text-sm text-muted-foreground">Status</dt>
+                  <dd className="mt-1 font-medium capitalize">
+                    {formatStatus(summary?.subscriptionStatus ?? 'active')}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-sm text-muted-foreground">Renewal</dt>
+                  <dd className="mt-1 font-medium">
+                    {summary?.renewsAt
+                      ? `Renews ${new Date(summary.renewsAt).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}`
+                      : isPro
+                        ? 'Manual renewal — contact support to extend'
+                        : 'No active subscription'}
+                  </dd>
+                </div>
+              </dl>
               {!isPro && (
-                <Link href="/billing/upgrade">
-                  <Button>Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
+                <Link href="/billing/upgrade" className="shrink-0">
+                  <Button size="lg">
+                    Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
+                  </Button>
                 </Link>
               )}
             </div>
           </section>
 
           <section className="rounded-2xl border border-border bg-surface p-6">
-            <h3 className="font-semibold">Usage this month</h3>
+            <h2 className="font-semibold">Usage this month</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <UsageCard
                 label="Meetings hosted"
@@ -115,42 +160,92 @@ export default function BillingPage() {
             </div>
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <PlanFeatures title="Free includes" features={FREE_FEATURE_LIST} />
-            <PlanFeatures title="Pro includes" features={PRO_FEATURE_LIST} highlight />
+          <section className="rounded-2xl border border-border bg-surface p-6">
+            <h2 className="font-semibold">Free vs Pro comparison</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Compare what&apos;s included in each plan.
+            </p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="pb-3 pr-4 font-medium">Feature</th>
+                    <th className="pb-3 pr-4 font-medium">Free</th>
+                    <th className="pb-3 font-medium">Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FEATURE_COMPARISON.map((row) => (
+                    <tr key={row.feature} className="border-b border-border last:border-0">
+                      <td className="py-3 pr-4">{row.feature}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        {formatComparisonCell(row.free)}
+                      </td>
+                      <td className="py-3 text-muted-foreground">
+                        {formatComparisonCell(row.pro)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section className="rounded-2xl border border-border bg-surface p-6">
-            <h3 className="font-semibold">Payment history</h3>
+            <h2 className="font-semibold">Payment history</h2>
             {summary?.paymentHistory?.length ? (
-              <ul className="mt-4 space-y-2 text-sm">
+              <ul className="mt-4 divide-y divide-border">
                 {summary.paymentHistory.map((payment) => (
                   <li
                     key={payment.id}
-                    className="flex justify-between rounded-lg bg-muted/50 px-3 py-2"
+                    className="flex items-center justify-between py-3 text-sm first:pt-0 last:pb-0"
                   >
-                    <span>₹{payment.amountInr}</span>
+                    <span className="font-medium">₹{payment.amountInr}</span>
                     <span className="text-muted-foreground">
-                      {payment.status} · {new Date(payment.createdAt).toLocaleDateString()}
+                      {formatStatus(payment.status)} ·{' '}
+                      {new Date(payment.createdAt).toLocaleDateString('en-IN')}
                     </span>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                No payments yet.{' '}
-                {!summary?.razorpayConfigured &&
-                  'Add Razorpay credentials to enable Pro checkout.'}
+                No payments yet.
+                {!isPro && (
+                  <>
+                    {' '}
+                    <Link href="/billing/upgrade" className="text-primary hover:underline">
+                      Upgrade to Pro
+                    </Link>{' '}
+                    to get started.
+                  </>
+                )}
               </p>
             )}
           </section>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Questions?{' '}
-            <Link href="/settings/profile" className="text-primary hover:underline">
-              Contact support from settings
-            </Link>
-          </p>
+          <section className="rounded-2xl border border-border bg-surface p-6">
+            <h2 className="font-semibold">FAQ</h2>
+            <dl className="mt-4 space-y-5">
+              {FAQ_ITEMS.map(({ question, answer }) => (
+                <div key={question}>
+                  <dt className="font-medium">{question}</dt>
+                  <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{answer}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-6 text-sm text-muted-foreground">
+              Need help?{' '}
+              <Link href="/settings/support" className="text-primary hover:underline">
+                Contact support
+              </Link>{' '}
+              or read our{' '}
+              <Link href="/refund" className="text-primary hover:underline">
+                Refund Policy
+              </Link>
+              .
+            </p>
+          </section>
         </div>
       )}
     </div>
@@ -159,38 +254,9 @@ export default function BillingPage() {
 
 function UsageCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-muted/50 px-4 py-3">
+    <div className="rounded-xl border border-border bg-muted/30 px-4 py-4">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-function PlanFeatures({
-  title,
-  features,
-  highlight = false,
-}: {
-  title: string;
-  features: readonly string[];
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border p-6',
-        highlight ? 'border-primary/30 bg-primary/5' : 'border-border bg-surface',
-      )}
-    >
-      <h3 className="font-semibold">{title}</h3>
-      <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-        {features.map((feature) => (
-          <li key={feature} className="flex gap-2">
-            <span className="text-primary">✓</span>
-            {feature}
-          </li>
-        ))}
-      </ul>
+      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
     </div>
   );
 }

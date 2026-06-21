@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,10 @@ import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
+import {
+  hostDefaultsToMeetingSettings,
+  readUserSettings,
+} from '@/lib/user-settings';
 
 function validateTitle(value: string): string | undefined {
   if (!value.trim()) return 'Meeting title is required';
@@ -43,6 +47,7 @@ export function CreateMeetingForm() {
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [customDuration, setCustomDuration] = useState('');
   const [settings, setSettings] = useState(DEFAULT_MEETING_SETTINGS);
+  const [passcodeRequired, setPasscodeRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [touched, setTouched] = useState({
@@ -54,11 +59,21 @@ export function CreateMeetingForm() {
   const fieldErrors = useMemo(
     () => ({
       title: validateTitle(title),
-      passcode: validatePasscode(passcode),
+      passcode:
+        passcodeRequired && !passcode
+          ? 'Passcode is required based on your host settings'
+          : validatePasscode(passcode),
       scheduledAt: validateScheduledAt(scheduledAt, isInstant),
     }),
-    [title, passcode, scheduledAt, isInstant],
+    [title, passcode, passcodeRequired, scheduledAt, isInstant],
   );
+
+  useEffect(() => {
+    const { host } = readUserSettings();
+    const hostMeeting = hostDefaultsToMeetingSettings(host);
+    setSettings((prev) => ({ ...prev, ...hostMeeting }));
+    setPasscodeRequired(host.requireMeetingPasscode);
+  }, []);
 
   const isFormValid = !fieldErrors.title && !fieldErrors.passcode && !fieldErrors.scheduledAt;
 
@@ -225,12 +240,14 @@ export function CreateMeetingForm() {
           )}
 
           <Input
-            label="Meeting passcode (optional)"
+            label={passcodeRequired ? 'Meeting passcode' : 'Meeting passcode (optional)'}
             type="password"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
             onBlur={() => setTouched((prev) => ({ ...prev, passcode: true }))}
-            placeholder="Optional — minimum 6 characters"
+            placeholder={
+              passcodeRequired ? 'Required by your host settings' : 'Optional — minimum 6 characters'
+            }
             error={touched.passcode ? fieldErrors.passcode : undefined}
           />
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { APP_CONFIG } from '@/lib/app-config';
+import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { cn } from '@/lib/utils';
 
 export function MarketingHeader({ active }: { active?: 'pricing' | 'roadmap' }) {
@@ -51,34 +52,39 @@ export function MarketingHeader({ active }: { active?: 'pricing' | 'roadmap' }) 
 }
 
 export function MarketingFooter() {
-  const appName = APP_CONFIG.name;
-
   return (
     <footer className="border-t border-border py-8">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground sm:flex-row">
-        <p>© {new Date().getFullYear()} {appName}. All rights reserved.</p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link href="/#pricing" className="hover:text-foreground">
-            Pricing
-          </Link>
-          <Link href="/roadmap" className="hover:text-foreground">
-            Roadmap
-          </Link>
-          <Link href="/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <Link href="/terms" className="hover:text-foreground">
-            Terms
-          </Link>
-          <Link href="/refund" className="hover:text-foreground">
-            Refund
-          </Link>
-          <Link href="/contact" className="hover:text-foreground">
-            Contact
-          </Link>
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Start free
-          </Link>
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
+          <p>
+            © {new Date().getFullYear()} {LEGAL_CONFIG.companyName} · {LEGAL_CONFIG.productName}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link href="/#pricing" className="hover:text-foreground">
+              Pricing
+            </Link>
+            <Link href="/roadmap" className="hover:text-foreground">
+              Roadmap
+            </Link>
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms of Service
+            </Link>
+            <Link href="/refund" className="hover:text-foreground">
+              Refund Policy
+            </Link>
+            <Link href="/cookies" className="hover:text-foreground">
+              Cookie Policy
+            </Link>
+            <Link href="/contact" className="hover:text-foreground">
+              Contact
+            </Link>
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Start free
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
