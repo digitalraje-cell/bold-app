@@ -48,16 +48,15 @@ const FREE_LIMITS: PlanLimits = {
   maxMeetingDurationMinutes: 60,
   meetingAttendeeLimit: 100,
   webinarAttendeeLimit: 100,
-  maxCohosts: 1,
+  maxCohosts: 0,
   maxHosts: 1,
-  maxPanelists: 3,
+  maxPanelists: 0,
   gracePeriodMinutes: 5,
 };
 
 const FREE_PERMISSIONS: Record<PermissionKey, boolean> = {
-  // Phase 1.5 MVP: allow YouTube RTMP validation on all plans
-  canStreamToYoutube: true,
-  canUseCohost: true,
+  canStreamToYoutube: false,
+  canUseCohost: false,
   canRecord: false,
   canInvite: true,
   canHostMeeting: true,
@@ -65,8 +64,8 @@ const FREE_PERMISSIONS: Record<PermissionKey, boolean> = {
   canUseChat: true,
   canUseRaiseHand: true,
   canUseReactions: true,
-  canUsePanelists: true,
-  canSwitchRoomMode: true,
+  canUsePanelists: false,
+  canSwitchRoomMode: false,
   canUseEvergreenWebinar: false,
   canAssignModerator: false,
 };
@@ -105,7 +104,10 @@ export const PLAN_DEFINITIONS: Record<SubscriptionPlan, PlanPermissions> = {
     permissions: {
       ...FREE_PERMISSIONS,
       canStreamToYoutube: true,
+      canUseCohost: true,
       canRecord: true,
+      canUsePanelists: true,
+      canSwitchRoomMode: true,
       canUseEvergreenWebinar: true,
       canAssignModerator: true,
     },

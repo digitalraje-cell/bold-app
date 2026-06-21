@@ -13,6 +13,8 @@ import {
 import { useEffect, useState, useCallback } from 'react';
 import { RoomMode } from '@boldmeet/shared';
 import { api } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
+import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { useRoomStore, RoomParticipant } from '@/stores/roomStore';
 
 type ParticipantRecord = RoomParticipant & { status?: string };
@@ -51,10 +53,12 @@ export function ParticipantsPanel({
   onRemoveFromStage,
   onMuteAll,
 }: ParticipantsPanelProps) {
+  const { can } = usePermissions();
   const storeParticipants = useRoomStore((s) => s.participants);
   const [participants, setParticipants] = useState<ParticipantRecord[]>(storeParticipants);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const list = (await api.participants.list(meetingId)) as ParticipantRecord[];
@@ -89,6 +93,11 @@ export function ParticipantsPanel({
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col border-l border-white/10 bg-slate-900/98 backdrop-blur sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-sm">
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        feature="Multiple co-hosts"
+      />
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h3 className="font-semibold text-white">
           Participants ({admitted.length})
@@ -203,6 +212,10 @@ export function ParticipantsPanel({
                         className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
                         onClick={() => {
                           setOpenMenuId(null);
+                          if (!can('canUseCohost')) {
+                            setUpgradeOpen(true);
+                            return;
+                          }
                           void runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id));
                         }}
                       >

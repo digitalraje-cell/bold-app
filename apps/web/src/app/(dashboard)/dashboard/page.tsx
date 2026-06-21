@@ -1,13 +1,14 @@
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { AppShell } from '@/components/layout/AppShell';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { MeetingListSection } from '@/components/dashboard/MeetingCard';
 import { JoinByCodeCard } from '@/components/dashboard/JoinByCodeCard';
 import { DashboardMessage } from '@/components/dashboard/DashboardMessage';
+import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 import { Calendar, Radio } from 'lucide-react';
 import Link from 'next/link';
+import { SubscriptionPlan } from '@boldmeet/shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -70,13 +71,20 @@ export default async function DashboardPage() {
   });
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-5xl">
-        <VerificationBanner />
-        <Suspense fallback={null}>
-          <DashboardMessage />
-        </Suspense>
-        <div className="mb-8">
+    <div className="mx-auto max-w-5xl">
+      <VerificationBanner />
+      <Suspense fallback={null}>
+        <DashboardMessage />
+      </Suspense>
+      <UpgradeBanner />
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Current plan:{' '}
+            {(session?.user?.subscriptionPlan as SubscriptionPlan) === SubscriptionPlan.PRO
+              ? 'Pro'
+              : 'Free'}
+          </p>
           <h1 className="text-2xl font-bold">
             Welcome back{session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}
           </h1>
@@ -84,8 +92,9 @@ export default async function DashboardPage() {
             Manage your meetings and join calls instantly.
           </p>
         </div>
+      </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
           <Link
             href="/meetings/create?type=instant"
             className="group rounded-2xl border border-border bg-surface p-6 transition hover:border-primary/50 hover:shadow-lg"
@@ -111,30 +120,29 @@ export default async function DashboardPage() {
           <JoinByCodeCard />
         </div>
 
-        <div className="space-y-8">
-          <MeetingListSection
-            title="Live Now"
-            icon="radio"
-            meetings={live}
-            emptyMessage="No live meetings"
-            currentUserId={userId}
-          />
-          <MeetingListSection
-            title="Upcoming"
-            icon="calendar"
-            meetings={upcoming}
-            emptyMessage="No upcoming meetings"
-            currentUserId={userId}
-          />
-          <MeetingListSection
-            title="Past Meetings"
-            icon="history"
-            meetings={past}
-            emptyMessage="No past meetings"
-            currentUserId={userId}
-          />
-        </div>
+      <div className="space-y-8">
+        <MeetingListSection
+          title="Live Now"
+          icon="radio"
+          meetings={live}
+          emptyMessage="No live meetings"
+          currentUserId={userId}
+        />
+        <MeetingListSection
+          title="Upcoming"
+          icon="calendar"
+          meetings={upcoming}
+          emptyMessage="No upcoming meetings"
+          currentUserId={userId}
+        />
+        <MeetingListSection
+          title="Past Meetings"
+          icon="history"
+          meetings={past}
+          emptyMessage="No past meetings"
+          currentUserId={userId}
+        />
       </div>
-    </AppShell>
+    </div>
   );
 }

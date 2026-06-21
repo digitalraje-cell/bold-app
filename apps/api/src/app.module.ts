@@ -9,6 +9,7 @@ import { MeetingsModule } from './meetings/meetings.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { ParticipantsModule } from './participants/participants.module';
 import { YoutubeModule } from './youtube/youtube.module';
+import { BillingModule } from './billing/billing.module';
 
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
@@ -23,6 +24,7 @@ import { StreamModule } from './stream/stream.module';
     AuthModule,
     UsersModule,
     SubscriptionsModule,
+    BillingModule,
     MeetingsModule,
     ParticipantsModule,
     GatewayModule,

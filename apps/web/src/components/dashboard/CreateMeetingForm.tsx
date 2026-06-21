@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
@@ -144,8 +143,7 @@ export function CreateMeetingForm() {
   }
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold">
           {isInstant ? 'Start Instant Meeting' : 'Schedule Meeting'}
         </h1>
@@ -290,7 +288,6 @@ export function CreateMeetingForm() {
             </Button>
           </div>
         </form>
-      </div>
-    </AppShell>
+    </div>
   );
 }

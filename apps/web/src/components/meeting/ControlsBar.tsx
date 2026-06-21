@@ -105,7 +105,7 @@ function ControlButton({
   );
 }
 
-const MEETING_REACTIONS = ['👍', '👏', '❤️', '😂', '🎉', '🔥', '👋'] as const;
+const MEETING_REACTIONS = ['👍', '❤️', '👏', '🎉', '😂', '🙌'] as const;
 
 export function ControlsBar({
   isMuted,

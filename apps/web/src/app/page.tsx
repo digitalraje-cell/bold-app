@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { APP_CONFIG } from '@/lib/app-config';
+import { PricingSection } from '@/components/marketing/PricingSection';
 
 export default function HomePage() {
   const appName = APP_CONFIG.name;
@@ -16,6 +17,12 @@ export default function HomePage() {
             <span className="text-xl font-semibold tracking-tight">{appName}</span>
           </div>
           <nav className="flex items-center gap-3">
+            <Link
+              href="#pricing"
+              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground sm:inline-block"
+            >
+              Pricing
+            </Link>
             <Link
               href="/login"
               className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
@@ -92,6 +99,8 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <PricingSection />
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">

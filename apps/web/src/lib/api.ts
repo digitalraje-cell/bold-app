@@ -171,6 +171,17 @@ export const api = {
   subscriptions: {
     me: () => apiFetch('/subscriptions/me'),
   },
+  billing: {
+    summary: () => apiFetch('/billing/summary'),
+    createProCheckout: () =>
+      apiFetch('/billing/checkout/pro', { method: 'POST' }),
+  },
+  youtube: {
+    status: () => apiFetch('/youtube/status'),
+    connectUrl: () => apiFetch('/youtube/connect'),
+    disconnect: () => apiFetch('/youtube/disconnect', { method: 'POST' }),
+    architecture: () => apiFetch('/youtube/architecture'),
+  },
   participants: {
     list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/participants`),
     mute: (meetingId: string, participantId: string, isMuted: boolean) =>

@@ -74,7 +74,7 @@ export const DEFAULT_MEETING_SETTINGS: MeetingSettings = {
   registrationRequired: false,
 };
 
-export const REACTIONS = ['👍', '❤️', '👏', '🔥', '😂'] as const;
+export const REACTIONS = ['👍', '❤️', '👏', '🎉', '😂', '🙌'] as const;
 export type Reaction = (typeof REACTIONS)[number];
 
 export interface SocketEvents {
@@ -129,6 +129,7 @@ export * from './types/meeting-type';
 export * from './types/user';
 export * from './config/app';
 export * from './subscriptions/plans';
+export * from './subscriptions/pricing';
 export * from './recording/types';
 export * from './stream/types';
 export * from './webinar/types';

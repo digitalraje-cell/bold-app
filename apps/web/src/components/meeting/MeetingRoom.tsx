@@ -30,9 +30,15 @@ import {
   MeetingGraceWarning,
 } from '@/components/meeting/MeetingDurationModal';
 import { useMeetingDuration } from '@/hooks/useMeetingDuration';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useYouTubeLiveStream } from '@/hooks/useYouTubeLiveStream';
+import { isYouTubeLiveEnabled } from '@/lib/features';
 import { api } from '@/lib/api';
 import { readGuestJoinSession } from '@/lib/meeting-join';
 import { readJoinMediaPrefs } from '@/lib/join-media-prefs';
+import { UpgradeModal } from '@/components/billing/UpgradeModal';
+import { YouTubeLiveModal } from '@/components/meeting/YouTubeLiveModal';
+import { LiveBadge } from '@/components/meeting/LiveBadge';
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -61,6 +67,7 @@ function MeetingRoomInner({
 }: MeetingRoomProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { can } = usePermissions();
   const containerRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggleFullscreen } = useMeetingFullscreen();
 
@@ -76,6 +83,9 @@ function MeetingRoomInner({
   const [shareError, setShareError] = useState<string | null>(null);
   const [reactionsEnabled, setReactionsEnabled] = useState(true);
   const [raiseHandEnabled, setRaiseHandEnabled] = useState(true);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<string>();
+  const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
   const [mediaSession, setMediaSession] = useState<{
     loading: boolean;
     jwtEnabled: boolean;
@@ -144,6 +154,24 @@ function MeetingRoomInner({
   const canShareScreen =
     canShareScreenInRoom(myParticipant, roomMode, screenShareEnabled) ||
     (isHost && myRole === 'HOST' && !myParticipant);
+
+  const {
+    isLive: isLiveStream,
+    watchUrl: liveWatchUrl,
+    starting: streamStarting,
+    stopping: streamStopping,
+    startLive,
+    stopLive,
+    loadModeratorState,
+  } = useYouTubeLiveStream(meetingId);
+
+  const canStreamYoutube = can('canStreamToYoutube');
+
+  useEffect(() => {
+    if (isModerator && isYouTubeLiveEnabled() && canStreamYoutube) {
+      void loadModeratorState();
+    }
+  }, [isModerator, loadModeratorState, canStreamYoutube]);
 
   const handleLeave = useCallback(
     (message?: string) => {
@@ -447,12 +475,30 @@ function MeetingRoomInner({
 
   const handleSwitchRoomMode = async (mode: RoomMode) => {
     if (mode === roomMode) return;
+    if (mode === RoomMode.WEBINAR && !can('canSwitchRoomMode')) {
+      setUpgradeFeature('Webinar mode');
+      setUpgradeOpen(true);
+      return;
+    }
     setModeSwitching(true);
     try {
       await switchRoomMode(mode);
     } finally {
       setModeSwitching(false);
     }
+  };
+
+  const handleGoLive = () => {
+    if (!can('canStreamToYoutube')) {
+      setUpgradeFeature('YouTube Live streaming');
+      setUpgradeOpen(true);
+      return;
+    }
+    if (!isYouTubeLiveEnabled()) {
+      setShareError('YouTube Live is not enabled on this deployment yet.');
+      return;
+    }
+    setYoutubeModalOpen(true);
   };
 
   const handleToggleLock = async () => {
@@ -514,6 +560,20 @@ function MeetingRoomInner({
       <ReactionsOverlay reactions={reactions} />
       <WebinarModeBanner roomMode={roomMode} />
 
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        feature={upgradeFeature}
+      />
+
+      <YouTubeLiveModal
+        open={youtubeModalOpen}
+        defaultTitle={title}
+        onClose={() => setYoutubeModalOpen(false)}
+        loading={streamStarting}
+        onStart={(params) => startLive(params)}
+      />
+
       {shareError && (
         <div className="absolute left-1/2 top-20 z-40 -translate-x-1/2 rounded-lg bg-amber-600/95 px-4 py-2 text-sm text-white shadow-lg">
           {shareError}
@@ -572,6 +632,7 @@ function MeetingRoomInner({
           <div className="max-w-[min(100%,16rem)] truncate rounded-lg bg-black/50 px-2 py-1 text-xs text-white backdrop-blur sm:max-w-none sm:px-3 sm:py-1.5 sm:text-sm">
             {title}
           </div>
+          {isLiveStream && liveWatchUrl && <LiveBadge />}
         </div>
         <div className="rounded-lg bg-black/50 px-2 py-1 text-[10px] text-white/70 backdrop-blur sm:px-3 sm:text-xs">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
@@ -633,6 +694,11 @@ function MeetingRoomInner({
         onSwitchRoomMode={isModerator ? handleSwitchRoomMode : undefined}
         reactionsEnabled={reactionsEnabled}
         raiseHandEnabled={raiseHandEnabled}
+        isLiveStream={isLiveStream}
+        onGoLive={isModerator ? handleGoLive : undefined}
+        onStopLive={isModerator ? () => void stopLive() : undefined}
+        streamStopping={streamStopping}
+        canManageBroadcast={isModerator}
       />
 
       <MeetingDurationModal
