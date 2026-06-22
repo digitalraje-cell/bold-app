@@ -32,9 +32,28 @@ export interface YouTubeLiveSessionCredentials {
   title: string;
 }
 
+export type YoutubeTransitionResult =
+  | 'live'
+  | 'already-live'
+  | 'auto-started'
+  | 'timed-out';
+
+export type YoutubeTransitionContext = {
+  meetingId?: string;
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+  /** When false (default), timeout logs and returns without throwing. */
+  throwOnTimeout?: boolean;
+};
+
 @Injectable()
 export class YoutubeService {
   private readonly logger = new Logger(YoutubeService.name);
+  /** One in-flight transition workflow per YouTube broadcastId. */
+  private readonly transitionWorkflowByBroadcast = new Map<
+    string,
+    Promise<YoutubeTransitionResult>
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -729,25 +748,58 @@ export class YoutubeService {
   async transitionBroadcastToLive(
     accountId: string,
     broadcastId: string,
-  ): Promise<void> {
-    await this.transitionBroadcastToLiveWhenReady(accountId, broadcastId);
+    context?: YoutubeTransitionContext,
+  ): Promise<YoutubeTransitionResult> {
+    return this.transitionBroadcastToLiveWhenReady(
+      accountId,
+      broadcastId,
+      context,
+    );
   }
 
   /**
-   * Waits for YouTube RTMP ingest to report streamStatus=active, then transitions.
-   * Required because browser WebSocket chunks arrive after the start API returns.
+   * Idempotent: concurrent calls for the same broadcastId share one workflow.
+   * Waits for YouTube RTMP ingest (streamStatus=active) before manual transition.
    */
   async transitionBroadcastToLiveWhenReady(
     accountId: string,
     broadcastId: string,
-    options?: { maxWaitMs?: number; pollIntervalMs?: number },
-  ): Promise<void> {
-    const maxWaitMs = options?.maxWaitMs ?? 90_000;
-    const pollIntervalMs = options?.pollIntervalMs ?? 2_000;
+    context?: YoutubeTransitionContext,
+  ): Promise<YoutubeTransitionResult> {
+    const existing = this.transitionWorkflowByBroadcast.get(broadcastId);
+    if (existing) {
+      this.logger.log(
+        `[youtube-live] transitionBroadcastToLiveWhenReady:dedupe ${JSON.stringify(
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+            note: 'transition-workflow-already-running',
+          },
+        )}`,
+      );
+      return existing;
+    }
 
-    this.logger.log(
-      `[youtube-live] transitionBroadcastToLiveWhenReady:start accountId=${accountId} broadcastId=${broadcastId} maxWaitMs=${maxWaitMs}`,
-    );
+    const workflow = this.runTransitionBroadcastWorkflow(
+      accountId,
+      broadcastId,
+      context,
+    ).finally(() => {
+      this.transitionWorkflowByBroadcast.delete(broadcastId);
+    });
+
+    this.transitionWorkflowByBroadcast.set(broadcastId, workflow);
+    return workflow;
+  }
+
+  private async runTransitionBroadcastWorkflow(
+    accountId: string,
+    broadcastId: string,
+    context?: YoutubeTransitionContext,
+  ): Promise<YoutubeTransitionResult> {
+    const maxWaitMs = context?.maxWaitMs ?? 90_000;
+    const pollIntervalMs = context?.pollIntervalMs ?? 2_000;
+    const throwOnTimeout = context?.throwOnTimeout ?? false;
 
     const accessToken = await this.getValidAccessToken(accountId);
     const boundStreamId = await this.resolveBoundStreamId(
@@ -756,12 +808,24 @@ export class YoutubeService {
     );
     if (!boundStreamId) {
       this.logger.error(
-        `[youtube-live] transitionBroadcastToLiveWhenReady:no-bound-stream broadcastId=${broadcastId}`,
+        `[youtube-live] transitionBroadcastToLiveWhenReady:no-bound-stream ${JSON.stringify(
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+          },
+        )}`,
       );
       throw new ServiceUnavailableException(
         'YouTube broadcast has no bound live stream.',
       );
     }
+
+    this.logLifecycleContext('transitionBroadcastToLiveWhenReady:start', {
+      meetingId: context?.meetingId ?? null,
+      broadcastId,
+      streamId: boundStreamId,
+      maxWaitMs,
+    });
 
     await this.logLiveStreamsList(accessToken, boundStreamId, 'pre-transition');
     await this.logBroadcastLifecycleSnapshot(
@@ -769,21 +833,12 @@ export class YoutubeService {
       broadcastId,
       boundStreamId,
       'pre-transition',
+      context?.meetingId,
     );
 
     const enableAutoStart = await this.getBroadcastEnableAutoStart(
       accessToken,
       broadcastId,
-    );
-    this.logger.log(
-      `[youtube-live] transitionBroadcastToLiveWhenReady:config ${JSON.stringify(
-        {
-          broadcastId,
-          boundStreamId,
-          enableAutoStart,
-          willWaitForStreamActive: true,
-        },
-      )}`,
     );
 
     const deadline = Date.now() + maxWaitMs;
@@ -794,33 +849,93 @@ export class YoutubeService {
         accessToken,
         boundStreamId,
       );
-      const lifeCycleStatus = await this.fetchBroadcastLifeCycleStatus(
+      const broadcastStatus = await this.fetchBroadcastLifecycle(
         accessToken,
         broadcastId,
       );
 
-      this.logger.log(
-        `[youtube-live] transitionBroadcastToLiveWhenReady:poll attempt=${attempt} ${JSON.stringify(
-          {
-            broadcastId,
-            boundStreamId,
-            streamStatus: streamStatus.streamStatus,
-            healthStatus: streamStatus.healthStatus,
-            lifeCycleStatus,
-          },
-        )}`,
-      );
+      this.logLifecycleContext('transitionBroadcastToLiveWhenReady:poll', {
+        meetingId: context?.meetingId ?? null,
+        broadcastId,
+        streamId: boundStreamId,
+        streamStatus: streamStatus.streamStatus,
+        lifecycleStatus: broadcastStatus.lifeCycleStatus,
+        actualStartTime: broadcastStatus.actualStartTime,
+        attempt,
+        enableAutoStart,
+      });
 
-      if (lifeCycleStatus === 'live') {
-        this.logger.log(
-          `[youtube-live] transitionBroadcastToLiveWhenReady:already-live broadcastId=${broadcastId} (enableAutoStart=${enableAutoStart})`,
+      if (broadcastStatus.lifeCycleStatus === 'live') {
+        this.logLifecycleContext(
+          'transitionBroadcastToLiveWhenReady:already-live',
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+            streamId: boundStreamId,
+            streamStatus: streamStatus.streamStatus,
+            lifecycleStatus: broadcastStatus.lifeCycleStatus,
+            actualStartTime: broadcastStatus.actualStartTime,
+            enableAutoStart,
+          },
         );
-        return;
+        return 'already-live';
+      }
+
+      if (
+        enableAutoStart &&
+        (broadcastStatus.lifeCycleStatus === 'testing' ||
+          broadcastStatus.lifeCycleStatus === 'live')
+      ) {
+        this.logLifecycleContext(
+          'transitionBroadcastToLiveWhenReady:auto-started',
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+            streamId: boundStreamId,
+            streamStatus: streamStatus.streamStatus,
+            lifecycleStatus: broadcastStatus.lifeCycleStatus,
+            actualStartTime: broadcastStatus.actualStartTime,
+          },
+        );
+        return 'auto-started';
       }
 
       if (streamStatus.streamStatus === 'active') {
-        this.logger.log(
-          `[youtube-live] transitionBroadcastToLiveWhenReady:stream-active broadcastId=${broadcastId} proceeding to manual transition`,
+        const refreshed = await this.fetchBroadcastLifecycle(
+          accessToken,
+          broadcastId,
+        );
+        if (
+          refreshed.lifeCycleStatus === 'live' ||
+          refreshed.lifeCycleStatus === 'testing'
+        ) {
+          this.logLifecycleContext(
+            'transitionBroadcastToLiveWhenReady:skip-manual-transition',
+            {
+              meetingId: context?.meetingId ?? null,
+              broadcastId,
+              streamId: boundStreamId,
+              streamStatus: streamStatus.streamStatus,
+              lifecycleStatus: refreshed.lifeCycleStatus,
+              actualStartTime: refreshed.actualStartTime,
+              note: 'youtube-already-advanced-before-manual-transition',
+            },
+          );
+          return refreshed.lifeCycleStatus === 'live'
+            ? 'already-live'
+            : 'auto-started';
+        }
+
+        this.logLifecycleContext(
+          'transitionBroadcastToLiveWhenReady:stream-active',
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+            streamId: boundStreamId,
+            streamStatus: streamStatus.streamStatus,
+            lifecycleStatus: refreshed.lifeCycleStatus,
+            actualStartTime: refreshed.actualStartTime,
+          },
         );
         await this.logLiveStreamsList(
           accessToken,
@@ -834,39 +949,71 @@ export class YoutubeService {
           broadcastId,
           boundStreamId,
           'post-transition',
+          context?.meetingId,
         );
-        this.logger.log(
-          `[youtube-live] transitionBroadcastToLiveWhenReady:complete broadcastId=${broadcastId}`,
+        this.logLifecycleContext(
+          'transitionBroadcastToLiveWhenReady:complete',
+          {
+            meetingId: context?.meetingId ?? null,
+            broadcastId,
+            streamId: boundStreamId,
+            lifecycleStatus: 'live',
+          },
         );
-        return;
-      }
-
-      if (
-        enableAutoStart &&
-        (lifeCycleStatus === 'testing' || lifeCycleStatus === 'live')
-      ) {
-        this.logger.log(
-          `[youtube-live] transitionBroadcastToLiveWhenReady:auto-start-progress lifeCycleStatus=${lifeCycleStatus}`,
-        );
-        return;
+        return 'live';
       }
 
       await this.sleep(pollIntervalMs);
     }
 
+    const streamStatus = await this.fetchYouTubeStreamStatus(
+      accessToken,
+      boundStreamId,
+    );
+    const broadcastStatus = await this.fetchBroadcastLifecycle(
+      accessToken,
+      broadcastId,
+    );
     await this.logLiveStreamsList(accessToken, boundStreamId, 'wait-timeout');
     await this.logBroadcastLifecycleSnapshot(
       accessToken,
       broadcastId,
       boundStreamId,
       'wait-timeout',
+      context?.meetingId,
     );
-    this.logger.error(
-      `[youtube-live] transitionBroadcastToLiveWhenReady:timeout broadcastId=${broadcastId} boundStreamId=${boundStreamId} after ${maxWaitMs}ms — streamStatus never became active`,
-    );
-    throw new ServiceUnavailableException(
-      'YouTube did not receive stream data in time. Ensure screen sharing started and try again.',
-    );
+    this.logLifecycleContext('transitionBroadcastToLiveWhenReady:timeout', {
+      meetingId: context?.meetingId ?? null,
+      broadcastId,
+      streamId: boundStreamId,
+      streamStatus: streamStatus.streamStatus,
+      lifecycleStatus: broadcastStatus.lifeCycleStatus,
+      actualStartTime: broadcastStatus.actualStartTime,
+      maxWaitMs,
+      note: 'meeting-continues-relay-may-still-be-ingesting',
+    });
+
+    if (throwOnTimeout) {
+      throw new ServiceUnavailableException(
+        'YouTube did not receive stream data in time. Ensure screen sharing started and try again.',
+      );
+    }
+    return 'timed-out';
+  }
+
+  private logLifecycleContext(
+    phase: string,
+    fields: {
+      meetingId?: string | null;
+      broadcastId: string;
+      streamId: string;
+      streamStatus?: string | null;
+      lifecycleStatus?: string | null;
+      actualStartTime?: string | null;
+      [key: string]: unknown;
+    },
+  ): void {
+    this.logger.log(`[youtube-live] ${phase} ${JSON.stringify(fields)}`);
   }
 
   private async fetchYouTubeStreamStatus(
@@ -899,19 +1046,42 @@ export class YoutubeService {
     }
   }
 
+  private async fetchBroadcastLifecycle(
+    accessToken: string,
+    broadcastId: string,
+  ): Promise<{
+    lifeCycleStatus: string | null;
+    actualStartTime: string | null;
+  }> {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&id=${encodeURIComponent(broadcastId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) {
+      return { lifeCycleStatus: null, actualStartTime: null };
+    }
+    const data = (await res.json()) as {
+      items?: Array<{
+        status?: { lifeCycleStatus?: string };
+        snippet?: { actualStartTime?: string };
+      }>;
+    };
+    const item = data.items?.[0];
+    return {
+      lifeCycleStatus: item?.status?.lifeCycleStatus ?? null,
+      actualStartTime: item?.snippet?.actualStartTime ?? null,
+    };
+  }
+
   private async fetchBroadcastLifeCycleStatus(
     accessToken: string,
     broadcastId: string,
   ): Promise<string | null> {
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=status&id=${encodeURIComponent(broadcastId)}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
+    const details = await this.fetchBroadcastLifecycle(
+      accessToken,
+      broadcastId,
     );
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      items?: Array<{ status?: { lifeCycleStatus?: string } }>;
-    };
-    return data.items?.[0]?.status?.lifeCycleStatus ?? null;
+    return details.lifeCycleStatus;
   }
 
   private async getBroadcastEnableAutoStart(
@@ -1019,6 +1189,7 @@ export class YoutubeService {
     broadcastId: string,
     streamId: string,
     phase: string,
+    meetingId?: string,
   ): Promise<void> {
     type BroadcastSnapshot = {
       status?: { lifeCycleStatus?: string };
@@ -1068,6 +1239,7 @@ export class YoutubeService {
 
     this.logger.log(
       `[youtube-live] lifecycle:${phase} ${JSON.stringify({
+        meetingId: meetingId ?? null,
         broadcastId,
         streamId,
         lifeCycleStatus: broadcast?.status?.lifeCycleStatus ?? null,

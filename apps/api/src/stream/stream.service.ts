@@ -46,7 +46,8 @@ type PendingYoutubeTransition = {
   broadcastId: string;
   youtubeStreamId: string;
   meetingId: string;
-  transitionInFlight: boolean;
+  /** Set true on first ingest chunk; never reset — one workflow per broadcast. */
+  transitionAttempted: boolean;
 };
 
 @Injectable()
@@ -361,54 +362,76 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       );
       return;
     }
-    if (pending.transitionInFlight) {
+    if (pending.transitionAttempted) {
       this.logger.log(
-        `[youtube-live] stream.schedule-transition:skipped boldStreamId=${boldStreamId} reason=transition-in-flight`,
+        `[youtube-live] stream.schedule-transition:skipped ${JSON.stringify({
+          meetingId: pending.meetingId,
+          broadcastId: pending.broadcastId,
+          streamId: pending.youtubeStreamId,
+          boldStreamId,
+          reason: 'transition-already-attempted',
+        })}`,
       );
       return;
     }
 
-    pending.transitionInFlight = true;
+    pending.transitionAttempted = true;
     const stats = this.relay.getIngestStats(boldStreamId);
     this.logger.log(
-      `[youtube-live] stream.schedule-transition:start boldStreamId=${boldStreamId} ${JSON.stringify(
-        {
-          broadcastId: pending.broadcastId,
-          youtubeStreamId: pending.youtubeStreamId,
-          chunksReceived: stats?.chunksReceived ?? 0,
-          bytesReceived: stats?.bytesReceived ?? 0,
-          note: 'first-ingest-chunk-received-now-waiting-for-youtube-streamStatus-active',
-        },
-      )}`,
+      `[youtube-live] stream.schedule-transition:start ${JSON.stringify({
+        meetingId: pending.meetingId,
+        broadcastId: pending.broadcastId,
+        streamId: pending.youtubeStreamId,
+        boldStreamId,
+        chunksReceived: stats?.chunksReceived ?? 0,
+        bytesReceived: stats?.bytesReceived ?? 0,
+      })}`,
     );
 
     void this.youtube
       .transitionBroadcastToLiveWhenReady(
         pending.accountId,
         pending.broadcastId,
+        {
+          meetingId: pending.meetingId,
+          throwOnTimeout: false,
+        },
       )
-      .then(() => {
+      .then((result) => {
         this.logger.log(
-          `[youtube-live] stream.schedule-transition:complete boldStreamId=${boldStreamId} broadcastId=${pending.broadcastId}`,
+          `[youtube-live] stream.schedule-transition:finished ${JSON.stringify({
+            meetingId: pending.meetingId,
+            broadcastId: pending.broadcastId,
+            streamId: pending.youtubeStreamId,
+            boldStreamId,
+            result,
+          })}`,
         );
         this.pendingYoutubeTransitions.delete(boldStreamId);
       })
       .catch((err: unknown) => {
-        pending.transitionInFlight = false;
         const message = err instanceof Error ? err.message : String(err);
         this.logger.error(
-          `[youtube-live] stream.schedule-transition:failed boldStreamId=${boldStreamId} broadcastId=${pending.broadcastId} error=${message}`,
+          `[youtube-live] stream.schedule-transition:error ${JSON.stringify({
+            meetingId: pending.meetingId,
+            broadcastId: pending.broadcastId,
+            streamId: pending.youtubeStreamId,
+            boldStreamId,
+            error: message,
+            note: 'meeting-continues',
+          })}`,
         );
+        this.pendingYoutubeTransitions.delete(boldStreamId);
       });
   }
 
   private registerPendingYoutubeTransition(
     boldStreamId: string,
-    input: Omit<PendingYoutubeTransition, 'transitionInFlight'>,
+    input: Omit<PendingYoutubeTransition, 'transitionAttempted'>,
   ): void {
     this.pendingYoutubeTransitions.set(boldStreamId, {
       ...input,
-      transitionInFlight: false,
+      transitionAttempted: false,
     });
     this.logger.log(
       `[youtube-live] stream.register-pending-transition boldStreamId=${boldStreamId} ${JSON.stringify(
