@@ -41,11 +41,23 @@ import { YoutubeService } from '../youtube/youtube.service';
 
 const HOST_DISCONNECT_STOP_MS = 60_000;
 
+type PendingYoutubeTransition = {
+  accountId: string;
+  broadcastId: string;
+  youtubeStreamId: string;
+  meetingId: string;
+  transitionInFlight: boolean;
+};
+
 @Injectable()
 export class StreamService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StreamService.name);
   private registry: MeetingBroadcastProviderRegistry;
   private staleCheckTimer: NodeJS.Timeout | null = null;
+  private pendingYoutubeTransitions = new Map<
+    string,
+    PendingYoutubeTransition
+  >();
 
   constructor(
     private prisma: PrismaService,
@@ -56,7 +68,10 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     youtubeProvider: YoutubeRtmpBroadcastProvider,
     custom: CustomRtmpBroadcastProvider,
   ) {
-    this.registry = new MeetingBroadcastProviderRegistry(youtubeProvider, custom);
+    this.registry = new MeetingBroadcastProviderRegistry(
+      youtubeProvider,
+      custom,
+    );
   }
 
   onModuleInit() {
@@ -92,16 +107,23 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     if (streams.length === 0) return null;
 
     const liveStreams = streams.filter((s) => s.status === StreamStatus.LIVE);
-    const activeStreams = liveStreams.length > 0 ? liveStreams : [streams[streams.length - 1]];
+    const activeStreams =
+      liveStreams.length > 0 ? liveStreams : [streams[streams.length - 1]];
 
     for (const stream of activeStreams) {
-      if (stream.status === StreamStatus.LIVE && !this.relay.isRunning(stream.id)) {
+      if (
+        stream.status === StreamStatus.LIVE &&
+        !this.relay.isRunning(stream.id)
+      ) {
         await this.failOrphanedStream(stream.id, meetingId);
       }
     }
 
     const refreshed = await this.prisma.youTubeStream.findMany({
-      where: { meetingId, status: { in: [StreamStatus.LIVE, StreamStatus.IDLE] } },
+      where: {
+        meetingId,
+        status: { in: [StreamStatus.LIVE, StreamStatus.IDLE] },
+      },
       orderBy: { createdAt: 'asc' },
     });
     const stillLive = refreshed.filter((s) => s.status === StreamStatus.LIVE);
@@ -140,10 +162,13 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     actorUserId: string,
     dto: StartStreamDto,
   ): Promise<StartLiveStreamResult> {
+    this.logger.log(
+      `[youtube-live] stream.start:request meetingId=${meetingId} actorUserId=${actorUserId} provider=${dto.provider} youtubeAccountIds=${JSON.stringify(dto.youtubeAccountIds ?? dto.youtubeAccountId ?? null)}`,
+    );
     const meeting = await this.assertCanManageBroadcast(meetingId, actorUserId);
     await this.permissions.check(actorUserId, 'canStreamToYoutube');
 
-    const providerType = dto.provider as MeetingBroadcastProviderType;
+    const providerType = dto.provider;
     if (providerType === MeetingBroadcastProviderType.NONE) {
       throw new BadRequestException('Select a broadcast provider');
     }
@@ -172,7 +197,10 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     const privacyStatus: YouTubePrivacyStatus = dto.visibility ?? 'unlisted';
     const visibility = this.mapVisibility(privacyStatus);
 
-    if (providerType === MeetingBroadcastProviderType.YOUTUBE_RTMP && !dto.streamKey?.trim()) {
+    if (
+      providerType === MeetingBroadcastProviderType.YOUTUBE_RTMP &&
+      !dto.streamKey?.trim()
+    ) {
       const accountIds = this.resolveYoutubeAccountIds(dto);
       await this.assertDestinationLimits(actorUserId, accountIds.length);
       return this.startYoutubeApiStreams({
@@ -188,10 +216,17 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!dto.streamKey?.trim()) {
-      throw new BadRequestException('Stream key is required for manual RTMP mode');
+      throw new BadRequestException(
+        'Stream key is required for manual RTMP mode',
+      );
     }
-    if (providerType === MeetingBroadcastProviderType.CUSTOM_RTMP && !dto.rtmpUrl?.trim()) {
-      throw new BadRequestException('RTMP URL is required for custom streaming');
+    if (
+      providerType === MeetingBroadcastProviderType.CUSTOM_RTMP &&
+      !dto.rtmpUrl?.trim()
+    ) {
+      throw new BadRequestException(
+        'RTMP URL is required for custom streaming',
+      );
     }
 
     const rtmpUrl =
@@ -211,7 +246,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       data: {
         meetingId,
         youtubeAccountId: null,
-        provider: dto.provider as StreamingProviderType,
+        provider: dto.provider,
         title: streamTitle,
         rtmpUrl,
         streamKey: encryptedKey,
@@ -257,7 +292,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     return {
       ...view,
       ingestToken: relayResult.ingestToken,
-      sessions: [{ id: stream.id, ingestToken: relayResult.ingestToken, watchUrl }],
+      sessions: [
+        { id: stream.id, ingestToken: relayResult.ingestToken, watchUrl },
+      ],
     };
   }
 
@@ -270,13 +307,20 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
     const legacy = dto.youtubeAccountId?.trim();
     if (legacy) return [legacy];
-    throw new BadRequestException('Select at least one YouTube channel before going live.');
+    throw new BadRequestException(
+      'Select at least one YouTube channel before going live.',
+    );
   }
 
-  private async assertDestinationLimits(userId: string, destinationCount: number) {
+  private async assertDestinationLimits(
+    userId: string,
+    destinationCount: number,
+  ) {
     const { plan } = await this.permissions.getUserPlanContext(userId);
     const enterpriseMax = process.env.ENTERPRISE_MAX_YOUTUBE_CHANNELS?.trim();
-    const parsed = enterpriseMax ? Number.parseInt(enterpriseMax, 10) : undefined;
+    const parsed = enterpriseMax
+      ? Number.parseInt(enterpriseMax, 10)
+      : undefined;
     const limits = getYoutubePlanLimits(plan, {
       enterpriseMaxChannels: Number.isFinite(parsed) ? parsed : undefined,
     });
@@ -292,6 +336,92 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  onYoutubeIngestSocketConnected(boldStreamId: string): void {
+    const pending = this.pendingYoutubeTransitions.get(boldStreamId);
+    const stats = this.relay.getIngestStats(boldStreamId);
+    this.logger.log(
+      `[youtube-live] stream.ingest-socket-connected boldStreamId=${boldStreamId} ${JSON.stringify(
+        {
+          hasPendingTransition: Boolean(pending),
+          broadcastId: pending?.broadcastId ?? null,
+          youtubeStreamId: pending?.youtubeStreamId ?? null,
+          ingestConnected: stats?.ingestConnected ?? false,
+          chunksReceived: stats?.chunksReceived ?? 0,
+          note: 'websocket-open-but-rtmp-not-active-until-first-chunk',
+        },
+      )}`,
+    );
+  }
+
+  scheduleYoutubeTransitionAfterIngest(boldStreamId: string): void {
+    const pending = this.pendingYoutubeTransitions.get(boldStreamId);
+    if (!pending) {
+      this.logger.warn(
+        `[youtube-live] stream.schedule-transition:skipped boldStreamId=${boldStreamId} reason=no-pending-transition`,
+      );
+      return;
+    }
+    if (pending.transitionInFlight) {
+      this.logger.log(
+        `[youtube-live] stream.schedule-transition:skipped boldStreamId=${boldStreamId} reason=transition-in-flight`,
+      );
+      return;
+    }
+
+    pending.transitionInFlight = true;
+    const stats = this.relay.getIngestStats(boldStreamId);
+    this.logger.log(
+      `[youtube-live] stream.schedule-transition:start boldStreamId=${boldStreamId} ${JSON.stringify(
+        {
+          broadcastId: pending.broadcastId,
+          youtubeStreamId: pending.youtubeStreamId,
+          chunksReceived: stats?.chunksReceived ?? 0,
+          bytesReceived: stats?.bytesReceived ?? 0,
+          note: 'first-ingest-chunk-received-now-waiting-for-youtube-streamStatus-active',
+        },
+      )}`,
+    );
+
+    void this.youtube
+      .transitionBroadcastToLiveWhenReady(
+        pending.accountId,
+        pending.broadcastId,
+      )
+      .then(() => {
+        this.logger.log(
+          `[youtube-live] stream.schedule-transition:complete boldStreamId=${boldStreamId} broadcastId=${pending.broadcastId}`,
+        );
+        this.pendingYoutubeTransitions.delete(boldStreamId);
+      })
+      .catch((err: unknown) => {
+        pending.transitionInFlight = false;
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `[youtube-live] stream.schedule-transition:failed boldStreamId=${boldStreamId} broadcastId=${pending.broadcastId} error=${message}`,
+        );
+      });
+  }
+
+  private registerPendingYoutubeTransition(
+    boldStreamId: string,
+    input: Omit<PendingYoutubeTransition, 'transitionInFlight'>,
+  ): void {
+    this.pendingYoutubeTransitions.set(boldStreamId, {
+      ...input,
+      transitionInFlight: false,
+    });
+    this.logger.log(
+      `[youtube-live] stream.register-pending-transition boldStreamId=${boldStreamId} ${JSON.stringify(
+        {
+          broadcastId: input.broadcastId,
+          youtubeStreamId: input.youtubeStreamId,
+          meetingId: input.meetingId,
+          note: 'transition-deferred-until-browser-sends-ingest-chunks',
+        },
+      )}`,
+    );
+  }
+
   private async startYoutubeApiStreams(input: {
     meetingId: string;
     actorUserId: string;
@@ -302,7 +432,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     visibility: StreamVisibility;
     providerType: MeetingBroadcastProviderType;
   }): Promise<StartLiveStreamResult> {
-    const providerImpl = this.registry.get(MeetingBroadcastProviderType.YOUTUBE_RTMP)!;
+    const providerImpl = this.registry.get(
+      MeetingBroadcastProviderType.YOUTUBE_RTMP,
+    )!;
     const created: Array<{
       streamId: string;
       accountId: string;
@@ -312,13 +444,19 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       channelName: string;
     }> = [];
 
+    this.logger.log(
+      `[youtube-live] stream.startYoutubeApiStreams:start meetingId=${input.meetingId} accountCount=${input.accountIds.length} note=no-jibri-browser-capture-pipeline`,
+    );
+
     try {
       for (const accountId of input.accountIds) {
         const account = await this.prisma.youTubeAccount.findFirst({
           where: { id: accountId, userId: input.actorUserId },
         });
         if (!account) {
-          throw new BadRequestException('One or more selected YouTube channels were not found.');
+          throw new BadRequestException(
+            'One or more selected YouTube channels were not found.',
+          );
         }
         if (!account.liveStreamingEnabled) {
           throw new BadRequestException(
@@ -326,13 +464,24 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
           );
         }
 
-        const session = await this.youtube.createLiveSession(accountId, input.actorUserId, {
-          title: input.streamTitle,
-          description: input.description,
-          privacyStatus: input.privacyStatus,
-        });
+        const session = await this.youtube.createLiveSession(
+          accountId,
+          input.actorUserId,
+          {
+            title: input.streamTitle,
+            description: input.description,
+            privacyStatus: input.privacyStatus,
+          },
+        );
 
-        const outputUrl = providerImpl.buildOutputUrl(session.rtmpUrl, session.streamKey);
+        this.logger.log(
+          `[youtube-live] stream.createLiveSession:done boldStreamId=pending meetingId=${input.meetingId} youtubeBroadcastId=${session.broadcastId} youtubeStreamId=${session.streamId}`,
+        );
+
+        const outputUrl = providerImpl.buildOutputUrl(
+          session.rtmpUrl,
+          session.streamKey,
+        );
         const encryptedKey = encryptText(session.streamKey);
 
         const stream = await this.prisma.youTubeStream.upsert({
@@ -382,6 +531,17 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
           );
         }
 
+        this.logger.log(
+          `[youtube-live] stream.relay-started boldStreamId=${stream.id} youtubeBroadcastId=${session.broadcastId} note=ffmpeg-spawned-no-rtmp-data-yet`,
+        );
+
+        this.registerPendingYoutubeTransition(stream.id, {
+          accountId,
+          broadcastId: session.broadcastId,
+          youtubeStreamId: session.streamId,
+          meetingId: input.meetingId,
+        });
+
         created.push({
           streamId: stream.id,
           accountId,
@@ -392,9 +552,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
         });
       }
 
-      for (const item of created) {
-        await this.youtube.transitionBroadcastToLive(item.accountId, item.broadcastId);
-      }
+      this.logger.log(
+        `[youtube-live] stream.startYoutubeApiStreams:returning-ingest-token meetingId=${input.meetingId} sessionCount=${created.length} note=transition-deferred-until-ingest-chunks`,
+      );
 
       const startedAt = new Date();
       await this.prisma.youTubeStream.updateMany({
@@ -426,13 +586,16 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
 
       return {
         ...aggregate,
-        ingestToken: sessions[0]!.ingestToken,
+        ingestToken: sessions[0].ingestToken,
         sessions,
       };
     } catch (error) {
       for (const item of created) {
+        this.pendingYoutubeTransitions.delete(item.streamId);
         this.relay.stop(item.streamId);
-        await this.youtube.endBroadcast(item.accountId, item.broadcastId).catch(() => undefined);
+        await this.youtube
+          .endBroadcast(item.accountId, item.broadcastId)
+          .catch(() => undefined);
         await this.prisma.youTubeStream.update({
           where: { id: item.streamId },
           data: { status: StreamStatus.ERROR, endedAt: new Date() },
@@ -442,7 +605,10 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async resume(meetingId: string, actorUserId: string): Promise<StartLiveStreamResult> {
+  async resume(
+    meetingId: string,
+    actorUserId: string,
+  ): Promise<StartLiveStreamResult> {
     await this.assertCanManageBroadcast(meetingId, actorUserId);
     await this.permissions.check(actorUserId, 'canStreamToYoutube');
 
@@ -460,7 +626,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       if (this.relay.isRunning(stream.id)) {
         const ingestToken = this.relay.reissueIngestToken(stream.id);
         if (!ingestToken) {
-          throw new ServiceUnavailableException('Could not resume stream relay');
+          throw new ServiceUnavailableException(
+            'Could not resume stream relay',
+          );
         }
         const account = stream.youtubeAccountId
           ? await this.prisma.youTubeAccount.findUnique({
@@ -486,10 +654,14 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
-      const providerImpl = this.registry.get(stream.provider as MeetingBroadcastProviderType);
+      const providerImpl = this.registry.get(
+        stream.provider as MeetingBroadcastProviderType,
+      );
       if (!providerImpl) {
         await this.failOrphanedStream(stream.id, meetingId);
-        throw new BadRequestException('Unsupported broadcast provider for recovery');
+        throw new BadRequestException(
+          'Unsupported broadcast provider for recovery',
+        );
       }
 
       const outputUrl = providerImpl.buildOutputUrl(stream.rtmpUrl, streamKey);
@@ -507,16 +679,20 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (stream.broadcastId && stream.youtubeAccountId) {
-        try {
-          await this.youtube.transitionBroadcastToLive(
-            stream.youtubeAccountId,
-            stream.broadcastId,
-          );
-        } catch {
-          await this.failOrphanedStream(stream.id, meetingId);
-          throw new ServiceUnavailableException(
-            'Stream recovery failed — could not resume YouTube broadcast.',
-          );
+        if (stream.streamId) {
+          this.registerPendingYoutubeTransition(stream.id, {
+            accountId: stream.youtubeAccountId,
+            broadcastId: stream.broadcastId,
+            youtubeStreamId: stream.streamId,
+            meetingId,
+          });
+          if (this.relay.hasReceivedIngestChunks(stream.id)) {
+            this.scheduleYoutubeTransitionAfterIngest(stream.id);
+          } else {
+            this.logger.log(
+              `[youtube-live] stream.resume:transition-deferred boldStreamId=${stream.id} broadcastId=${stream.broadcastId}`,
+            );
+          }
         }
       }
 
@@ -538,12 +714,15 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     const aggregate = await this.toAggregateView(streams);
     return {
       ...aggregate,
-      ingestToken: sessions[0]!.ingestToken,
+      ingestToken: sessions[0].ingestToken,
       sessions,
     };
   }
 
-  async stop(meetingId: string, actorUserId: string): Promise<LiveStreamSessionView> {
+  async stop(
+    meetingId: string,
+    actorUserId: string,
+  ): Promise<LiveStreamSessionView> {
     await this.assertCanManageBroadcast(meetingId, actorUserId);
 
     const streams = await this.prisma.youTubeStream.findMany({
@@ -562,7 +741,11 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
 
     let lastView: LiveStreamSessionView | null = null;
     for (const stream of streams) {
-      lastView = await this.finalizeStop(stream.id, meetingId, streams.length === 1);
+      lastView = await this.finalizeStop(
+        stream.id,
+        meetingId,
+        streams.length === 1,
+      );
     }
     return lastView!;
   }
@@ -585,7 +768,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     meetingId: string,
     broadcastStopped = true,
   ): Promise<LiveStreamSessionView> {
-    const stream = await this.prisma.youTubeStream.findUnique({ where: { id: streamId } });
+    const stream = await this.prisma.youTubeStream.findUnique({
+      where: { id: streamId },
+    });
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
@@ -593,9 +778,13 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     this.relay.stop(streamId);
 
     if (stream.broadcastId && stream.youtubeAccountId) {
-      await this.youtube.endBroadcast(stream.youtubeAccountId, stream.broadcastId).catch((error) => {
-        this.logger.warn(`[stream] endBroadcast failed for ${stream.broadcastId}: ${error}`);
-      });
+      await this.youtube
+        .endBroadcast(stream.youtubeAccountId, stream.broadcastId)
+        .catch((error) => {
+          this.logger.warn(
+            `[stream] endBroadcast failed for ${stream.broadcastId}: ${error}`,
+          );
+        });
     }
 
     const updated = await this.prisma.youTubeStream.update({
@@ -613,7 +802,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async failOrphanedStream(streamId: string, meetingId: string) {
-    const stream = await this.prisma.youTubeStream.findUnique({ where: { id: streamId } });
+    const stream = await this.prisma.youTubeStream.findUnique({
+      where: { id: streamId },
+    });
     this.relay.stop(streamId);
     if (stream?.broadcastId && stream.youtubeAccountId) {
       await this.youtube
@@ -635,7 +826,10 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     return 'Bold Meeting';
   }
 
-  private buildStreamDescription(meetingTitle: string, hostName: string): string {
+  private buildStreamDescription(
+    meetingTitle: string,
+    hostName: string,
+  ): string {
     return [meetingTitle, hostName, 'Powered by Bold'].join('\n');
   }
 
@@ -650,7 +844,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private mapVisibilityToApi(visibility: StreamVisibility): YouTubePrivacyStatus {
+  private mapVisibilityToApi(
+    visibility: StreamVisibility,
+  ): YouTubePrivacyStatus {
     switch (visibility) {
       case StreamVisibility.PUBLIC:
         return 'public';
@@ -661,7 +857,10 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async resolveWatchUrl(userId: string, explicit?: string | null): Promise<string> {
+  private async resolveWatchUrl(
+    userId: string,
+    explicit?: string | null,
+  ): Promise<string> {
     if (explicit?.trim()) return explicit.trim();
 
     const account = await this.prisma.youTubeAccount.findFirst({
@@ -700,7 +899,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!coHost) {
-      throw new ForbiddenException('Only the host or co-host can manage YouTube Live');
+      throw new ForbiddenException(
+        'Only the host or co-host can manage YouTube Live',
+      );
     }
 
     return meeting;
@@ -722,7 +923,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       endedAt: Date | null;
     }>,
   ): Promise<LiveStreamSessionView> {
-    const primary = streams[0]!;
+    const primary = streams[0];
     const destinations = await Promise.all(
       streams.map(async (stream) => {
         const relayActive = this.relay.isRunning(stream.id);
@@ -778,22 +979,20 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private async toView(
-    stream: {
-      id: string;
-      meetingId: string;
-      youtubeAccountId: string | null;
-      provider: StreamingProviderType;
-      title: string | null;
-      broadcastId: string | null;
-      rtmpUrl: string | null;
-      watchUrl: string | null;
-      visibility: StreamVisibility;
-      status: StreamStatus;
-      startedAt: Date | null;
-      endedAt: Date | null;
-    },
-  ): Promise<LiveStreamSessionView> {
+  private async toView(stream: {
+    id: string;
+    meetingId: string;
+    youtubeAccountId: string | null;
+    provider: StreamingProviderType;
+    title: string | null;
+    broadcastId: string | null;
+    rtmpUrl: string | null;
+    watchUrl: string | null;
+    visibility: StreamVisibility;
+    status: StreamStatus;
+    startedAt: Date | null;
+    endedAt: Date | null;
+  }): Promise<LiveStreamSessionView> {
     const relayActive = this.relay.isRunning(stream.id);
     let viewerCount: number | null = null;
     if (

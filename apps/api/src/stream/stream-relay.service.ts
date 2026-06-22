@@ -16,6 +16,9 @@ export interface ActiveRelay {
   startedAt: Date;
   lastChunkAt: Date;
   ingestConnected: boolean;
+  chunksReceived: number;
+  bytesReceived: number;
+  firstChunkAt: Date | null;
 }
 
 @Injectable()
@@ -23,7 +26,9 @@ export class StreamRelayService {
   private readonly logger = new Logger(StreamRelayService.name);
   private relays = new Map<string, ActiveRelay>();
 
-  start(input: RelayStartInput): { ok: true; ingestToken: string } | { ok: false; error: string } {
+  start(
+    input: RelayStartInput,
+  ): { ok: true; ingestToken: string } | { ok: false; error: string } {
     if (this.relays.has(input.streamId)) {
       return { ok: false, error: 'Relay already running for this stream' };
     }
@@ -66,7 +71,8 @@ export class StreamRelayService {
         { stdio: ['pipe', 'pipe', 'pipe'] },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to spawn ffmpeg';
+      const message =
+        error instanceof Error ? error.message : 'Failed to spawn ffmpeg';
       return { ok: false, error: message };
     }
 
@@ -76,7 +82,9 @@ export class StreamRelayService {
     });
 
     ffmpeg.on('close', (code) => {
-      this.logger.log(`[ffmpeg:${input.streamId}] exited with code ${code ?? 'unknown'}`);
+      this.logger.log(
+        `[ffmpeg:${input.streamId}] exited with code ${code ?? 'unknown'}`,
+      );
       this.relays.delete(input.streamId);
     });
 
@@ -93,7 +101,15 @@ export class StreamRelayService {
       startedAt: now,
       lastChunkAt: now,
       ingestConnected: false,
+      chunksReceived: 0,
+      bytesReceived: 0,
+      firstChunkAt: null,
     });
+
+    const redactedOutput = input.outputUrl.replace(/\/[^/]+$/, '/***');
+    this.logger.log(
+      `[youtube-live] relay:ffmpeg-spawned streamId=${input.streamId} meetingId=${input.meetingId} output=${redactedOutput} note=waiting-for-browser-ingest-chunks`,
+    );
 
     return { ok: true, ingestToken };
   }
@@ -109,6 +125,9 @@ export class StreamRelayService {
     if (!relay) return;
     relay.ingestConnected = connected;
     if (connected) relay.lastChunkAt = new Date();
+    this.logger.log(
+      `[youtube-live] relay:ingest-socket streamId=${streamId} connected=${connected} chunksReceived=${relay.chunksReceived} bytesReceived=${relay.bytesReceived}`,
+    );
   }
 
   writeChunk(streamId: string, chunk: Buffer): boolean {
@@ -117,15 +136,51 @@ export class StreamRelayService {
     try {
       relay.process.stdin.write(chunk);
       relay.lastChunkAt = new Date();
+      relay.chunksReceived += 1;
+      relay.bytesReceived += chunk.length;
+      if (!relay.firstChunkAt) {
+        relay.firstChunkAt = new Date();
+        this.logger.log(
+          `[youtube-live] relay:first-chunk streamId=${streamId} bytes=${chunk.length} note=rtmp-pipeline-now-receiving-browser-data`,
+        );
+      } else if (
+        relay.chunksReceived === 10 ||
+        relay.chunksReceived % 100 === 0
+      ) {
+        this.logger.debug(
+          `[youtube-live] relay:ingest-progress streamId=${streamId} chunks=${relay.chunksReceived} bytes=${relay.bytesReceived}`,
+        );
+      }
       return true;
     } catch {
       return false;
     }
   }
 
+  hasReceivedIngestChunks(streamId: string): boolean {
+    const relay = this.relays.get(streamId);
+    return Boolean(relay && relay.chunksReceived > 0);
+  }
+
+  getIngestStats(streamId: string): {
+    ingestConnected: boolean;
+    chunksReceived: number;
+    bytesReceived: number;
+  } | null {
+    const relay = this.relays.get(streamId);
+    if (!relay) return null;
+    return {
+      ingestConnected: relay.ingestConnected,
+      chunksReceived: relay.chunksReceived,
+      bytesReceived: relay.bytesReceived,
+    };
+  }
+
   getStaleRelays(maxIdleMs: number): ActiveRelay[] {
     const cutoff = Date.now() - maxIdleMs;
-    return [...this.relays.values()].filter((relay) => relay.lastChunkAt.getTime() < cutoff);
+    return [...this.relays.values()].filter(
+      (relay) => relay.lastChunkAt.getTime() < cutoff,
+    );
   }
 
   getMeetingId(streamId: string): string | null {

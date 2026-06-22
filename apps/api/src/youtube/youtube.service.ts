@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -33,6 +34,8 @@ export interface YouTubeLiveSessionCredentials {
 
 @Injectable()
 export class YoutubeService {
+  private readonly logger = new Logger(YoutubeService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
@@ -49,20 +52,28 @@ export class YoutubeService {
   private async resolveLimits(userId: string) {
     const { plan } = await this.permissions.getUserPlanContext(userId);
     const enterpriseMax = this.getEnterpriseChannelLimit();
-    const limits = getYoutubePlanLimits(plan, { enterpriseMaxChannels: enterpriseMax });
-    const channelCount = await this.prisma.youTubeAccount.count({ where: { userId } });
+    const limits = getYoutubePlanLimits(plan, {
+      enterpriseMaxChannels: enterpriseMax,
+    });
+    const channelCount = await this.prisma.youTubeAccount.count({
+      where: { userId },
+    });
     return {
       ...limits,
       channelCount,
-      canAddChannel: canConnectYoutubeChannel(plan, channelCount, enterpriseMax),
+      canAddChannel: canConnectYoutubeChannel(
+        plan,
+        channelCount,
+        enterpriseMax,
+      ),
     };
   }
 
   private isOAuthConfigured(): boolean {
     return Boolean(
       process.env.YOUTUBE_CLIENT_ID?.trim() &&
-        process.env.YOUTUBE_CLIENT_SECRET?.trim() &&
-        process.env.YOUTUBE_REDIRECT_URI?.trim(),
+      process.env.YOUTUBE_CLIENT_SECRET?.trim() &&
+      process.env.YOUTUBE_REDIRECT_URI?.trim(),
     );
   }
 
@@ -118,7 +129,9 @@ export class YoutubeService {
     });
 
     if (refresh && accounts.length > 0) {
-      await Promise.all(accounts.map((a) => this.refreshAccountEligibility(a.id, userId)));
+      await Promise.all(
+        accounts.map((a) => this.refreshAccountEligibility(a.id, userId)),
+      );
     }
 
     const refreshed = await this.prisma.youTubeAccount.findMany({
@@ -213,7 +226,9 @@ export class YoutubeService {
     );
 
     if (!channelRes.ok) {
-      throw new ServiceUnavailableException('Could not load YouTube channel for this Google account.');
+      throw new ServiceUnavailableException(
+        'Could not load YouTube channel for this Google account.',
+      );
     }
 
     const channelData = (await channelRes.json()) as {
@@ -230,7 +245,9 @@ export class YoutubeService {
 
     const channel = channelData.items?.[0];
     if (!channel?.id) {
-      throw new ServiceUnavailableException('No YouTube channel found for this Google account.');
+      throw new ServiceUnavailableException(
+        'No YouTube channel found for this Google account.',
+      );
     }
 
     const existingAccount = await this.prisma.youTubeAccount.findUnique({
@@ -248,9 +265,12 @@ export class YoutubeService {
       }
     }
 
-    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-    });
+    const userInfoRes = await fetch(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      },
+    );
     const userInfo = userInfoRes.ok
       ? ((await userInfoRes.json()) as { email?: string })
       : null;
@@ -298,7 +318,9 @@ export class YoutubeService {
 
     await this.refreshAccountEligibility(account.id, userId);
 
-    const refreshed = await this.prisma.youTubeAccount.findUnique({ where: { id: account.id } });
+    const refreshed = await this.prisma.youTubeAccount.findUnique({
+      where: { id: account.id },
+    });
     if (refreshed) {
       await this.connectedAccounts.syncFromYoutubeAccount({
         userId,
@@ -331,7 +353,10 @@ export class YoutubeService {
   async refreshAccountEligibility(accountId: string, userId: string) {
     const account = await this.assertAccountOwnership(userId, accountId);
     const accessToken = await this.getValidAccessToken(account.id);
-    const enabled = await this.checkLiveStreamingEligibility(accessToken, account.channelId);
+    const enabled = await this.checkLiveStreamingEligibility(
+      accessToken,
+      account.channelId,
+    );
 
     const updated = await this.prisma.youTubeAccount.update({
       where: { id: account.id },
@@ -369,7 +394,9 @@ export class YoutubeService {
     const account = await this.assertAccountOwnership(userId, accountId);
     if (!account.liveStreamingEnabled) {
       await this.refreshAccountEligibility(account.id, userId);
-      const refreshed = await this.prisma.youTubeAccount.findUnique({ where: { id: account.id } });
+      const refreshed = await this.prisma.youTubeAccount.findUnique({
+        where: { id: account.id },
+      });
       if (!refreshed?.liveStreamingEnabled) {
         throw new BadRequestException(
           'This YouTube channel is not enabled for live streaming yet. Enable it in YouTube Studio and try again.',
@@ -381,7 +408,9 @@ export class YoutubeService {
   }
 
   async getValidAccessToken(accountId: string): Promise<string> {
-    const account = await this.prisma.youTubeAccount.findUnique({ where: { id: accountId } });
+    const account = await this.prisma.youTubeAccount.findUnique({
+      where: { id: accountId },
+    });
     if (!account) {
       throw new BadRequestException('YouTube channel connection not found.');
     }
@@ -389,7 +418,9 @@ export class YoutubeService {
     if (account.tokenExpiresAt.getTime() > Date.now() + 60_000) {
       const accessToken = decryptText(account.accessToken);
       if (!accessToken) {
-        throw new ServiceUnavailableException('Stored YouTube token is invalid. Reconnect your account.');
+        throw new ServiceUnavailableException(
+          'Stored YouTube token is invalid. Reconnect your account.',
+        );
       }
       return accessToken;
     }
@@ -397,7 +428,9 @@ export class YoutubeService {
     const { clientId, clientSecret } = this.getOAuthClient();
     const refreshToken = decryptText(account.refreshToken);
     if (!refreshToken) {
-      throw new ServiceUnavailableException('Stored YouTube refresh token is invalid. Reconnect your account.');
+      throw new ServiceUnavailableException(
+        'Stored YouTube refresh token is invalid. Reconnect your account.',
+      );
     }
 
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -417,7 +450,10 @@ export class YoutubeService {
       );
     }
 
-    const tokens = (await tokenRes.json()) as { access_token: string; expires_in: number };
+    const tokens = (await tokenRes.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
     const tokenExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     await this.prisma.youTubeAccount.update({
@@ -470,7 +506,11 @@ export class YoutubeService {
   async createLiveSession(
     accountId: string,
     userId: string,
-    input: { title: string; description: string; privacyStatus: YouTubePrivacyStatus },
+    input: {
+      title: string;
+      description: string;
+      privacyStatus: YouTubePrivacyStatus;
+    },
   ): Promise<YouTubeLiveSessionCredentials> {
     await this.requireLiveEnabledAccount(userId, accountId);
     const accessToken = await this.getValidAccessToken(accountId);
@@ -478,6 +518,10 @@ export class YoutubeService {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
+
+    this.logger.log(
+      `[youtube-live] createLiveSession:start accountId=${accountId} title=${JSON.stringify(input.title)}`,
+    );
 
     const streamRes = await fetch(
       'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,status',
@@ -495,83 +539,182 @@ export class YoutubeService {
       },
     );
 
+    const streamRawBody = await streamRes.text();
     if (!streamRes.ok) {
-      const body = await streamRes.text();
-      if (body.includes('liveStreamingNotEnabled') || body.includes('not enabled for live')) {
+      this.logger.error(
+        `[youtube-live] createStream:failed status=${streamRes.status} body=${streamRawBody.slice(0, 500)}`,
+      );
+      if (
+        streamRawBody.includes('liveStreamingNotEnabled') ||
+        streamRawBody.includes('not enabled for live')
+      ) {
         await this.prisma.youTubeAccount.update({
           where: { id: accountId },
-          data: { liveStreamingEnabled: false, eligibilityCheckedAt: new Date() },
+          data: {
+            liveStreamingEnabled: false,
+            eligibilityCheckedAt: new Date(),
+          },
         });
         throw new BadRequestException(
           'YouTube live streaming is not enabled for this channel. Enable it in YouTube Studio.',
         );
       }
       throw new ServiceUnavailableException(
-        `Could not create YouTube stream: ${body.slice(0, 300)}`,
+        `Could not create YouTube stream: ${streamRawBody.slice(0, 300)}`,
       );
     }
 
-    const streamData = (await streamRes.json()) as {
+    const streamData = JSON.parse(streamRawBody) as {
       id: string;
-      cdn?: { ingestionInfo?: { ingestionAddress?: string; streamName?: string } };
+      status?: { streamStatus?: string; healthStatus?: string };
+      cdn?: {
+        ingestionInfo?: { ingestionAddress?: string; streamName?: string };
+      };
     };
 
     const ingestionAddress = streamData.cdn?.ingestionInfo?.ingestionAddress;
     const streamName = streamData.cdn?.ingestionInfo?.streamName;
     if (!streamData.id || !ingestionAddress || !streamName) {
-      throw new ServiceUnavailableException('YouTube did not return RTMP ingest credentials.');
+      throw new ServiceUnavailableException(
+        'YouTube did not return RTMP ingest credentials.',
+      );
     }
+
+    this.logger.log(
+      `[youtube-live] createStream:success ${JSON.stringify({
+        streamId: streamData.id,
+        streamStatus: streamData.status?.streamStatus ?? null,
+        healthStatus: streamData.status?.healthStatus ?? null,
+      })}`,
+    );
+
+    const broadcastBody = {
+      snippet: {
+        title: input.title,
+        description: input.description,
+        scheduledStartTime: new Date().toISOString(),
+      },
+      status: {
+        privacyStatus: input.privacyStatus,
+        selfDeclaredMadeForKids: false,
+      },
+      contentDetails: {
+        enableAutoStart: true,
+        enableAutoStop: true,
+        enableDvr: true,
+        recordFromStart: true,
+      },
+    };
+
+    this.logger.log(
+      `[youtube-live] createBroadcast:request ${JSON.stringify({
+        enableAutoStart: broadcastBody.contentDetails.enableAutoStart,
+        enableAutoStop: broadcastBody.contentDetails.enableAutoStop,
+        privacyStatus: broadcastBody.status.privacyStatus,
+        scheduledStartTime: broadcastBody.snippet.scheduledStartTime,
+      })}`,
+    );
 
     const broadcastRes = await fetch(
       'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails',
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          snippet: {
-            title: input.title,
-            description: input.description,
-            scheduledStartTime: new Date().toISOString(),
-          },
-          status: {
-            privacyStatus: input.privacyStatus,
-            selfDeclaredMadeForKids: false,
-          },
-          contentDetails: {
-            enableAutoStart: false,
-            enableAutoStop: true,
-            enableDvr: true,
-            recordFromStart: true,
-          },
-        }),
+        body: JSON.stringify(broadcastBody),
       },
     );
 
+    const broadcastRawBody = await broadcastRes.text();
     if (!broadcastRes.ok) {
-      const body = await broadcastRes.text();
+      this.logger.error(
+        `[youtube-live] createBroadcast:failed status=${broadcastRes.status} body=${broadcastRawBody.slice(0, 500)}`,
+      );
       throw new ServiceUnavailableException(
-        `Could not create YouTube broadcast: ${body.slice(0, 300)}`,
+        `Could not create YouTube broadcast: ${broadcastRawBody.slice(0, 300)}`,
       );
     }
 
-    const broadcastData = (await broadcastRes.json()) as { id: string };
+    const broadcastData = JSON.parse(broadcastRawBody) as {
+      id: string;
+      status?: { lifeCycleStatus?: string; privacyStatus?: string };
+      contentDetails?: {
+        enableAutoStart?: boolean;
+        enableAutoStop?: boolean;
+      };
+      snippet?: { scheduledStartTime?: string; actualStartTime?: string };
+    };
     if (!broadcastData.id) {
-      throw new ServiceUnavailableException('YouTube did not return a broadcast ID.');
+      throw new ServiceUnavailableException(
+        'YouTube did not return a broadcast ID.',
+      );
     }
 
-    const bindRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${encodeURIComponent(broadcastData.id)}&part=id,contentDetails&streamId=${encodeURIComponent(streamData.id)}`,
-      { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } },
+    this.logger.log(
+      `[youtube-live] createBroadcast:success ${JSON.stringify({
+        broadcastId: broadcastData.id,
+        lifeCycleStatus: broadcastData.status?.lifeCycleStatus ?? null,
+        enableAutoStart: broadcastData.contentDetails?.enableAutoStart ?? null,
+        enableAutoStop: broadcastData.contentDetails?.enableAutoStop ?? null,
+        scheduledStartTime: broadcastData.snippet?.scheduledStartTime ?? null,
+        actualStartTime: broadcastData.snippet?.actualStartTime ?? null,
+      })}`,
     );
 
+    const bindUrl = `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${encodeURIComponent(broadcastData.id)}&part=snippet,status,contentDetails&streamId=${encodeURIComponent(streamData.id)}`;
+    this.logger.log(
+      `[youtube-live] bindBroadcast:request broadcastId=${broadcastData.id} streamId=${streamData.id}`,
+    );
+
+    const bindRes = await fetch(bindUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const bindRawBody = await bindRes.text();
     if (!bindRes.ok) {
-      const body = await bindRes.text();
+      this.logger.error(
+        `[youtube-live] bindBroadcast:failed status=${bindRes.status} body=${bindRawBody.slice(0, 500)}`,
+      );
       throw new ServiceUnavailableException(
-        `Could not bind YouTube broadcast: ${body.slice(0, 300)}`,
+        `Could not bind YouTube broadcast: ${bindRawBody.slice(0, 300)}`,
       );
     }
 
-    const watchUrl = await this.resolveBroadcastWatchUrl(accessToken, broadcastData.id);
+    let bindData: {
+      id?: string;
+      status?: { lifeCycleStatus?: string };
+      contentDetails?: { boundStreamId?: string };
+    } = {};
+    try {
+      bindData = JSON.parse(bindRawBody) as typeof bindData;
+    } catch {
+      bindData = {};
+    }
+
+    this.logger.log(
+      `[youtube-live] bindBroadcast:success ${JSON.stringify({
+        broadcastId: bindData.id ?? broadcastData.id,
+        lifeCycleStatus: bindData.status?.lifeCycleStatus ?? null,
+        boundStreamId: bindData.contentDetails?.boundStreamId ?? streamData.id,
+        responseBody: bindRawBody.slice(0, 500),
+      })}`,
+    );
+
+    await this.logBroadcastLifecycleSnapshot(
+      accessToken,
+      broadcastData.id,
+      streamData.id,
+      'post-bind',
+    );
+
+    const watchUrl = await this.resolveBroadcastWatchUrl(
+      accessToken,
+      broadcastData.id,
+    );
+
+    this.logger.log(
+      `[youtube-live] createLiveSession:ready broadcastId=${broadcastData.id} streamId=${streamData.id} watchUrl=${watchUrl}`,
+    );
 
     return {
       broadcastId: broadcastData.id,
@@ -583,10 +726,226 @@ export class YoutubeService {
     };
   }
 
-  async transitionBroadcastToLive(accountId: string, broadcastId: string): Promise<void> {
+  async transitionBroadcastToLive(
+    accountId: string,
+    broadcastId: string,
+  ): Promise<void> {
+    await this.transitionBroadcastToLiveWhenReady(accountId, broadcastId);
+  }
+
+  /**
+   * Waits for YouTube RTMP ingest to report streamStatus=active, then transitions.
+   * Required because browser WebSocket chunks arrive after the start API returns.
+   */
+  async transitionBroadcastToLiveWhenReady(
+    accountId: string,
+    broadcastId: string,
+    options?: { maxWaitMs?: number; pollIntervalMs?: number },
+  ): Promise<void> {
+    const maxWaitMs = options?.maxWaitMs ?? 90_000;
+    const pollIntervalMs = options?.pollIntervalMs ?? 2_000;
+
+    this.logger.log(
+      `[youtube-live] transitionBroadcastToLiveWhenReady:start accountId=${accountId} broadcastId=${broadcastId} maxWaitMs=${maxWaitMs}`,
+    );
+
     const accessToken = await this.getValidAccessToken(accountId);
-    await this.transitionBroadcast(accessToken, broadcastId, 'testing');
-    await this.transitionBroadcast(accessToken, broadcastId, 'live');
+    const boundStreamId = await this.resolveBoundStreamId(
+      accessToken,
+      broadcastId,
+    );
+    if (!boundStreamId) {
+      this.logger.error(
+        `[youtube-live] transitionBroadcastToLiveWhenReady:no-bound-stream broadcastId=${broadcastId}`,
+      );
+      throw new ServiceUnavailableException(
+        'YouTube broadcast has no bound live stream.',
+      );
+    }
+
+    await this.logLiveStreamsList(accessToken, boundStreamId, 'pre-transition');
+    await this.logBroadcastLifecycleSnapshot(
+      accessToken,
+      broadcastId,
+      boundStreamId,
+      'pre-transition',
+    );
+
+    const enableAutoStart = await this.getBroadcastEnableAutoStart(
+      accessToken,
+      broadcastId,
+    );
+    this.logger.log(
+      `[youtube-live] transitionBroadcastToLiveWhenReady:config ${JSON.stringify(
+        {
+          broadcastId,
+          boundStreamId,
+          enableAutoStart,
+          willWaitForStreamActive: true,
+        },
+      )}`,
+    );
+
+    const deadline = Date.now() + maxWaitMs;
+    let attempt = 0;
+    while (Date.now() < deadline) {
+      attempt += 1;
+      const streamStatus = await this.fetchYouTubeStreamStatus(
+        accessToken,
+        boundStreamId,
+      );
+      const lifeCycleStatus = await this.fetchBroadcastLifeCycleStatus(
+        accessToken,
+        broadcastId,
+      );
+
+      this.logger.log(
+        `[youtube-live] transitionBroadcastToLiveWhenReady:poll attempt=${attempt} ${JSON.stringify(
+          {
+            broadcastId,
+            boundStreamId,
+            streamStatus: streamStatus.streamStatus,
+            healthStatus: streamStatus.healthStatus,
+            lifeCycleStatus,
+          },
+        )}`,
+      );
+
+      if (lifeCycleStatus === 'live') {
+        this.logger.log(
+          `[youtube-live] transitionBroadcastToLiveWhenReady:already-live broadcastId=${broadcastId} (enableAutoStart=${enableAutoStart})`,
+        );
+        return;
+      }
+
+      if (streamStatus.streamStatus === 'active') {
+        this.logger.log(
+          `[youtube-live] transitionBroadcastToLiveWhenReady:stream-active broadcastId=${broadcastId} proceeding to manual transition`,
+        );
+        await this.logLiveStreamsList(
+          accessToken,
+          boundStreamId,
+          'stream-active',
+        );
+        await this.transitionBroadcast(accessToken, broadcastId, 'testing');
+        await this.transitionBroadcast(accessToken, broadcastId, 'live');
+        await this.logBroadcastLifecycleSnapshot(
+          accessToken,
+          broadcastId,
+          boundStreamId,
+          'post-transition',
+        );
+        this.logger.log(
+          `[youtube-live] transitionBroadcastToLiveWhenReady:complete broadcastId=${broadcastId}`,
+        );
+        return;
+      }
+
+      if (
+        enableAutoStart &&
+        (lifeCycleStatus === 'testing' || lifeCycleStatus === 'live')
+      ) {
+        this.logger.log(
+          `[youtube-live] transitionBroadcastToLiveWhenReady:auto-start-progress lifeCycleStatus=${lifeCycleStatus}`,
+        );
+        return;
+      }
+
+      await this.sleep(pollIntervalMs);
+    }
+
+    await this.logLiveStreamsList(accessToken, boundStreamId, 'wait-timeout');
+    await this.logBroadcastLifecycleSnapshot(
+      accessToken,
+      broadcastId,
+      boundStreamId,
+      'wait-timeout',
+    );
+    this.logger.error(
+      `[youtube-live] transitionBroadcastToLiveWhenReady:timeout broadcastId=${broadcastId} boundStreamId=${boundStreamId} after ${maxWaitMs}ms — streamStatus never became active`,
+    );
+    throw new ServiceUnavailableException(
+      'YouTube did not receive stream data in time. Ensure screen sharing started and try again.',
+    );
+  }
+
+  private async fetchYouTubeStreamStatus(
+    accessToken: string,
+    youtubeStreamId: string,
+  ): Promise<{ streamStatus: string | null; healthStatus: string | null }> {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveStreams?part=status&id=${encodeURIComponent(youtubeStreamId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const body = await res.text();
+    if (!res.ok) {
+      this.logger.warn(
+        `[youtube-live] liveStreams.list:failed youtubeStreamId=${youtubeStreamId} httpStatus=${res.status} body=${body.slice(0, 500)}`,
+      );
+      return { streamStatus: null, healthStatus: null };
+    }
+    try {
+      const parsed = JSON.parse(body) as {
+        items?: Array<{
+          status?: { streamStatus?: string; healthStatus?: string };
+        }>;
+      };
+      return {
+        streamStatus: parsed.items?.[0]?.status?.streamStatus ?? null,
+        healthStatus: parsed.items?.[0]?.status?.healthStatus ?? null,
+      };
+    } catch {
+      return { streamStatus: null, healthStatus: null };
+    }
+  }
+
+  private async fetchBroadcastLifeCycleStatus(
+    accessToken: string,
+    broadcastId: string,
+  ): Promise<string | null> {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=status&id=${encodeURIComponent(broadcastId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      items?: Array<{ status?: { lifeCycleStatus?: string } }>;
+    };
+    return data.items?.[0]?.status?.lifeCycleStatus ?? null;
+  }
+
+  private async getBroadcastEnableAutoStart(
+    accessToken: string,
+    broadcastId: string,
+  ): Promise<boolean> {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=contentDetails&id=${encodeURIComponent(broadcastId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      items?: Array<{ contentDetails?: { enableAutoStart?: boolean } }>;
+    };
+    return Boolean(data.items?.[0]?.contentDetails?.enableAutoStart);
+  }
+
+  private async logLiveStreamsList(
+    accessToken: string,
+    youtubeStreamId: string,
+    phase: string,
+  ): Promise<void> {
+    const url = `https://www.googleapis.com/youtube/v3/liveStreams?part=id,status,snippet&id=${encodeURIComponent(youtubeStreamId)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const body = await res.text();
+    this.logger.log(
+      `[youtube-live] liveStreams.list:${phase} youtubeStreamId=${youtubeStreamId} httpStatus=${res.status} body=${body.slice(0, 1000)}`,
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async endBroadcast(accountId: string, broadcastId: string): Promise<void> {
@@ -598,7 +957,10 @@ export class YoutubeService {
     }
   }
 
-  async getLiveViewerCount(accountId: string, broadcastId: string): Promise<number | null> {
+  async getLiveViewerCount(
+    accountId: string,
+    broadcastId: string,
+  ): Promise<number | null> {
     try {
       const accessToken = await this.getValidAccessToken(accountId);
       const res = await fetch(
@@ -607,7 +969,9 @@ export class YoutubeService {
       );
       if (!res.ok) return null;
       const data = (await res.json()) as {
-        items?: Array<{ liveStreamingDetails?: { concurrentViewers?: string } }>;
+        items?: Array<{
+          liveStreamingDetails?: { concurrentViewers?: string };
+        }>;
       };
       const viewers = data.items?.[0]?.liveStreamingDetails?.concurrentViewers;
       return viewers ? Number.parseInt(viewers, 10) : null;
@@ -635,24 +999,135 @@ export class YoutubeService {
     return `https://www.youtube.com/watch?v=${broadcastId}`;
   }
 
+  private async resolveBoundStreamId(
+    accessToken: string,
+    broadcastId: string,
+  ): Promise<string | null> {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=contentDetails&id=${encodeURIComponent(broadcastId)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      items?: Array<{ contentDetails?: { boundStreamId?: string } }>;
+    };
+    return data.items?.[0]?.contentDetails?.boundStreamId ?? null;
+  }
+
+  private async logBroadcastLifecycleSnapshot(
+    accessToken: string,
+    broadcastId: string,
+    streamId: string,
+    phase: string,
+  ): Promise<void> {
+    type BroadcastSnapshot = {
+      status?: { lifeCycleStatus?: string };
+      snippet?: { scheduledStartTime?: string; actualStartTime?: string };
+      contentDetails?: {
+        enableAutoStart?: boolean;
+        enableAutoStop?: boolean;
+        boundStreamId?: string;
+      };
+    };
+    type StreamSnapshot = {
+      status?: { streamStatus?: string; healthStatus?: string };
+    };
+
+    const [broadcastRes, streamRes] = await Promise.all([
+      fetch(
+        `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails&id=${encodeURIComponent(broadcastId)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      ),
+      fetch(
+        `https://www.googleapis.com/youtube/v3/liveStreams?part=status&id=${encodeURIComponent(streamId)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      ),
+    ]);
+
+    const broadcastBody = await broadcastRes.text();
+    const streamBody = await streamRes.text();
+
+    let broadcast: BroadcastSnapshot | null = null;
+    let stream: StreamSnapshot | null = null;
+
+    try {
+      const parsed = JSON.parse(broadcastBody) as {
+        items?: BroadcastSnapshot[];
+      };
+      broadcast = parsed.items?.[0] ?? null;
+    } catch {
+      broadcast = null;
+    }
+
+    try {
+      const parsed = JSON.parse(streamBody) as { items?: StreamSnapshot[] };
+      stream = parsed.items?.[0] ?? null;
+    } catch {
+      stream = null;
+    }
+
+    this.logger.log(
+      `[youtube-live] lifecycle:${phase} ${JSON.stringify({
+        broadcastId,
+        streamId,
+        lifeCycleStatus: broadcast?.status?.lifeCycleStatus ?? null,
+        streamStatus: stream?.status?.streamStatus ?? null,
+        healthStatus: stream?.status?.healthStatus ?? null,
+        scheduledStartTime: broadcast?.snippet?.scheduledStartTime ?? null,
+        actualStartTime: broadcast?.snippet?.actualStartTime ?? null,
+        enableAutoStart: broadcast?.contentDetails?.enableAutoStart ?? null,
+        enableAutoStop: broadcast?.contentDetails?.enableAutoStop ?? null,
+        boundStreamId: broadcast?.contentDetails?.boundStreamId ?? null,
+      })}`,
+    );
+  }
+
   private async transitionBroadcast(
     accessToken: string,
     broadcastId: string,
     status: 'testing' | 'live' | 'complete',
   ): Promise<void> {
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=${status}&id=${encodeURIComponent(broadcastId)}&part=status`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
+    const url = `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=${status}&id=${encodeURIComponent(broadcastId)}&part=snippet,status,contentDetails`;
+    this.logger.log(
+      `[youtube-live] transitionBroadcast:request targetStatus=${status} broadcastId=${broadcastId} url=${url}`,
     );
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const body = await res.text();
     if (!res.ok) {
-      const body = await res.text();
+      this.logger.error(
+        `[youtube-live] transitionBroadcast:failed targetStatus=${status} broadcastId=${broadcastId} httpStatus=${res.status} body=${body.slice(0, 1000)}`,
+      );
       throw new ServiceUnavailableException(
         `YouTube broadcast transition (${status}) failed: ${body.slice(0, 300)}`,
       );
     }
+
+    let parsed: {
+      id?: string;
+      status?: { lifeCycleStatus?: string };
+      snippet?: { actualStartTime?: string };
+    } = {};
+    try {
+      parsed = JSON.parse(body) as typeof parsed;
+    } catch {
+      parsed = {};
+    }
+
+    this.logger.log(
+      `[youtube-live] transitionBroadcast:success targetStatus=${status} ${JSON.stringify(
+        {
+          broadcastId: parsed?.id ?? broadcastId,
+          lifeCycleStatus: parsed?.status?.lifeCycleStatus ?? null,
+          actualStartTime: parsed?.snippet?.actualStartTime ?? null,
+          responseBody: body.slice(0, 1000),
+        },
+      )}`,
+    );
   }
 
   getArchitecture() {

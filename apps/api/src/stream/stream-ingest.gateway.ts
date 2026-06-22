@@ -10,6 +10,16 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { getAllowedOrigins } from '../common/cors.util';
 import { StreamRelayService } from './stream-relay.service';
+import { StreamService } from './stream.service';
+
+type IngestSocketData = {
+  streamId?: string;
+};
+
+function getStreamId(client: Socket): string | undefined {
+  const data = client.data as IngestSocketData;
+  return typeof data.streamId === 'string' ? data.streamId : undefined;
+}
 
 @WebSocketGateway({
   namespace: '/stream',
@@ -19,31 +29,41 @@ import { StreamRelayService } from './stream-relay.service';
   },
   maxHttpBufferSize: 10e6,
 })
-export class StreamIngestGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class StreamIngestGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(StreamIngestGateway.name);
 
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly relay: StreamRelayService) {}
+  constructor(
+    private readonly relay: StreamRelayService,
+    private readonly streamService: StreamService,
+  ) {}
 
   handleConnection(client: Socket) {
     const streamId = client.handshake.query.streamId as string;
     const token = client.handshake.query.token as string;
 
     if (!streamId || !token || !this.relay.verifyIngestToken(streamId, token)) {
-      this.logger.warn('[stream-ingest] rejected connection', { streamId: streamId || 'missing' });
+      this.logger.warn('[youtube-live] stream-ingest rejected connection', {
+        streamId: streamId || 'missing',
+      });
       client.disconnect();
       return;
     }
 
-    client.data.streamId = streamId;
+    (client.data as IngestSocketData).streamId = streamId;
     this.relay.setIngestConnected(streamId, true);
-    this.logger.log(`[stream-ingest] connected ${streamId}`);
+    this.logger.log(
+      `[youtube-live] stream-ingest websocket connected streamId=${streamId}`,
+    );
+    this.streamService.onYoutubeIngestSocketConnected(streamId);
   }
 
   handleDisconnect(client: Socket) {
-    const streamId = client.data.streamId as string | undefined;
+    const streamId = getStreamId(client);
     if (streamId) {
       this.relay.setIngestConnected(streamId, false);
       this.logger.log(`[stream-ingest] disconnected ${streamId}`);
@@ -52,13 +72,17 @@ export class StreamIngestGateway implements OnGatewayConnection, OnGatewayDiscon
 
   @SubscribeMessage('ingest-chunk')
   handleChunk(@ConnectedSocket() client: Socket, data: Buffer | ArrayBuffer) {
-    const streamId = client.data.streamId as string | undefined;
+    const streamId = getStreamId(client);
     if (!streamId) return { ok: false };
 
     const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
     if (chunk.length === 0) return { ok: false };
 
+    const statsBefore = this.relay.getIngestStats(streamId);
     const ok = this.relay.writeChunk(streamId, chunk);
+    if (ok && (statsBefore?.chunksReceived ?? 0) === 0) {
+      this.streamService.scheduleYoutubeTransitionAfterIngest(streamId);
+    }
     return { ok };
   }
 }
