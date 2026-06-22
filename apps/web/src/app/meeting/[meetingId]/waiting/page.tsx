@@ -37,8 +37,8 @@ export default function WaitingRoomPage() {
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-          <Clock className="h-10 w-10 animate-pulse text-primary" />
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white/10">
+          <Clock className="h-10 w-10 animate-pulse text-white/70" />
         </div>
         <h1 className="text-2xl font-semibold">Waiting for the host</h1>
         <p className="mt-2 text-muted-foreground">
@@ -47,14 +47,14 @@ export default function WaitingRoomPage() {
         {routeId ? (
           <Link
             href={`/meeting/${routeId}`}
-            className="mt-8 inline-block text-sm text-primary hover:underline"
+            className="mt-8 inline-block text-sm text-foreground underline-offset-4 hover:underline"
           >
             Back to lobby
           </Link>
         ) : (
           <Link
             href="/dashboard"
-            className="mt-8 inline-block text-sm text-primary hover:underline"
+            className="mt-8 inline-block text-sm text-foreground underline-offset-4 hover:underline"
           >
             Back to dashboard
           </Link>

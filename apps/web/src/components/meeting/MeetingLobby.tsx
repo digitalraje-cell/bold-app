@@ -36,15 +36,15 @@ export type PublicMeetingPreview = {
 const statusBadge = {
   LIVE: {
     label: 'Live',
-    className: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    className: 'border border-border bg-[var(--badge-bg)] text-foreground',
   },
   SCHEDULED: {
     label: 'Scheduled',
-    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    className: 'border border-border bg-[var(--badge-bg)] text-foreground',
   },
   ENDED: {
     label: 'Ended',
-    className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    className: 'border border-border bg-muted text-muted-foreground',
   },
 } as const;
 
@@ -298,7 +298,7 @@ export function MeetingLobby({
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           Invalid meeting link. Check the URL or return to your dashboard.
         </div>
-        <Link href="/dashboard" className="mt-4 text-sm text-primary hover:underline">
+        <Link href="/dashboard" className="mt-4 text-sm text-foreground underline-offset-4 hover:underline">
           Back to dashboard
         </Link>
       </div>
@@ -459,7 +459,7 @@ export function MeetingLobby({
                 className={cn(
                   'rounded-xl border px-3 py-3 text-sm font-medium transition',
                   joinWithMic
-                    ? 'border-primary bg-primary/10 text-primary'
+                    ? 'border-foreground bg-muted text-foreground'
                     : 'border-border bg-muted/30 text-muted-foreground',
                 )}
               >
@@ -471,7 +471,7 @@ export function MeetingLobby({
                 className={cn(
                   'rounded-xl border px-3 py-3 text-sm font-medium transition',
                   joinWithCamera
-                    ? 'border-primary bg-primary/10 text-primary'
+                    ? 'border-foreground bg-muted text-foreground'
                     : 'border-border bg-muted/30 text-muted-foreground',
                 )}
               >
@@ -498,7 +498,7 @@ export function MeetingLobby({
         )}
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/dashboard" className="text-primary hover:underline">
+          <Link href="/dashboard" className="text-foreground underline-offset-4 hover:underline">
             Back to dashboard
           </Link>
         </p>

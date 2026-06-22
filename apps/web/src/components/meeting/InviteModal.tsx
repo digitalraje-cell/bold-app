@@ -64,7 +64,7 @@ export function InviteModal({ meetingId, open, onClose }: InviteModalProps) {
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-white/50">Meeting Link</p>
-            <p className="mt-1 break-all text-sm text-blue-300">{meetingLink}</p>
+            <p className="mt-1 break-all text-sm text-white/70">{meetingLink}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
+import { cardClass, ui } from '@/lib/ui';
 import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -159,7 +160,7 @@ export function CreateMeetingForm() {
 
   return (
     <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold">
+        <h1 className={ui.pageTitle}>
           {isInstant ? 'Start Instant Meeting' : 'Schedule Meeting'}
         </h1>
         <p className="mt-1 text-muted-foreground">
@@ -210,7 +211,7 @@ export function CreateMeetingForm() {
               <div>
                 <label className="mb-2 block text-sm font-medium">Duration</label>
                 <select
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm"
+                  className="w-full rounded-[var(--radius-md)] border border-border/80 bg-surface px-4 py-2.5 text-sm transition focus:border-foreground/20 focus:outline-none focus:ring-2 focus:ring-foreground/10"
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(e.target.value)}
                 >
@@ -251,7 +252,7 @@ export function CreateMeetingForm() {
             error={touched.passcode ? fieldErrors.passcode : undefined}
           />
 
-          <div className="rounded-2xl border border-border p-6">
+          <div className={cardClass({ className: 'p-6 sm:p-8' })}>
             <h3 className="mb-4 font-semibold">Feature Settings</h3>
             <div className="space-y-4">
               <Toggle

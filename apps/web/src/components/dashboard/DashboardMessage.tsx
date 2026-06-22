@@ -17,7 +17,7 @@ export function DashboardMessage() {
   if (!message) return null;
 
   return (
-    <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100">
+    <div className="mb-4 rounded-[var(--radius-md)] border border-border bg-[var(--badge-bg)] px-4 py-3 text-sm text-foreground">
       {message}
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { badgeClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type AdminUser = {
@@ -75,7 +76,7 @@ export default function AdminUsersPage() {
             View users and manually activate or deactivate Pro.
           </p>
         </div>
-        <Link href="/admin/payments" className="text-sm text-primary hover:underline">
+        <Link href="/admin/payments" className="text-sm text-foreground underline-offset-4 hover:underline">
           View pending payments →
         </Link>
       </div>
@@ -109,7 +110,7 @@ export default function AdminUsersPage() {
                     <p className="font-medium">{user.name || '—'}</p>
                     <p className="text-muted-foreground">{user.email}</p>
                     {user.role === 'ADMIN' && (
-                      <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                      <span className={badgeClass('mt-1 text-[10px] uppercase')}>
                         Admin
                       </span>
                     )}
@@ -119,8 +120,8 @@ export default function AdminUsersPage() {
                       className={cn(
                         'rounded-full px-2 py-0.5 text-xs font-medium',
                         user.subscriptionPlan === 'PRO'
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted text-muted-foreground',
+                          ? badgeClass()
+                          : 'rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground',
                       )}
                     >
                       {user.subscriptionPlan}

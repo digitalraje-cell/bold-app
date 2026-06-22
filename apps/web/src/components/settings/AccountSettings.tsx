@@ -6,6 +6,7 @@ import { LogOut, Sparkles } from 'lucide-react';
 import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { SettingsCard, SettingsShell } from '@/components/settings/SettingsShell';
+import { badgeClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type AccountSettingsProps = {
@@ -35,10 +36,8 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
               <dd className="mt-1">
                 <span
                   className={cn(
-                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                    isVerified
-                      ? 'bg-green-500/10 text-green-700 dark:text-green-400'
-                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                    badgeClass(),
+                    !isVerified && 'text-muted-foreground',
                   )}
                 >
                   {isVerified ? 'Verified' : 'Not verified'}
@@ -46,7 +45,7 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
                 {!isVerified && (
                   <p className="mt-2 text-muted-foreground">
                     Verify your email to host meetings.{' '}
-                    <Link href="/verify" className="text-primary hover:underline">
+                    <Link href="/verify" className="text-foreground underline-offset-4 hover:underline">
                       Verify now
                     </Link>
                   </p>
@@ -60,7 +59,7 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
                   {isPro ? 'Pro' : 'Free'}
                 </span>
                 {isPro && (
-                  <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  <span className={badgeClass()}>
                     PRO — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
                   </span>
                 )}

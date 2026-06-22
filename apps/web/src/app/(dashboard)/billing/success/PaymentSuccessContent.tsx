@@ -27,11 +27,11 @@ export default function PaymentSuccessContent() {
   return (
     <div className="mx-auto max-w-lg py-12 text-center">
       {status === 'loading' ? (
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-muted-foreground" />
       ) : status === 'ok' ? (
-        <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
+        <CheckCircle2 className="mx-auto h-12 w-12 text-foreground" />
       ) : (
-        <CheckCircle2 className="mx-auto h-12 w-12 text-amber-500" />
+        <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground" />
       )}
 
       <h1 className="mt-6 text-2xl font-bold">Payment received successfully</h1>

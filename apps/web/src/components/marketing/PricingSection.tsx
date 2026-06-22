@@ -10,20 +10,23 @@ import {
   PRO_FEATURE_LIST,
   FEATURE_COMPARISON,
 } from '@boldmeet/shared';
+import { badgeClass, cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="border-t border-border bg-muted/30 py-20">
+    <section id="pricing" className="border-t border-border py-24 sm:py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, transparent pricing</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Simple, transparent pricing
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
             Start free. Upgrade when you need recordings, co-hosts, and YouTube Live streaming.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+        <div className="mt-16 grid gap-8 lg:grid-cols-2">
           <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/login" ctaLabel="Start free" />
           <PlanCard
             plan={SubscriptionPlan.PRO}
@@ -33,10 +36,10 @@ export function PricingSection() {
           />
         </div>
 
-        <div className="mt-16 overflow-x-auto rounded-2xl border border-border bg-surface">
+        <div className={cn(cardClass(), 'mt-16 overflow-x-auto')}>
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-border bg-[var(--badge-bg)]">
                 <th className="px-4 py-3 font-semibold">Feature</th>
                 <th className="px-4 py-3 font-semibold">Free</th>
                 <th className="px-4 py-3 font-semibold">Pro</th>
@@ -80,31 +83,32 @@ function PlanCard({
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-2xl border bg-surface p-8',
-        recommended ? 'border-primary shadow-lg shadow-primary/10' : 'border-border',
+        cardClass(),
+        'relative flex flex-col p-9 sm:p-11',
+        recommended && 'ring-1 ring-foreground/20 shadow-[var(--shadow-elevated)]',
       )}
     >
       {recommended && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-          Recommended
+        <span className={cn(badgeClass('absolute -top-3 left-1/2 -translate-x-1/2'), 'text-[10px]')}>
+          Most Popular
         </span>
       )}
-      <h3 className="text-xl font-bold">{display.name}</h3>
+      <h3 className="text-xl font-semibold">{display.name}</h3>
       <p className="mt-1 text-sm text-muted-foreground">{display.tagline}</p>
-      <p className="mt-6 text-4xl font-bold">
+      <p className="mt-8 text-4xl font-semibold tracking-tight">
         {price === 0 ? (
           '₹0'
         ) : (
           <>
             ₹{price}
-            <span className="text-base font-normal text-muted-foreground">/month</span>
+            <span className="text-base font-medium text-muted-foreground">/month</span>
           </>
         )}
       </p>
-      <ul className="mt-6 flex-1 space-y-2 text-sm text-muted-foreground">
+      <ul className="mt-8 flex-1 space-y-3 text-sm text-muted-foreground">
         {features.map((feature) => (
           <li key={feature} className="flex gap-2">
-            <span className="text-primary">✓</span>
+            <span className="text-foreground">✓</span>
             {feature}
           </li>
         ))}
@@ -119,10 +123,10 @@ function PlanCard({
       <Link
         href={ctaHref}
         className={cn(
-          'mt-8 block rounded-xl px-4 py-3 text-center text-sm font-semibold transition',
+          'mt-10 block rounded-full px-6 py-3.5 text-center text-sm font-semibold transition',
           recommended
-            ? 'bg-primary text-primary-foreground hover:opacity-90'
-            : 'border border-border hover:bg-muted',
+            ? 'bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]'
+            : 'border border-foreground/15 bg-surface text-foreground hover:bg-muted',
         )}
       >
         {ctaLabel}

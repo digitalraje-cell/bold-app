@@ -11,6 +11,8 @@ import {
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { badgeClass, cardClass, ui } from '@/lib/ui';
+import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export default function UpgradePage() {
@@ -47,18 +49,18 @@ export default function UpgradePage() {
         <Link href="/billing" className="text-sm text-muted-foreground hover:text-foreground">
           ← Back to billing
         </Link>
-        <h1 className="mt-4 text-2xl font-bold">Upgrade to Pro</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className={cn('mt-4', ui.pageTitle)}>Upgrade to Pro</h1>
+        <p className={ui.pageSubtitle}>
           Simple checkout via Razorpay. Pro is activated after payment verification.
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-surface p-8 shadow-lg shadow-primary/5">
-        <span className="absolute right-4 top-4 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+      <div className={cn(cardClass(), 'relative overflow-hidden p-8 sm:p-10')}>
+        <span className={cn(badgeClass(), 'absolute right-4 top-4')}>
           Early Founder Pricing — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
         </span>
 
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className={ui.iconWell}>
           <Sparkles className="h-6 w-6" />
         </div>
 
@@ -75,7 +77,7 @@ export default function UpgradePage() {
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
           {PRO_FEATURE_LIST.map((item) => (
             <li key={item} className="flex gap-2">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
               {item}
             </li>
           ))}
@@ -95,7 +97,7 @@ export default function UpgradePage() {
 
         <div className="mt-6">
           {isPro ? (
-            <p className="text-sm text-primary">You are already on the Pro plan.</p>
+            <p className="text-sm text-muted-foreground">You are already on the Pro plan.</p>
           ) : (
             <Button className="w-full sm:w-auto" onClick={() => void handlePay()} loading={loading}>
               Pay ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]} with Razorpay

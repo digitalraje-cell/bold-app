@@ -134,3 +134,4 @@ export * from './roadmap/features';
 export * from './recording/types';
 export * from './stream/types';
 export * from './webinar/types';
+export * from './founders/content';

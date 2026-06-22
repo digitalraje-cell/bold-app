@@ -91,13 +91,13 @@ function ControlButton({
       aria-label={label}
       title={label}
       className={cn(
-        'flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl transition sm:h-12 sm:w-12',
+        'flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 sm:h-12 sm:w-12',
         disabled && 'cursor-not-allowed opacity-40',
         danger
-          ? 'bg-red-600 hover:bg-red-700'
+          ? 'bg-destructive hover:opacity-90'
           : active
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-white/10 text-white hover:bg-white/20',
+            ? 'bg-white text-black shadow-sm'
+            : 'bg-white/12 text-white hover:bg-white/20',
       )}
     >
       <Icon className="h-5 w-5" />
@@ -176,8 +176,8 @@ export function ControlsBar({
     Boolean(isHost && onEndMeeting);
 
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-10">
-      <div className="pointer-events-auto mx-auto flex max-w-full items-center justify-center gap-1.5 sm:max-w-lg sm:gap-2">
+    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div className="pointer-events-auto meeting-controls-float mx-auto flex max-w-full items-center justify-center gap-1.5 px-2 py-2 sm:max-w-lg sm:gap-2 sm:px-3 sm:py-2.5">
         <ControlButton
           icon={isMuted ? MicOff : Mic}
           label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
@@ -224,7 +224,7 @@ export function ControlsBar({
               onClick={() => setMoreOpen((v) => !v)}
             />
             {moreOpen && (
-              <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl">
+              <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] overflow-hidden rounded-[var(--radius-meeting)] meeting-glass-panel py-1 shadow-[var(--shadow-float)]">
                 {reactionsEnabled && (
                   <div className="border-b border-white/10 px-3 py-2">
                     <button

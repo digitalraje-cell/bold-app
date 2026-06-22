@@ -11,7 +11,7 @@ import {
   LifeBuoy,
   Settings2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cardClass, navLinkClass, ui } from '@/lib/ui';
 
 const baseNav = [
   { href: '/settings/profile', label: 'Profile', icon: User },
@@ -35,16 +35,7 @@ export function SettingsNav() {
       {nav.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
-              active
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
+          <Link key={href} href={href} className={navLinkClass(active)}>
             <Icon className="h-4 w-4 shrink-0" />
             {label}
           </Link>
@@ -65,24 +56,24 @@ export function SettingsShell({
 }) {
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-10">
+        <h1 className={ui.pageTitle}>Settings</h1>
+        <p className={ui.pageSubtitle}>
           Manage your profile, preferences, and subscription.
         </p>
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+      <div className="flex flex-col gap-10 lg:flex-row lg:gap-14">
         <aside className="lg:w-56 lg:shrink-0">
           <SettingsNav />
         </aside>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold">{title}</h2>
-            {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <div className="mb-8">
+            <h2 className={ui.sectionTitle}>{title}</h2>
+            {description && <p className={ui.sectionSubtitle}>{description}</p>}
           </div>
-          {children}
+          <div className="space-y-6">{children}</div>
         </div>
       </div>
     </div>
@@ -101,15 +92,19 @@ export function SettingsCard({
   footer?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface">
+    <section className={cardClass()}>
       {(title || description) && (
-        <div className="border-b border-border px-6 py-4">
-          {title && <h3 className="font-semibold">{title}</h3>}
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <div className="border-b border-border/50 px-6 py-5 sm:px-8">
+          {title && <h3 className="font-semibold tracking-tight">{title}</h3>}
+          {description && (
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+          )}
         </div>
       )}
-      <div className="px-6 py-5">{children}</div>
-      {footer && <div className="border-t border-border px-6 py-4">{footer}</div>}
+      <div className="px-6 py-6 sm:px-8 sm:py-7">{children}</div>
+      {footer && (
+        <div className="border-t border-border/50 px-6 py-4 sm:px-8">{footer}</div>
+      )}
     </section>
   );
 }

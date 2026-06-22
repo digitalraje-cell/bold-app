@@ -5,6 +5,9 @@ export function AppFooter() {
   return (
     <footer className="border-t border-border px-6 py-4 text-center text-xs text-muted-foreground">
       <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <Link href="/about" className="hover:text-foreground">
+          About
+        </Link>
         <Link href="/privacy" className="hover:text-foreground">
           Privacy
         </Link>

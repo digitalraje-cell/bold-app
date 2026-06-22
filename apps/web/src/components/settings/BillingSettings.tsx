@@ -10,6 +10,7 @@ import {
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { SettingsCard, SettingsShell } from '@/components/settings/SettingsShell';
+import { badgeClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type BillingSummary = {
@@ -51,8 +52,8 @@ export function BillingSettings() {
                   </span>
                   <span
                     className={cn(
-                      'rounded-full px-2 py-0.5 text-xs font-semibold',
-                      isPro ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                      badgeClass(),
+                      !isPro && 'text-muted-foreground',
                     )}
                   >
                     {PLAN_DISPLAY[plan as SubscriptionPlan.FREE | SubscriptionPlan.PRO]?.name ?? plan}

@@ -57,8 +57,8 @@ export function ChatPanel({
   }
 
   return (
-    <div className="absolute right-0 top-0 z-40 flex h-full w-80 flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <div className="absolute bottom-20 right-2 top-2 z-40 flex w-[min(100%,20rem)] flex-col overflow-hidden meeting-glass-panel rounded-[var(--radius-meeting)] sm:right-4 sm:bottom-24">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
         <div>
           <h3 className="font-semibold text-white">Chat</h3>
           <p className="text-xs text-white/40">
@@ -121,7 +121,7 @@ export function ChatPanel({
             onChange={(e) => setMessage(e.target.value)}
             placeholder={canSend ? 'Type a message...' : 'Chat unavailable'}
             disabled={!canSend || !chatEnabled}
-            className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+            className="flex-1 rounded-[var(--radius-md)] bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50"
           />
           <Button type="submit" size="sm" className="shrink-0" disabled={!canSend || !chatEnabled}>
             <Send className="h-4 w-4" />

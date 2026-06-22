@@ -88,7 +88,7 @@ export default function PrivacyPolicyPage() {
       <p>
         We use cookies and similar technologies for authentication, session management, and service
         functionality. See our{' '}
-        <Link href="/cookies" className="text-primary hover:underline">
+        <Link href="/cookies" className="text-foreground underline-offset-4 hover:underline">
           Cookie Policy
         </Link>{' '}
         for details.
@@ -173,11 +173,11 @@ export default function PrivacyPolicyPage() {
       </ul>
       <p>
         To exercise these rights, contact us at{' '}
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+        <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
           {supportEmail}
         </a>{' '}
         or via our{' '}
-        <Link href="/contact" className="text-primary hover:underline">
+        <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
           Contact page
         </Link>
         .
@@ -212,7 +212,7 @@ export default function PrivacyPolicyPage() {
         Website: {websiteUrl}
         <br />
         Email:{' '}
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+        <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
           {supportEmail}
         </a>
       </p>

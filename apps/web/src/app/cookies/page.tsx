@@ -22,7 +22,7 @@ export default function CookiePolicyPage() {
       </p>
       <p>
         For broader information about how we handle personal data, see our{' '}
-        <Link href="/privacy" className="text-primary hover:underline">
+        <Link href="/privacy" className="text-foreground underline-offset-4 hover:underline">
           Privacy Policy
         </Link>
         .
@@ -99,11 +99,11 @@ export default function CookiePolicyPage() {
       <h2>Contact</h2>
       <p>
         Questions about cookies:{' '}
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+        <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
           {supportEmail}
         </a>{' '}
         ·{' '}
-        <Link href="/contact" className="text-primary hover:underline">
+        <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
           Contact Us
         </Link>
       </p>

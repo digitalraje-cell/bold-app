@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar } from 'lucide-react';
 import { normalizeMeetingCode } from '@boldmeet/shared';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { cardClass, ui } from '@/lib/ui';
 
 export function JoinByCodeCard() {
   const router = useRouter();
@@ -19,11 +21,8 @@ export function JoinByCodeCard() {
   }
 
   return (
-    <form
-      onSubmit={handleJoin}
-      className="rounded-2xl border border-border bg-surface p-6"
-    >
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <form onSubmit={handleJoin} className={cardClass({ className: 'p-6 sm:p-7' })}>
+      <div className={cn('mb-5', ui.iconWell)}>
         <Calendar className="h-5 w-5" />
       </div>
       <h3 className="font-semibold">Join Meeting</h3>
