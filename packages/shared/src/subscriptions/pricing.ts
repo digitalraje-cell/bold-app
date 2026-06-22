@@ -67,3 +67,20 @@ export const FEATURE_COMPARISON: {
   { feature: 'Recording library', free: false, pro: 'Coming Soon' },
   { feature: 'Webinar Mode', free: false, pro: 'Coming Soon' },
 ];
+
+export const MAX_FEATURE_COMPARISON_ROWS: {
+  feature: string;
+  free: boolean | string;
+  pro: boolean | string;
+  max: boolean | string;
+}[] = [
+  ...FEATURE_COMPARISON.map((row) => ({ ...row, max: row.pro === true ? true : row.pro })),
+  { feature: 'Multiple YouTube channels', free: false, pro: false, max: true },
+  { feature: 'Multi-channel streaming', free: false, pro: false, max: true },
+  { feature: 'Facebook Live', free: false, pro: false, max: 'Coming Soon' },
+  { feature: 'Instagram Live', free: false, pro: false, max: 'Coming Soon' },
+  { feature: 'LinkedIn Live', free: false, pro: false, max: 'Coming Soon' },
+  { feature: 'Custom RTMP', free: false, pro: false, max: 'Coming Soon' },
+  { feature: 'Advanced analytics', free: false, pro: false, max: 'Coming Soon' },
+  { feature: 'Team & agency workspace', free: false, pro: false, max: 'Coming Soon' },
+];

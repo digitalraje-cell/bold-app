@@ -1,8 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/components/auth/AuthProvider';
-import { PwaRegistrar } from '@/components/pwa/PwaRegistrar';
-import { UserSettingsInit } from '@/components/settings/UserSettingsInit';
+import { ClientProviders } from '@/components/providers/ClientProviders';
 import { APP_CONFIG, getServerAppOrigin } from '@/lib/app-config';
 import './globals.css';
 
@@ -32,6 +30,14 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,12 +45,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <AuthProvider>
-          <UserSettingsInit />
-          <PwaRegistrar />
-          {children}
-        </AuthProvider>
+      <body className="flex min-h-full min-w-0 max-w-[100vw] flex-col overflow-x-clip bg-background text-foreground">
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

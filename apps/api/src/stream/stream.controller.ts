@@ -48,4 +48,13 @@ export class StreamController {
   ) {
     return this.streamService.stop(meetingId, req.user.id);
   }
+
+  @Post('resume')
+  @UseGuards(AuthGuard)
+  resumeStream(
+    @Req() req: Request & { user: AuthUser },
+    @Param('meetingId') meetingId: string,
+  ) {
+    return this.streamService.resume(meetingId, req.user.id);
+  }
 }

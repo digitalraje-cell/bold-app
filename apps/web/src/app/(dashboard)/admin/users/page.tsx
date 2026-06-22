@@ -97,8 +97,71 @@ export default function AdminUsersPage() {
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">No users found.</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full min-w-[880px] text-left text-sm">
+        <>
+          <ul className="space-y-4 lg:hidden">
+            {users.map((user) => (
+              <li key={user.id} className="rounded-2xl border border-border p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{user.name || '—'}</p>
+                    <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+                    {user.role === 'ADMIN' && (
+                      <span className={badgeClass('mt-1 text-[10px] uppercase')}>Admin</span>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                      user.subscriptionPlan === 'PRO'
+                        ? badgeClass()
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {user.subscriptionPlan}
+                  </span>
+                </div>
+                <dl className="mt-3 grid gap-2 border-t border-border pt-3 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Verified</dt>
+                    <dd>{user.isVerified ? 'Yes' : 'No'}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Joined</dt>
+                    <dd>{new Date(user.createdAt).toLocaleDateString()}</dd>
+                  </div>
+                  {user.subscriptionExpiresAt && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Expires</dt>
+                      <dd>{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {user.subscriptionPlan !== 'PRO' ? (
+                    <Button
+                      size="sm"
+                      loading={actionId === user.id}
+                      onClick={() => void activatePro(user.id)}
+                    >
+                      Activate Pro
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={actionId === user.id}
+                      onClick={() => void deactivatePro(user.id)}
+                    >
+                      Deactivate Pro
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-hidden rounded-2xl border border-border lg:block">
+            <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-muted/50">
               <tr>
                 <th className="px-4 py-3 font-semibold">User</th>
@@ -168,6 +231,7 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

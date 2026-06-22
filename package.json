@@ -16,7 +16,8 @@
     "db:migrate": "pnpm --filter @boldmeet/api db:migrate",
     "db:migrate:deploy": "pnpm --filter @boldmeet/api db:migrate:deploy",
     "db:push": "pnpm --filter @boldmeet/api db:push",
-    "db:studio": "pnpm --filter @boldmeet/api db:studio"
+    "db:studio": "pnpm --filter @boldmeet/api db:studio",
+    "qa:responsive": "node scripts/qa-responsive-audit.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.0",

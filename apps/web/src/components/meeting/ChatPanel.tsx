@@ -57,8 +57,9 @@ export function ChatPanel({
   }
 
   return (
-    <div className="absolute bottom-20 right-2 top-2 z-40 flex w-[min(100%,20rem)] flex-col overflow-hidden meeting-glass-panel rounded-[var(--radius-meeting)] sm:right-4 sm:bottom-24">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+    <div className="fixed inset-0 z-50 flex flex-col meeting-panel-mobile bg-black/40 sm:absolute sm:inset-y-3 sm:right-3 sm:left-auto sm:bottom-[calc(var(--meeting-controls-offset,5.5rem)+env(safe-area-inset-bottom,0px))] sm:top-3 sm:z-40 sm:w-full sm:max-w-sm sm:bg-transparent sm:p-0">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden meeting-glass-panel m-0 rounded-none sm:m-0 sm:rounded-[var(--radius-meeting)]">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4">
         <div>
           <h3 className="font-semibold text-white">Chat</h3>
           <p className="text-xs text-white/40">
@@ -128,6 +129,7 @@ export function ChatPanel({
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

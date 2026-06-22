@@ -32,3 +32,4 @@ restartPolicyType = "ON_FAILURE"
 # NEXT_PUBLIC_API_URL — same as API_URL if you want direct browser calls / sockets
 # NEXT_PUBLIC_SOCKET_URL — same as API_URL
 # RESEND_API_KEY, EMAIL_FROM — OTP email delivery
+# NEXT_PUBLIC_ENABLE_YOUTUBE_LIVE=true — YouTube Live in meetings (default: enabled)

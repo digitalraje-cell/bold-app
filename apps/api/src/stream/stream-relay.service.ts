@@ -14,6 +14,8 @@ export interface ActiveRelay {
   ingestTokenHash: string;
   process: ChildProcessWithoutNullStreams;
   startedAt: Date;
+  lastChunkAt: Date;
+  ingestConnected: boolean;
 }
 
 @Injectable()
@@ -28,6 +30,7 @@ export class StreamRelayService {
 
     const ingestToken = randomBytes(32).toString('hex');
     const ingestTokenHash = this.hashToken(ingestToken);
+    const now = new Date();
 
     let ffmpeg: ChildProcessWithoutNullStreams;
     try {
@@ -87,7 +90,9 @@ export class StreamRelayService {
       meetingId: input.meetingId,
       ingestTokenHash,
       process: ffmpeg,
-      startedAt: new Date(),
+      startedAt: now,
+      lastChunkAt: now,
+      ingestConnected: false,
     });
 
     return { ok: true, ingestToken };
@@ -99,15 +104,41 @@ export class StreamRelayService {
     return relay.ingestTokenHash === this.hashToken(token);
   }
 
+  setIngestConnected(streamId: string, connected: boolean) {
+    const relay = this.relays.get(streamId);
+    if (!relay) return;
+    relay.ingestConnected = connected;
+    if (connected) relay.lastChunkAt = new Date();
+  }
+
   writeChunk(streamId: string, chunk: Buffer): boolean {
     const relay = this.relays.get(streamId);
     if (!relay?.process.stdin.writable) return false;
     try {
       relay.process.stdin.write(chunk);
+      relay.lastChunkAt = new Date();
       return true;
     } catch {
       return false;
     }
+  }
+
+  getStaleRelays(maxIdleMs: number): ActiveRelay[] {
+    const cutoff = Date.now() - maxIdleMs;
+    return [...this.relays.values()].filter((relay) => relay.lastChunkAt.getTime() < cutoff);
+  }
+
+  getMeetingId(streamId: string): string | null {
+    return this.relays.get(streamId)?.meetingId ?? null;
+  }
+
+  reissueIngestToken(streamId: string): string | null {
+    const relay = this.relays.get(streamId);
+    if (!relay) return null;
+    const ingestToken = randomBytes(32).toString('hex');
+    relay.ingestTokenHash = this.hashToken(ingestToken);
+    relay.lastChunkAt = new Date();
+    return ingestToken;
   }
 
   stop(streamId: string): boolean {

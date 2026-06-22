@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full min-w-0 flex-col overflow-x-clip">
       <MarketingHeader active="pricing" />
 
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 sm:py-32">

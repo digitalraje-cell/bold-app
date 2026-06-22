@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-06-22T11:25:23.540Z",
+  "baseUrl": "http://localhost:3000",
+  "meetingsNeverInterrupted": "YES — by design: no auto-refresh on /meeting/* or /join/*",
+  "automatedPass": 2,
+  "manualPending": 6,
+  "results": [
+    {
+      "id": "version-api",
+      "pass": true,
+      "detail": {
+        "appVersion": "1.0.0",
+        "buildTimestamp": "2026-06-22",
+        "release": {
+          "version": "1.0.0",
+          "releaseDate": "2026-06-22",
+          "releaseNotes": [
+            "PWA support",
+            "Mobile improvements",
+            "Faster meeting join"
+          ],
+          "forceUpdate": false
+        }
+      }
+    },
+    {
+      "id": "sw-file",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "hasSkipWaitingMessage": true,
+        "controlledLifecycle": true
+      }
+    },
+    {
+      "id": "outside-meeting-toast",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    },
+    {
+      "id": "meeting-banner",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    },
+    {
+      "id": "post-meeting-update",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    },
+    {
+      "id": "force-update-modal",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    },
+    {
+      "id": "whats-new-card",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    },
+    {
+      "id": "admin-releases",
+      "pass": null,
+      "detail": "MANUAL — see test matrix below"
+    }
+  ],
+  "manualMatrix": [
+    "Desktop Chrome — install PWA, deploy new sw.js, verify toast",
+    "Desktop Edge — same",
+    "Android Chrome — add to home screen optional",
+    "Android PWA installed — background update toast",
+    "iPhone Safari — meeting banner only (limited SW)",
+    "iPhone Add to Home Screen — full flow"
+  ]
+}

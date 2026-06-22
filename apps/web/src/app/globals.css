@@ -114,6 +114,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 /* Typography */
 .text-display {
   font-size: 3.5rem;
@@ -164,6 +169,11 @@ body {
   border: 1px solid var(--meeting-glass-border);
 }
 
+.meeting-jitsi-shell {
+  /* Reserve space so filmstrip / names sit above the floating toolbar */
+  padding-bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
+}
+
 .meeting-controls-float {
   background: rgba(28, 28, 30, 0.78);
   backdrop-filter: blur(24px) saturate(180%);
@@ -171,6 +181,18 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-meeting);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.meeting-controls-float--hidden {
+  opacity: 0;
+  transform: translateY(0.75rem);
+  pointer-events: none;
+}
+
+.meeting-panel-mobile {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes v3-fade-up {

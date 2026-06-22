@@ -77,8 +77,58 @@ export default function AdminPaymentsPage() {
       ) : payments.length === 0 ? (
         <p className="text-muted-foreground">No pending payments.</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full min-w-[720px] text-left text-sm">
+        <>
+          <ul className="space-y-4 lg:hidden">
+            {payments.map((payment) => (
+              <li key={payment.id} className="rounded-2xl border border-border p-4">
+                <p className="font-medium">{payment.name}</p>
+                <p className="text-sm text-muted-foreground">{payment.email}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Current plan: {payment.user.subscriptionPlan}
+                </p>
+                <dl className="mt-3 grid gap-2 border-t border-border pt-3 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Plan</dt>
+                    <dd>{payment.plan}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Status</dt>
+                    <dd>
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-xs font-medium',
+                          payment.paymentStatus === 'paid' && badgeClass(),
+                          payment.paymentStatus === 'pending' && badgeClass('text-muted-foreground'),
+                          payment.paymentStatus === 'activated' && badgeClass(),
+                          payment.paymentStatus === 'cancelled' && 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {payment.paymentStatus}
+                      </span>
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Date</dt>
+                    <dd>{new Date(payment.createdAt).toLocaleString()}</dd>
+                  </div>
+                </dl>
+                {payment.paymentStatus !== 'activated' && payment.paymentStatus !== 'cancelled' && (
+                  <div className="mt-4">
+                    <Button
+                      size="sm"
+                      loading={actionId === payment.id}
+                      onClick={() => void activate(payment.id)}
+                    >
+                      Activate Pro
+                    </Button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-hidden rounded-2xl border border-border lg:block">
+            <table className="w-full text-left text-sm">
             <thead className="border-b border-border bg-muted/50">
               <tr>
                 <th className="px-4 py-3 font-semibold">User</th>
@@ -129,6 +179,7 @@ export default function AdminPaymentsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
