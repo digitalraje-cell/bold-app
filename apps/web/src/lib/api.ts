@@ -192,6 +192,21 @@ export const api = {
     activatePayment: (id: string) =>
       apiFetch(`/admin/payments/${id}/activate`, { method: 'POST' }),
   },
+  pwa: {
+    track: (payload: {
+      event: string;
+      meetingId?: string;
+      meetingCode?: string;
+      browser?: string;
+      platform?: string;
+      metadata?: Record<string, unknown>;
+    }) =>
+      apiFetch('/pwa/analytics', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    adminStats: () => apiFetch('/pwa/admin/stats'),
+  },
   roadmap: {
     votes: (auth = false) => apiFetch('/roadmap/votes', {}, auth),
     vote: (featureKey: string) =>

@@ -6,6 +6,7 @@ import { MeetingListSection } from '@/components/dashboard/MeetingCard';
 import { JoinByCodeCard } from '@/components/dashboard/JoinByCodeCard';
 import { DashboardMessage } from '@/components/dashboard/DashboardMessage';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
+import { PwaInstallBanner } from '@/components/pwa/PwaInstallBanner';
 import { Calendar, Radio } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -78,6 +79,7 @@ export default async function DashboardPage() {
         <DashboardMessage />
       </Suspense>
       <UpgradeBanner />
+      <PwaInstallBanner />
 
       <div className="mb-10">
         <h1 className={ui.pageTitle}>

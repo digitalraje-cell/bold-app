@@ -76,9 +76,14 @@ export default function AdminUsersPage() {
             View users and manually activate or deactivate Pro.
           </p>
         </div>
-        <Link href="/admin/payments" className="text-sm text-foreground underline-offset-4 hover:underline">
-          View pending payments →
-        </Link>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/admin" className="text-sm text-foreground underline-offset-4 hover:underline">
+            Admin overview →
+          </Link>
+          <Link href="/admin/payments" className="text-sm text-foreground underline-offset-4 hover:underline">
+            View pending payments →
+          </Link>
+        </div>
       </div>
 
       {error && (
