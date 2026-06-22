@@ -158,6 +158,28 @@ export const BOLDMEET_ABOUT_CONTENT = {
     'Mobile Apps',
     'Enterprise Features',
   ],
+  audiences: [
+    {
+      id: 'coaches',
+      title: 'Built for Coaches',
+      body: 'Run 1:1 sessions, group coaching calls, and client workshops with reliable HD video — no complicated setup between you and your clients.',
+    },
+    {
+      id: 'educators',
+      title: 'Built for Educators',
+      body: 'Host classrooms, office hours, and training sessions with screen sharing, chat, and attendee management designed for teaching at scale.',
+    },
+    {
+      id: 'agencies',
+      title: 'Built for Agencies',
+      body: 'Present to clients, run internal standups, and deliver webinars from one professional platform your whole team can adopt quickly.',
+    },
+    {
+      id: 'teams',
+      title: 'Built for Teams',
+      body: 'Daily standups, all-hands, and cross-border collaboration — with host controls, waiting rooms, and the reliability modern teams expect.',
+    },
+  ],
   cta: {
     title: 'Ready to Meet Smarter?',
     subtitle:

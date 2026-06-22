@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ThumbsUp, Loader2, Sparkles } from 'lucide-react';
+import { ThumbsUp, Loader2 } from 'lucide-react';
 import {
   ROADMAP_AVAILABLE_NOW,
   ROADMAP_COMING_SOON,
@@ -14,6 +14,7 @@ import {
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { badgeClass, cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type VoteRow = {
@@ -77,37 +78,37 @@ export function RoadmapContent() {
       <MarketingHeader active="roadmap" />
 
       <main className="flex-1">
-        <section className="border-b border-border bg-muted/20 px-6 py-16 sm:py-20">
+        <section className="border-b border-border px-6 py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Product roadmap</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">Built in public</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+            <p className={ui.eyebrow}>Product roadmap</p>
+            <h1 className="mt-6 text-3xl font-semibold tracking-tight sm:text-5xl">Built in public</h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
               See what&apos;s live today, what&apos;s shipping next, and vote for the features you
               need most.
             </p>
           </div>
         </section>
 
-        <section className="px-6 py-12">
+        <section className="px-6 py-16">
           <div className="mx-auto max-w-6xl">
             <RoadmapSection title="Available now" items={[...ROADMAP_AVAILABLE_NOW]} status="live" />
             <ComingSoonSection />
           </div>
         </section>
 
-        <section className="border-t border-border bg-muted/10 px-6 py-16">
+        <section className="border-t border-border px-6 py-20">
           <div className="mx-auto max-w-6xl">
-            <h2 className="text-2xl font-bold">Vote for what we build next</h2>
-            <p className="mt-1 text-muted-foreground">
+            <h2 className="text-2xl font-semibold tracking-tight">Vote for what we build next</h2>
+            <p className="mt-2 text-muted-foreground">
               Sign in to vote once per feature. Your vote helps us prioritise the roadmap.
             </p>
 
             {loading ? (
-              <div className="mt-8 flex justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="mt-12 flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {ROADMAP_VOTABLE_FEATURES.map((feature) => {
                   const row = voteByKey[feature.key];
                   const count = row?.voteCount ?? 0;
@@ -116,21 +117,19 @@ export function RoadmapContent() {
                   return (
                     <div
                       key={feature.key}
-                      className="rounded-2xl border border-border bg-surface p-5"
+                      className={cn(cardClass({ bordered: true }), 'p-6')}
                     >
                       <h3 className="font-semibold">{feature.title}</h3>
                       {feature.proIncluded && (
-                        <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                          Included in Pro
-                        </span>
+                        <span className={cn(badgeClass(), 'mt-3')}>Included in Pro</span>
                       )}
-                      <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
-                      <p className="mt-4 text-sm font-medium text-primary">
+                      <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
+                      <p className="mt-4 text-sm font-medium text-muted-foreground">
                         {count} user{count === 1 ? '' : 's'} requested this feature
                       </p>
                       <Button
                         variant={voted ? 'secondary' : 'primary'}
-                        className="mt-4 w-full"
+                        className="mt-5 w-full"
                         loading={votingKey === feature.key}
                         onClick={() => void toggleVote(feature.key, voted)}
                       >
@@ -145,23 +144,25 @@ export function RoadmapContent() {
           </div>
         </section>
 
-        <section className="border-t border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 py-16">
+        <section className="border-t border-border px-6 py-20">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+            <span className={badgeClass()}>
               Early Founder Pricing — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
             </span>
-            <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Upgrade to Pro</h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
+              Upgrade to Pro
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
               Pricing may increase after the founder launch period. Pro members get priority access,
               early releases, YouTube recording, co-host support, and advanced attendee management.
             </p>
-            <ul className="mx-auto mt-6 max-w-md space-y-2 text-left text-sm text-muted-foreground">
+            <ul className="mx-auto mt-8 max-w-md space-y-2 text-left text-sm text-muted-foreground">
               <li>✓ Priority feature access</li>
               <li>✓ Early access to new releases</li>
               <li>✓ YouTube recording &amp; co-hosts</li>
               <li>✓ Advanced attendee management</li>
             </ul>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/billing/upgrade">
                 <Button size="lg">Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
               </Link>
@@ -183,27 +184,24 @@ export function RoadmapContent() {
 function ComingSoonSection() {
   return (
     <div className="mb-12">
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-xl font-bold">Coming soon</h2>
-        <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-          On the roadmap
-        </span>
+      <div className="mb-6 flex items-center gap-3">
+        <h2 className="text-xl font-semibold">Coming soon</h2>
+        <span className={badgeClass('text-[10px] uppercase')}>On the roadmap</span>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {ROADMAP_COMING_SOON.map((item) => (
           <li
             key={item.title}
-            className="rounded-xl border border-border bg-surface px-4 py-3 text-sm"
+            className={cn(
+              cardClass({ bordered: true }),
+              'flex flex-wrap items-center gap-2 px-4 py-3 text-sm',
+            )}
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
-              <span className="font-medium">{item.title}</span>
-              {item.proIncluded && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                  Included in Pro
-                </span>
-              )}
-            </div>
+            <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
+            <span className="font-medium">{item.title}</span>
+            {item.proIncluded && (
+              <span className={badgeClass('text-[10px] uppercase')}>Included in Pro</span>
+            )}
           </li>
         ))}
       </ul>
@@ -222,16 +220,9 @@ function RoadmapSection({
 }) {
   return (
     <div className="mb-12">
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-xl font-bold">{title}</h2>
-        <span
-          className={cn(
-            'rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase',
-            status === 'live' && 'bg-green-500/10 text-green-700 dark:text-green-400',
-            status === 'soon' && 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-            status === 'future' && 'bg-muted text-muted-foreground',
-          )}
-        >
+      <div className="mb-6 flex items-center gap-3">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <span className={badgeClass('text-[10px] uppercase')}>
           {status === 'live' ? 'Live' : status === 'soon' ? 'Q3 2026' : 'Q4 2026'}
         </span>
       </div>
@@ -239,13 +230,12 @@ function RoadmapSection({
         {items.map((item) => (
           <li
             key={item}
-            className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm"
-          >
-            {status === 'live' ? (
-              <Sparkles className="h-4 w-4 shrink-0 text-green-500" />
-            ) : (
-              <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
+            className={cn(
+              cardClass({ bordered: true }),
+              'flex items-center gap-2 px-4 py-3 text-sm',
             )}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full bg-foreground/30" />
             {item}
           </li>
         ))}

@@ -11,6 +11,7 @@ import {
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { cardClass, ui, badgeClass } from '@/lib/ui';
 
 type BillingSummary = {
   plan: SubscriptionPlan;
@@ -79,12 +80,12 @@ export default function BillingPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Billing &amp; Plans</h1>
+        <h1 className={ui.pageTitle}>Billing &amp; Plans</h1>
         <p className="mt-1 text-muted-foreground">Manage your subscription, usage, and payments.</p>
       </div>
 
       {message && (
-        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+        <div className="mb-6 rounded-lg border border-border bg-[var(--badge-bg)] px-4 py-3 text-sm text-foreground">
           {message}
         </div>
       )}
@@ -93,7 +94,7 @@ export default function BillingPage() {
         <p className="text-muted-foreground">Loading…</p>
       ) : (
         <div className="space-y-6">
-          <section className="rounded-2xl border border-border bg-surface p-6">
+          <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Current subscription
             </h2>
@@ -103,12 +104,7 @@ export default function BillingPage() {
                   <dt className="text-sm text-muted-foreground">Current plan</dt>
                   <dd className="mt-1 flex items-center gap-2">
                     <span className="text-lg font-semibold">{planName}</span>
-                    <span
-                      className={cn(
-                        'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                        isPro ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                      )}
-                    >
+                    <span className={isPro ? badgeClass() : badgeClass('text-muted-foreground')}>
                       {isPro
                         ? `₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo`
                         : '₹0'}
@@ -146,7 +142,7 @@ export default function BillingPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-6">
+          <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">
             <h2 className="font-semibold">Usage this month</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <UsageCard
@@ -160,7 +156,7 @@ export default function BillingPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-6">
+          <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">
             <h2 className="font-semibold">Free vs Pro comparison</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Compare what&apos;s included in each plan.
@@ -191,7 +187,7 @@ export default function BillingPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-6">
+          <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">
             <h2 className="font-semibold">Payment history</h2>
             {summary?.paymentHistory?.length ? (
               <ul className="mt-4 divide-y divide-border">
@@ -214,7 +210,7 @@ export default function BillingPage() {
                 {!isPro && (
                   <>
                     {' '}
-                    <Link href="/billing/upgrade" className="text-primary hover:underline">
+                    <Link href="/billing/upgrade" className="text-foreground underline-offset-4 hover:underline">
                       Upgrade to Pro
                     </Link>{' '}
                     to get started.
@@ -224,7 +220,7 @@ export default function BillingPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-6">
+          <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">
             <h2 className="font-semibold">FAQ</h2>
             <dl className="mt-4 space-y-5">
               {FAQ_ITEMS.map(({ question, answer }) => (
@@ -236,11 +232,11 @@ export default function BillingPage() {
             </dl>
             <p className="mt-6 text-sm text-muted-foreground">
               Need help?{' '}
-              <Link href="/settings/support" className="text-primary hover:underline">
+              <Link href="/settings/support" className="text-foreground underline-offset-4 hover:underline">
                 Contact support
               </Link>{' '}
               or read our{' '}
-              <Link href="/refund" className="text-primary hover:underline">
+              <Link href="/refund" className="text-foreground underline-offset-4 hover:underline">
                 Refund Policy
               </Link>
               .

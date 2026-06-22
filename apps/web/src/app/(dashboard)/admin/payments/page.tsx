@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { badgeClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type PendingPayment = {
@@ -60,7 +61,7 @@ export default function AdminPaymentsPage() {
             Manually activate Pro after verifying Razorpay payment.
           </p>
         </div>
-        <Link href="/admin/users" className="text-sm text-primary hover:underline">
+        <Link href="/admin/users" className="text-sm text-foreground underline-offset-4 hover:underline">
           View all users →
         </Link>
       </div>
@@ -100,9 +101,9 @@ export default function AdminPaymentsPage() {
                     <span
                       className={cn(
                         'rounded-full px-2 py-0.5 text-xs font-medium',
-                        payment.paymentStatus === 'paid' && 'bg-green-500/10 text-green-700',
-                        payment.paymentStatus === 'pending' && 'bg-amber-500/10 text-amber-700',
-                        payment.paymentStatus === 'activated' && 'bg-primary/10 text-primary',
+                        payment.paymentStatus === 'paid' && badgeClass(),
+                        payment.paymentStatus === 'pending' && badgeClass('text-muted-foreground'),
+                        payment.paymentStatus === 'activated' && badgeClass(),
                         payment.paymentStatus === 'cancelled' && 'bg-muted text-muted-foreground',
                       )}
                     >

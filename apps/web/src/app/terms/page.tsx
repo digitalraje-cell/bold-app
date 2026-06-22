@@ -98,7 +98,7 @@ export default function TermsPage() {
         <li>Pro features are activated after payment verification; manual activation may apply during early launch.</li>
         <li>Plan features, limits, and pricing may change with notice on our website.</li>
         <li>Refunds are governed by our{' '}
-          <Link href="/refund" className="text-primary hover:underline">
+          <Link href="/refund" className="text-foreground underline-offset-4 hover:underline">
             Refund Policy
           </Link>
           .
@@ -158,7 +158,7 @@ export default function TermsPage() {
       <h2>11. Privacy</h2>
       <p>
         Our collection and use of personal information is described in our{' '}
-        <Link href="/privacy" className="text-primary hover:underline">
+        <Link href="/privacy" className="text-foreground underline-offset-4 hover:underline">
           Privacy Policy
         </Link>
         .
@@ -174,11 +174,11 @@ export default function TermsPage() {
       <h2>13. Contact</h2>
       <p>
         Questions about these Terms:{' '}
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+        <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
           {supportEmail}
         </a>{' '}
         ·{' '}
-        <Link href="/contact" className="text-primary hover:underline">
+        <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
           Contact Us
         </Link>
       </p>

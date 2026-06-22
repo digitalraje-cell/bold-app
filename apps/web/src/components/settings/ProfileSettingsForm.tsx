@@ -72,7 +72,7 @@ export function ProfileSettingsForm({ initialName, email, avatarUrl }: ProfileSe
                 }}
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground text-xl font-bold text-background">
                 {previewInitial}
               </div>
             )}

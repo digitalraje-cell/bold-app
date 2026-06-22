@@ -147,7 +147,7 @@ export function VerifyAccountForm() {
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        <Link href="/dashboard" className="text-primary hover:underline">
+        <Link href="/dashboard" className="text-foreground underline-offset-4 hover:underline">
           Back to dashboard
         </Link>
       </p>

@@ -7,8 +7,10 @@ import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type Lu
 import { formatMeetingCode } from '@boldmeet/shared';
 import { getMeetingInviteUrl } from '@/lib/urls';
 import { cn } from '@/lib/utils';
+import { cardClass, ui } from '@/lib/ui';
 import { api } from '@/lib/api';
 import { CopyButton } from './CopyButton';
+import { Button } from '@/components/ui/Button';
 
 export type MeetingSectionIcon = 'radio' | 'calendar' | 'history';
 
@@ -35,9 +37,9 @@ interface MeetingCardProps {
 }
 
 const statusConfig = {
-  SCHEDULED: { label: 'Scheduled', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
-  LIVE: { label: 'Live', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
-  ENDED: { label: 'Ended', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' },
+  SCHEDULED: { label: 'Scheduled', className: 'bg-muted text-muted-foreground' },
+  LIVE: { label: 'Live', className: 'bg-success/10 text-success' },
+  ENDED: { label: 'Ended', className: 'bg-muted text-muted-foreground/70' },
 };
 
 function hostLabel(host?: MeetingCardProps['meeting']['host']): string {
@@ -83,7 +85,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5 transition hover:border-primary/30">
+    <div className={cardClass({ className: 'p-5 sm:p-6 transition-all duration-200 hover:shadow-[var(--shadow-elevated)]' })}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -114,47 +116,55 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
                 <>
                   <Link
                     href={`/meeting/${meeting.meetingCode}`}
-                    className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
+                    className="inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]"
                   >
                     Join
                   </Link>
-                  <button
+                  <Button
                     type="button"
+                    variant="danger"
+                    size="sm"
+                    className="w-full"
                     onClick={handleEndMeeting}
                     disabled={actionLoading}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                    loading={actionLoading}
                   >
                     End Meeting
-                  </button>
+                  </Button>
                   <CopyButton text={inviteLink} label="Copy Invite Link" className="w-full" />
                 </>
               )}
               {isLive && !isHost && (
-                <button
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
+                  className="w-full"
                   onClick={handleLeaveMeeting}
                   disabled={actionLoading}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  loading={actionLoading}
                 >
                   Leave Meeting
-                </button>
+                </Button>
               )}
               {!isLive && (
                 <Link
                   href={`/meeting/${meeting.meetingCode}`}
-                  className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]"
                 >
                   Start
                 </Link>
               )}
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full gap-1"
                 onClick={() => setDetailsOpen((open) => !open)}
-                className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
               >
                 Details
                 {detailsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              </button>
+              </Button>
             </>
           ) : (
             <Link
@@ -168,7 +178,7 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
       </div>
 
       {detailsOpen && (
-        <div className="mt-4 space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+        <div className="mt-4 space-y-3 rounded-[var(--radius-md)] bg-muted/60 p-4 sm:p-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Meeting ID</p>
             <p className="mt-1 font-mono text-sm">{meetingIdLabel}</p>
@@ -195,11 +205,11 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
 
 export function MeetingListEmpty({ message, action }: { message: string; action?: { label: string; href: string } }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+    <div className={cn(cardClass(), 'border border-dashed border-border/80 p-12 text-center')}>
       <Video className="mx-auto h-10 w-10 text-muted-foreground/50" />
       <p className="mt-4 text-muted-foreground">{message}</p>
       {action && (
-        <Link href={action.href} className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+        <Link href={action.href} className="mt-2 inline-block text-sm font-medium text-foreground underline-offset-4 hover:underline">
           {action.label}
         </Link>
       )}
@@ -224,7 +234,7 @@ export function MeetingListSection({
 
   return (
     <section>
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+      <h2 className={cn('mb-5 flex items-center gap-2', ui.sectionTitle)}>
         <Icon className="h-5 w-5 text-muted-foreground" />
         {title}
       </h2>

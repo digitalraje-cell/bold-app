@@ -30,7 +30,7 @@ export default function RefundPolicyPage() {
       <p>
         Pro includes advanced features such as co-hosts, attendee management, YouTube Live
         integration, and related Pro capabilities as described on our{' '}
-        <Link href="/#pricing" className="text-primary hover:underline">
+        <Link href="/#pricing" className="text-foreground underline-offset-4 hover:underline">
           pricing page
         </Link>
         .
@@ -82,11 +82,11 @@ export default function RefundPolicyPage() {
       <h2>How to request a refund or report a billing issue</h2>
       <p>
         Email{' '}
-        <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+        <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
           {supportEmail}
         </a>{' '}
         or use our{' '}
-        <Link href="/contact" className="text-primary hover:underline">
+        <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
           Contact form
         </Link>{' '}
         with:

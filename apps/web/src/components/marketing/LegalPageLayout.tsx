@@ -27,11 +27,11 @@ export function LegalPageLayout({
           <hr />
           <p className="text-sm text-muted-foreground">
             Questions? Contact{' '}
-            <Link href="/contact" className="text-primary hover:underline">
+            <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
               {LEGAL_CONFIG.supportEmail}
             </Link>{' '}
             or visit our{' '}
-            <Link href="/cookies" className="text-primary hover:underline">
+            <Link href="/cookies" className="text-foreground underline-offset-4 hover:underline">
               Cookie Policy
             </Link>
             .

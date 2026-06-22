@@ -11,6 +11,7 @@ export async function fetchPlatformStatsServer(): Promise<PlatformStats | null> 
   try {
     const res = await fetch(buildNestApiUrl('/public/platform-stats'), {
       cache: 'no-store',
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     return (await res.json()) as PlatformStats;

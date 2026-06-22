@@ -46,7 +46,7 @@ export default function ContactPage() {
         <div>
           <dt className="font-medium text-foreground">Support email</dt>
           <dd>
-            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+            <a href={`mailto:${supportEmail}`} className="text-foreground underline-offset-4 hover:underline">
               {supportEmail}
             </a>
           </dd>
@@ -54,7 +54,7 @@ export default function ContactPage() {
         <div>
           <dt className="font-medium text-foreground">Business email</dt>
           <dd>
-            <a href={`mailto:${businessEmail}`} className="text-primary hover:underline">
+            <a href={`mailto:${businessEmail}`} className="text-foreground underline-offset-4 hover:underline">
               {businessEmail}
             </a>
           </dd>
@@ -75,7 +75,7 @@ export default function ContactPage() {
         </li>
         <li>
           <strong>Billing &amp; Pro</strong> — payment confirmation, Pro activation, refunds. See{' '}
-          <Link href="/billing" className="text-primary hover:underline">
+          <Link href="/billing" className="text-foreground underline-offset-4 hover:underline">
             Billing
           </Link>{' '}
           when signed in.

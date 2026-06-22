@@ -7,6 +7,7 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { appConfig } from '@/lib/app-config';
+import { ui } from '@/lib/ui';
 import { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from '@/lib/otp-constants';
 
 function LoginFormInner() {
@@ -102,15 +103,15 @@ function LoginFormInner() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-6">
+    <div className="w-full space-y-8">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
           {appConfig.name.charAt(0).toUpperCase()}
         </div>
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {step === 'email' ? 'Welcome to BoldMeet' : 'Enter your code'}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {step === 'email'
             ? 'Sign in or create an account with a one-time code sent to your email.'
             : `We sent a 6-digit code to ${email}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`}
@@ -124,7 +125,7 @@ function LoginFormInner() {
       )}
 
       {message && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
+        <div className="rounded-lg border border-border bg-[var(--badge-bg)] px-4 py-3 text-sm text-foreground">
           {message}
         </div>
       )}
@@ -188,11 +189,11 @@ function LoginFormInner() {
 
       <p className="text-center text-xs text-muted-foreground">
         By continuing you agree to our{' '}
-        <Link href="/terms" className="text-primary hover:underline">
+        <Link href="/terms" className={ui.link}>
           Terms
         </Link>{' '}
         and{' '}
-        <Link href="/privacy" className="text-primary hover:underline">
+        <Link href="/privacy" className={ui.link}>
           Privacy Policy
         </Link>
         .

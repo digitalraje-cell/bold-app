@@ -92,7 +92,7 @@ export function ParticipantsPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col border-l border-white/10 bg-slate-900/98 backdrop-blur sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-sm">
+    <div className="fixed inset-x-3 top-3 bottom-20 z-40 flex flex-col overflow-hidden meeting-glass-panel rounded-[var(--radius-meeting)] sm:absolute sm:inset-y-3 sm:left-auto sm:right-3 sm:bottom-24 sm:h-auto sm:w-full sm:max-w-sm">
       <UpgradeModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
@@ -135,7 +135,7 @@ export function ParticipantsPanel({
                   onClick={() =>
                     runAction(p.id, () => api.participants.admitWaiting(meetingId, p.id))
                   }
-                  className="rounded bg-primary/20 p-1.5 text-primary hover:bg-primary/30 disabled:opacity-50"
+                  className="rounded bg-white/10 p-1.5 text-white hover:bg-white/20 disabled:opacity-50"
                 >
                   <Check className="h-4 w-4" />
                 </button>
@@ -151,14 +151,14 @@ export function ParticipantsPanel({
             key={p.id}
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-primary">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-medium text-white">
               {p.displayName[0]?.toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium text-white">{p.displayName}</span>
                 {p.role !== 'PARTICIPANT' && (
-                  <span className="rounded bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/80">
                     {ROLE_LABELS[p.role] ?? p.role}
                   </span>
                 )}
@@ -168,7 +168,7 @@ export function ParticipantsPanel({
                   </span>
                 )}
                 {roomMode === RoomMode.WEBINAR && p.isOnStage && p.role === 'PARTICIPANT' && (
-                  <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs text-amber-400">
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/70">
                     On stage
                   </span>
                 )}
@@ -193,7 +193,7 @@ export function ParticipantsPanel({
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
                 {openMenuId === p.id && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-white/10 bg-slate-900 py-1 shadow-xl">
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] overflow-hidden rounded-[var(--radius-md)] meeting-glass-panel py-1 shadow-[var(--shadow-float)]">
                     <button
                       type="button"
                       className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"

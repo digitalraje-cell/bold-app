@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from 'react';
 import { SubscriptionPlan } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
+import { navLinkClass } from '@/lib/ui';
 import { appConfig } from '@/lib/app-config';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
@@ -52,45 +53,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-full">
+    <div className="flex min-h-full bg-background">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-surface shadow-[var(--shadow-elevated)] transition-transform lg:static lg:translate-x-0 lg:shadow-none',
+          'border-r border-border/50',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center gap-2 border-b border-border px-6 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+        <div className="flex items-center gap-3 px-6 py-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
             {appConfig.name.charAt(0).toUpperCase()}
           </div>
-          <span className="text-lg font-semibold">{appConfig.name}</span>
+          <span className="text-lg font-semibold tracking-tight">{appConfig.name}</span>
           <button
-            className="ml-auto lg:hidden"
+            type="button"
+            className="ml-auto rounded-[var(--radius-sm)] p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1 px-4">
           {navItems.map((item) => (
             <Link
               key={item.label}
               href={item.href}
               onClick={() => setSidebarOpen(false)}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                isNavActive(item)
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
+              className={navLinkClass(isNavActive(item))}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -101,12 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/admin/users"
                 onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                  pathname.startsWith('/admin/users')
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
+                className={navLinkClass(pathname.startsWith('/admin/users'))}
               >
                 <Users className="h-4 w-4" />
                 Admin Users
@@ -114,12 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 href="/admin/payments"
                 onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                  pathname.startsWith('/admin/payments')
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
+                className={navLinkClass(pathname.startsWith('/admin/payments'))}
               >
                 <Shield className="h-4 w-4" />
                 Admin Payments
@@ -128,12 +116,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <div className="border-t border-border p-4">
-          <div className="mb-3 px-3" suppressHydrationWarning>
+        <div className="border-t border-border/50 p-4">
+          <div className="mb-3 rounded-[var(--radius-md)] bg-muted/60 px-3 py-3" suppressHydrationWarning>
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
               {mounted && isPro && (
-                <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase text-background">
                   Pro
                 </span>
               )}
@@ -149,15 +137,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {mounted && (
               <Link
                 href="/settings/account"
-                className="mt-2 inline-block text-xs text-muted-foreground hover:text-primary"
+                className="mt-2 inline-block text-xs text-muted-foreground transition hover:text-foreground"
               >
                 Account settings
               </Link>
             )}
           </div>
           <button
+            type="button"
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            className={cn(navLinkClass(false), 'w-full')}
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -166,13 +155,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center gap-4 border-b border-border px-6 py-4 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+        <header className="flex items-center gap-4 border-b border-border/50 bg-surface/80 px-6 py-4 backdrop-blur-md lg:hidden">
+          <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-[var(--radius-sm)] p-1">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">{appConfig.name}</span>
+          <span className="font-semibold tracking-tight">{appConfig.name}</span>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 sm:p-8 lg:p-10">{children}</main>
         <AppFooter />
       </div>
     </div>

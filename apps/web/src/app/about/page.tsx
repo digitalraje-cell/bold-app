@@ -28,7 +28,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export default async function AboutPage() {
-  const stats = await fetchPlatformStatsServer();
+  // Stats are optional — page must render even when API is offline
+  let stats = null;
+  try {
+    stats = await fetchPlatformStatsServer();
+  } catch {
+    stats = null;
+  }
 
   return <AboutContent stats={stats} />;
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/app-config';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
+import { cardClass, navLinkClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 type NavKey = 'pricing' | 'roadmap' | 'about';
@@ -21,7 +22,7 @@ function BrandMark() {
 
   return (
     <Link href="/" className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
         {logoLetter}
       </div>
       <span className="text-xl font-semibold tracking-tight">{appName}</span>
@@ -33,16 +34,10 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const linkClass = (key: NavKey, mobile = false) =>
-    cn(
-      'rounded-xl px-4 py-2 text-sm font-medium transition',
-      mobile ? 'block w-full text-left' : 'hidden sm:inline-block',
-      active === key
-        ? 'bg-primary/10 text-primary'
-        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-    );
+    cn(navLinkClass(active === key), mobile ? 'block w-full text-left' : 'hidden sm:inline-block');
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <BrandMark />
 
@@ -54,13 +49,13 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
           ))}
           <Link
             href="/login"
-            className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             Sign in
           </Link>
           <Link
             href="/login"
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:opacity-90"
+            className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]"
           >
             Get started
           </Link>
@@ -99,7 +94,7 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
             </Link>
             <Link
               href="/login"
-              className="mt-1 block rounded-xl bg-primary px-4 py-2 text-center text-sm font-semibold text-primary-foreground"
+              className="mt-1 block rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground"
               onClick={() => setMobileOpen(false)}
             >
               Get started
@@ -144,7 +139,7 @@ export function MarketingFooter() {
             <Link href="/contact" className="hover:text-foreground">
               Contact
             </Link>
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href="/login" className={ui.link}>
               Start free
             </Link>
           </div>
