@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, Video, type LucideIcon } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, History, Radio, Users, type LucideIcon } from 'lucide-react';
 import { formatMeetingCode } from '@boldmeet/shared';
+import { BoldIconMark } from '@/components/brand/BoldIconMark';
+import { BRAND } from '@/lib/brand';
 import { getMeetingInviteUrl } from '@/lib/urls';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -186,6 +188,14 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
           <div className="flex flex-wrap gap-2 pt-1">
             <CopyButton text={meetingIdLabel} label="Copy Meeting ID" />
             <CopyButton text={inviteLink} label="Copy Invite Link" />
+            {isHost && (
+              <Link
+                href={`/meetings/${meeting.id}/registrations`}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Registrations
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -195,9 +205,10 @@ export function MeetingCard({ meeting, currentUserId }: MeetingCardProps) {
 
 export function MeetingListEmpty({ message, action }: { message: string; action?: { label: string; href: string } }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-      <Video className="mx-auto h-10 w-10 text-muted-foreground/50" />
-      <p className="mt-4 text-muted-foreground">{message}</p>
+    <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-12 text-center">
+      <BoldIconMark size={48} className="mx-auto opacity-80" />
+      <p className="mt-4 font-medium text-foreground">{message}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{BRAND.tagline}</p>
       {action && (
         <Link href={action.href} className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
           {action.label}

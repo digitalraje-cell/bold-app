@@ -70,7 +70,11 @@ export class RoomService {
     const stageUpdates = [];
 
     for (const p of participants) {
-      const data = this.buildModeDefaults(p.role, mode, meeting.settings?.participantMicAccess ?? true);
+      const data = this.buildModeDefaults(
+        p.role,
+        mode,
+        meeting.settings?.participantMicAccess ?? true,
+      );
       const updatedParticipant = await this.prisma.participant.update({
         where: { id: p.id },
         data,
@@ -86,9 +90,15 @@ export class RoomService {
     return { roomMode: updated.roomMode, participants: stageUpdates };
   }
 
-  async promoteToPanelist(meetingId: string, participantId: string, actorId: string) {
+  async promoteToPanelist(
+    meetingId: string,
+    participantId: string,
+    actorId: string,
+  ) {
     await this.ensureHost(meetingId, actorId);
-    const meeting = await this.prisma.meeting.findUniqueOrThrow({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUniqueOrThrow({
+      where: { id: meetingId },
+    });
     await this.permissionsService.check(meeting.hostId, 'canUsePanelists');
 
     const participant = await this.prisma.participant.findFirst({
@@ -119,12 +129,19 @@ export class RoomService {
     actorId: string,
     options: { micAllowed?: boolean; cameraAllowed?: boolean } = {},
   ) {
-    const canModerate = await this.participantsService.canModerate(meetingId, actorId);
+    const canModerate = await this.participantsService.canModerate(
+      meetingId,
+      actorId,
+    );
     if (!canModerate) throw new ForbiddenException('Insufficient permissions');
 
-    const meeting = await this.prisma.meeting.findUniqueOrThrow({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUniqueOrThrow({
+      where: { id: meetingId },
+    });
     if (meeting.roomMode !== RoomMode.WEBINAR) {
-      throw new BadRequestException('Stage controls are only available in webinar mode');
+      throw new BadRequestException(
+        'Stage controls are only available in webinar mode',
+      );
     }
 
     const micAllowed = options.micAllowed ?? true;
@@ -139,13 +156,24 @@ export class RoomService {
     return updated;
   }
 
-  async removeFromStage(meetingId: string, participantId: string, actorId: string) {
-    const canModerate = await this.participantsService.canModerate(meetingId, actorId);
+  async removeFromStage(
+    meetingId: string,
+    participantId: string,
+    actorId: string,
+  ) {
+    const canModerate = await this.participantsService.canModerate(
+      meetingId,
+      actorId,
+    );
     if (!canModerate) throw new ForbiddenException('Insufficient permissions');
 
-    const meeting = await this.prisma.meeting.findUniqueOrThrow({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUniqueOrThrow({
+      where: { id: meetingId },
+    });
     if (meeting.roomMode !== RoomMode.WEBINAR) {
-      throw new BadRequestException('Stage controls are only available in webinar mode');
+      throw new BadRequestException(
+        'Stage controls are only available in webinar mode',
+      );
     }
 
     const participant = await this.prisma.participant.findFirstOrThrow({
@@ -153,7 +181,9 @@ export class RoomService {
     });
 
     if (isStageVisibleRole(participant.role)) {
-      throw new BadRequestException('Host, co-host, and panelists cannot be removed from stage');
+      throw new BadRequestException(
+        'Host, co-host, and panelists cannot be removed from stage',
+      );
     }
 
     const updated = await this.prisma.participant.update({
@@ -172,7 +202,10 @@ export class RoomService {
     micAllowed?: boolean,
     cameraAllowed?: boolean,
   ) {
-    const canModerate = await this.participantsService.canModerate(meetingId, actorId);
+    const canModerate = await this.participantsService.canModerate(
+      meetingId,
+      actorId,
+    );
     if (!canModerate) throw new ForbiddenException('Insufficient permissions');
 
     const data: Record<string, boolean> = {};
@@ -210,7 +243,11 @@ export class RoomService {
       },
     });
 
-    this.gateway.broadcastChatModeChanged(meetingId, settings.chatMode, settings.chatEnabled);
+    this.gateway.broadcastChatModeChanged(
+      meetingId,
+      settings.chatMode,
+      settings.chatEnabled,
+    );
     return settings;
   }
 
@@ -229,7 +266,9 @@ export class RoomService {
   }
 
   private async ensureHost(meetingId: string, actorId: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+    });
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can perform this action');
     }

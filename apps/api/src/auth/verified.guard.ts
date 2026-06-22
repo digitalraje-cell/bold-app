@@ -13,7 +13,9 @@ export class VerifiedGuard implements CanActivate {
   constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { user: AuthUser }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user: AuthUser }>();
     const user = await this.prisma.user.findUnique({
       where: { id: request.user.id },
       select: { isVerified: true },

@@ -47,7 +47,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="not-prose mt-6 space-y-4 rounded-2xl border border-border bg-surface p-6">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
       <Input
         label="Your name"
         value={name}

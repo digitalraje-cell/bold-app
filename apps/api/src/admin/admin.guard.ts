@@ -14,20 +14,22 @@ export class AdminGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { user?: AuthUser }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthUser }>();
     const userId = request.user?.id;
 
     if (!userId) {
-      throw new ForbiddenException('Admin access required');
+      throw new ForbiddenException('Super Admin access required');
     }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true },
+      select: { role: true, isActive: true },
     });
 
-    if (user?.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Admin access required');
+    if (!user?.isActive || user.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Super Admin access required');
     }
 
     return true;

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPageLayout } from '@/components/marketing/LegalPageLayout';
+import { LegalSection } from '@/components/marketing/legal/LegalSection';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { createLegalMetadata } from '@/lib/legal-metadata';
 
@@ -11,11 +12,24 @@ export const metadata: Metadata = createLegalMetadata({
   path: '/cookies',
 });
 
+const COOKIE_SECTIONS = [
+  { id: 'what-are-cookies', label: 'What Are Cookies' },
+  { id: 'how-we-use', label: 'How We Use Cookies' },
+  { id: 'third-party', label: 'Third-Party Cookies' },
+  { id: 'managing-cookies', label: 'Managing Cookies' },
+  { id: 'updates', label: 'Updates' },
+  { id: 'contact', label: 'Contact' },
+] as const;
+
 export default function CookiePolicyPage() {
   const { productName, companyName, websiteUrl, supportEmail } = LEGAL_CONFIG;
 
   return (
-    <LegalPageLayout title="Cookie Policy">
+    <LegalPageLayout
+      title="Cookie Policy"
+      subtitle="Understand how Bold uses cookies and similar technologies on our platform."
+      sections={[...COOKIE_SECTIONS]}
+    >
       <p>
         This Cookie Policy explains how {companyName} (&quot;we&quot;, &quot;us&quot;) uses cookies
         and similar technologies on {productName} ({websiteUrl}).
@@ -28,13 +42,13 @@ export default function CookiePolicyPage() {
         .
       </p>
 
-      <h2>What are cookies?</h2>
+      <LegalSection id="what-are-cookies">What are cookies?</LegalSection>
       <p>
         Cookies are small text files stored on your device when you visit a website. They help
         websites function, remember preferences, and understand how services are used.
       </p>
 
-      <h2>How we use cookies</h2>
+      <LegalSection id="how-we-use">How we use cookies</LegalSection>
 
       <h3>Essential cookies</h3>
       <p>
@@ -65,7 +79,7 @@ export default function CookiePolicyPage() {
         does not directly identify you unless combined with account information you have provided.
       </p>
 
-      <h2>Third-party cookies</h2>
+      <LegalSection id="third-party">Third-party cookies</LegalSection>
       <p>
         Some cookies may be set by third-party services integrated into {productName}, such as:
       </p>
@@ -83,20 +97,20 @@ export default function CookiePolicyPage() {
         where applicable.
       </p>
 
-      <h2>Managing cookies</h2>
+      <LegalSection id="managing-cookies">Managing cookies</LegalSection>
       <p>
         Most browsers allow you to block or delete cookies through settings. If you disable essential
         or authentication cookies, parts of {productName} — including sign-in and meetings — may not
         function correctly.
       </p>
 
-      <h2>Updates</h2>
+      <LegalSection id="updates">Updates</LegalSection>
       <p>
         We may update this Cookie Policy from time to time. Changes will be posted on this page with
         an updated &quot;Last updated&quot; date.
       </p>
 
-      <h2>Contact</h2>
+      <LegalSection id="contact">Contact</LegalSection>
       <p>
         Questions about cookies:{' '}
         <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">

@@ -17,14 +17,18 @@ export class YouTubeRecordingProvider implements RecordingProvider {
     return false;
   }
 
-  async startRecording(_input: StartRecordingInput): Promise<StartRecordingResult> {
+  async startRecording(
+    _input: StartRecordingInput,
+  ): Promise<StartRecordingResult> {
     return {
       success: false,
       error: 'YouTube recording not yet implemented. Architecture is ready.',
     };
   }
 
-  async stopRecording(_input: StopRecordingInput): Promise<StopRecordingResult> {
+  async stopRecording(
+    _input: StopRecordingInput,
+  ): Promise<StopRecordingResult> {
     return { success: false, error: 'Not implemented' };
   }
 
@@ -41,14 +45,18 @@ export class BoldVideoRecordingProvider implements RecordingProvider {
     return false;
   }
 
-  async startRecording(_input: StartRecordingInput): Promise<StartRecordingResult> {
+  async startRecording(
+    _input: StartRecordingInput,
+  ): Promise<StartRecordingResult> {
     return {
       success: false,
       error: 'Bold Video Platform recording coming soon.',
     };
   }
 
-  async stopRecording(_input: StopRecordingInput): Promise<StopRecordingResult> {
+  async stopRecording(
+    _input: StopRecordingInput,
+  ): Promise<StopRecordingResult> {
     return { success: false, error: 'Not implemented' };
   }
 
@@ -65,11 +73,15 @@ export class StorageRecordingProvider implements RecordingProvider {
     return false;
   }
 
-  async startRecording(_input: StartRecordingInput): Promise<StartRecordingResult> {
+  async startRecording(
+    _input: StartRecordingInput,
+  ): Promise<StartRecordingResult> {
     return { success: false, error: 'Storage provider not yet implemented.' };
   }
 
-  async stopRecording(_input: StopRecordingInput): Promise<StopRecordingResult> {
+  async stopRecording(
+    _input: StopRecordingInput,
+  ): Promise<StopRecordingResult> {
     return { success: false, error: 'Not implemented' };
   }
 
@@ -98,7 +110,9 @@ export class RecordingProviderRegistry {
     return this.providers.get(type) ?? null;
   }
 
-  async getAvailableProviders(userId: string): Promise<RecordingProviderType[]> {
+  async getAvailableProviders(
+    userId: string,
+  ): Promise<RecordingProviderType[]> {
     const available: RecordingProviderType[] = [];
     for (const [type, provider] of this.providers) {
       if (await provider.isAvailable(userId)) {

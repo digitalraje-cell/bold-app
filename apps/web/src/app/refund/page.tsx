@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPageLayout } from '@/components/marketing/LegalPageLayout';
+import { LegalSection } from '@/components/marketing/legal/LegalSection';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { createLegalMetadata } from '@/lib/legal-metadata';
 import { PLAN_PRICING_INR, SubscriptionPlan } from '@boldmeet/shared';
@@ -12,18 +13,31 @@ export const metadata: Metadata = createLegalMetadata({
   path: '/refund',
 });
 
+const REFUND_SECTIONS = [
+  { id: 'plan-covered', label: 'Plan Covered' },
+  { id: 'cancellation', label: 'Cancellation' },
+  { id: 'refunds-approved', label: 'Refunds We May Approve' },
+  { id: 'non-refundable', label: 'Non-Refundable' },
+  { id: 'how-to-request', label: 'How to Request' },
+  { id: 'changes', label: 'Changes' },
+] as const;
+
 export default function RefundPolicyPage() {
   const { productName, companyName, supportEmail } = LEGAL_CONFIG;
   const proPrice = PLAN_PRICING_INR[SubscriptionPlan.PRO];
 
   return (
-    <LegalPageLayout title="Refund Policy">
+    <LegalPageLayout
+      title="Refund Policy"
+      subtitle="Understand cancellation, billing disputes, and refund eligibility for BoldMeet Pro."
+      sections={[...REFUND_SECTIONS]}
+    >
       <p>
         This Refund Policy applies to paid subscriptions for {productName} Pro, operated by{' '}
         {companyName}. Payments are processed securely through Razorpay.
       </p>
 
-      <h2>Plan covered</h2>
+      <LegalSection id="plan-covered">Plan covered</LegalSection>
       <p>
         <strong>BoldMeet Pro</strong> — ₹{proPrice}/month
       </p>
@@ -36,7 +50,7 @@ export default function RefundPolicyPage() {
         .
       </p>
 
-      <h2>Cancellation</h2>
+      <LegalSection id="cancellation">Cancellation</LegalSection>
       <ul>
         <li>
           <strong>You may cancel anytime.</strong> Contact support or manage your subscription
@@ -52,7 +66,7 @@ export default function RefundPolicyPage() {
         </li>
       </ul>
 
-      <h2>Refunds we may approve</h2>
+      <LegalSection id="refunds-approved">Refunds we may approve</LegalSection>
       <ul>
         <li>
           <strong>Accidental duplicate payments</strong> — if you were charged twice for the same
@@ -71,7 +85,7 @@ export default function RefundPolicyPage() {
         </li>
       </ul>
 
-      <h2>Non-refundable situations</h2>
+      <LegalSection id="non-refundable">Non-refundable situations</LegalSection>
       <ul>
         <li>Free plan usage.</li>
         <li>Pro access already consumed during the current billing period.</li>
@@ -79,7 +93,7 @@ export default function RefundPolicyPage() {
         <li>Bank or payment network fees outside our control.</li>
       </ul>
 
-      <h2>How to request a refund or report a billing issue</h2>
+      <LegalSection id="how-to-request">How to request a refund or report a billing issue</LegalSection>
       <p>
         Email{' '}
         <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
@@ -103,7 +117,7 @@ export default function RefundPolicyPage() {
         days, subject to bank processing times.
       </p>
 
-      <h2>Changes</h2>
+      <LegalSection id="changes">Changes</LegalSection>
       <p>
         We may update this Refund Policy from time to time. The current version is always available
         at {productName} on this page.

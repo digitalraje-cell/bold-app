@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ChatMode } from '@prisma/client';
+import { UpsertRegistrationFormDto } from '../../registration/dto/registration.dto';
 
 export class MeetingSettingsDto {
   @IsOptional()
@@ -97,6 +98,11 @@ export class CreateMeetingDto {
   @ValidateNested()
   @Type(() => MeetingSettingsDto)
   settings?: MeetingSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpsertRegistrationFormDto)
+  registrationForm?: UpsertRegistrationFormDto;
 }
 
 export class UpdateMeetingSettingsDto extends MeetingSettingsDto {}

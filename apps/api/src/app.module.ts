@@ -10,6 +10,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { ParticipantsModule } from './participants/participants.module';
 import { YoutubeModule } from './youtube/youtube.module';
 import { BillingModule } from './billing/billing.module';
+import { ActivityModule } from './activity/activity.module';
 import { AdminModule } from './admin/admin.module';
 import { RoadmapModule } from './roadmap/roadmap.module';
 
@@ -17,12 +18,14 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
 import { WebinarModule } from './webinar/webinar.module';
 import { RoomModule } from './room/room.module';
+import { RegistrationModule } from './registration/registration.module';
 import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    ActivityModule,
     AuthModule,
     UsersModule,
     SubscriptionsModule,
@@ -33,6 +36,7 @@ import { StreamModule } from './stream/stream.module';
     ParticipantsModule,
     GatewayModule,
     RecordingModule,
+    RegistrationModule,
     WebinarModule,
     RoomModule,
     StreamModule,

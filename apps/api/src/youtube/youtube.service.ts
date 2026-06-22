@@ -14,8 +14,8 @@ export class YoutubeService {
   private isOAuthConfigured(): boolean {
     return Boolean(
       process.env.YOUTUBE_CLIENT_ID?.trim() &&
-        process.env.YOUTUBE_CLIENT_SECRET?.trim() &&
-        process.env.YOUTUBE_REDIRECT_URI?.trim(),
+      process.env.YOUTUBE_CLIENT_SECRET?.trim() &&
+      process.env.YOUTUBE_REDIRECT_URI?.trim(),
     );
   }
 
@@ -130,7 +130,9 @@ export class YoutubeService {
     );
 
     if (!channelRes.ok) {
-      throw new ServiceUnavailableException('Could not load YouTube channel for this Google account.');
+      throw new ServiceUnavailableException(
+        'Could not load YouTube channel for this Google account.',
+      );
     }
 
     const channelData = (await channelRes.json()) as {
@@ -143,7 +145,9 @@ export class YoutubeService {
 
     const channel = channelData.items?.[0];
     if (!channel?.id) {
-      throw new ServiceUnavailableException('No YouTube channel found for this Google account.');
+      throw new ServiceUnavailableException(
+        'No YouTube channel found for this Google account.',
+      );
     }
 
     const tokenExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);

@@ -48,7 +48,10 @@ export class BillingService {
       }),
     ]);
 
-    const plan = ctx.plan === SubscriptionPlan.PRO ? SubscriptionPlan.PRO : SubscriptionPlan.FREE;
+    const plan =
+      ctx.plan === SubscriptionPlan.PRO
+        ? SubscriptionPlan.PRO
+        : SubscriptionPlan.FREE;
 
     return {
       plan: ctx.plan,
@@ -80,7 +83,8 @@ export class BillingService {
   private isRazorpayConfigured(): boolean {
     return Boolean(
       process.env.RAZORPAY_PRO_PAYMENT_LINK?.trim() ||
-        (process.env.RAZORPAY_KEY_ID?.trim() && process.env.RAZORPAY_KEY_SECRET?.trim()),
+      (process.env.RAZORPAY_KEY_ID?.trim() &&
+        process.env.RAZORPAY_KEY_SECRET?.trim()),
     );
   }
 
@@ -98,7 +102,8 @@ export class BillingService {
       throw new BadRequestException('You are already on the Pro plan.');
     }
 
-    const frontend = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+    const frontend =
+      process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
     const amountInr = PLAN_PRICING_INR[SubscriptionPlan.PRO];
 
     const pending = await this.prisma.pendingPayment.create({

@@ -1,14 +1,24 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
   private connected = false;
 
   async onModuleInit() {
     if (!process.env.DATABASE_URL) {
-      this.logger.warn('DATABASE_URL is not set — database features disabled until configured');
+      this.logger.warn(
+        'DATABASE_URL is not set — database features disabled until configured',
+      );
       return;
     }
 

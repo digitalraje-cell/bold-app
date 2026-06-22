@@ -12,4 +12,5 @@ export const LEGAL_CONFIG = {
   businessEmail: process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'hello@boldmeet.com',
   responseTime: 'Within 48 business hours',
   governingLaw: 'India',
+  lastUpdated: 'June 2026',
 } as const;

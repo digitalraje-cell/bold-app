@@ -9,6 +9,7 @@ import {
   FEATURE_COMPARISON,
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
+import { BoldIconMark } from '@/components/brand/BoldIconMark';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -78,9 +79,12 @@ export default function BillingPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Billing &amp; Plans</h1>
-        <p className="mt-1 text-muted-foreground">Manage your subscription, usage, and payments.</p>
+      <div className="mb-8 flex items-start gap-4">
+        <BoldIconMark size={40} className="hidden shrink-0 sm:block" />
+        <div>
+          <h1 className="text-h2">Billing &amp; Plans</h1>
+          <p className="mt-1 text-caption">Manage your subscription, usage, and payments.</p>
+        </div>
       </div>
 
       {message && (

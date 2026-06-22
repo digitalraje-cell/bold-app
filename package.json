@@ -8,6 +8,7 @@
     "dev:web": "pnpm --filter @boldmeet/web dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
     "build:api": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/api db:generate && pnpm --filter @boldmeet/api build",
     "start:api": "node apps/api/dist/main.js",
     "build:web": "pnpm --filter @boldmeet/shared build && pnpm --filter @boldmeet/web db:generate && pnpm --filter @boldmeet/web build",

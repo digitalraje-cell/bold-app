@@ -10,6 +10,29 @@ datasource db {
 enum UserRole {
   USER
   ADMIN
+  SUPER_ADMIN
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  TRIAL
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  RAZORPAY
+  STRIPE
+  MANUAL
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  MEETING_CREATED
+  MEETING_JOINED
+  MEETING_ENDED
 }
 
 enum MeetingStatus {
@@ -101,9 +124,51 @@ enum StreamingProviderType {
   CUSTOM_RTMP
 }
 
+enum RegistrationFieldType {
+  TEXT
+  TEXTAREA
+  DROPDOWN
+  RADIO
+  CHECKBOX
+  EMAIL
+  PHONE
+}
+
+enum StandardRegistrationField {
+  FULL_NAME
+  EMAIL
+  PHONE
+  CITY
+  STATE
+  COUNTRY
+  COMPANY
+  DESIGNATION
+  WEBSITE
+  LINKEDIN
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  JOINED
+}
+
 enum OtpChannel {
   EMAIL
   WHATSAPP
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members UserProfile[]
+
+  @@map("organizations")
 }
 
 model User {
@@ -115,6 +180,8 @@ model User {
   role          UserRole  @default(USER)
   subscriptionPlan SubscriptionPlan @default(FREE)
   subscriptionExpiresAt DateTime?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
   isVerified    Boolean   @default(false)
   verifiedAt    DateTime?
   emailVerified DateTime?
@@ -123,6 +190,8 @@ model User {
 
   accounts       Account[]
   sessions       Session[]
+  profile        UserProfile?
+  subscription   Subscription?
   hostedMeetings Meeting[]       @relation("MeetingHost")
   hostedWebinars Webinar[]       @relation("WebinarHost")
   participants   Participant[]
@@ -131,8 +200,74 @@ model User {
   subscriptionPayments SubscriptionPayment[]
   pendingPayments      PendingPayment[]
   roadmapVotes         RoadmapVote[]
+  activityLogs         ActivityLog[]
 
+  @@index([role])
+  @@index([isActive])
+  @@index([subscriptionPlan])
   @@map("users")
+}
+
+model UserProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  mobile           String?
+  country          String?
+  organization     String?
+  designation      String?
+  website          String?
+  linkedInUrl      String?   @map("linkedin_url")
+  organizationId   String?   @map("organization_id")
+  profileCompletedAt DateTime? @map("profile_completed_at")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationRef Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([country])
+  @@index([organizationId])
+  @@map("user_profiles")
+}
+
+model Subscription {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  planName        SubscriptionPlan @default(FREE) @map("plan_name")
+  planStatus      PlanStatus       @default(ACTIVE) @map("plan_status")
+  planStartDate   DateTime?        @map("plan_start_date")
+  planExpiryDate  DateTime?        @map("plan_expiry_date")
+  customerId      String?          @map("customer_id")
+  subscriptionId  String?          @map("subscription_id")
+  paymentStatus   String           @default("none") @map("payment_status")
+  paymentProvider PaymentProvider? @map("payment_provider")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([planName, planStatus])
+  @@index([paymentProvider])
+  @@map("subscriptions")
+}
+
+model ActivityLog {
+  id         String         @id @default(cuid())
+  userId     String?
+  action     ActivityAction
+  entityType String?        @map("entity_type")
+  entityId   String?        @map("entity_id")
+  metadata   Json?
+  ipAddress  String?        @map("ip_address")
+  userAgent  String?        @map("user_agent")
+  createdAt  DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@map("activity_logs")
 }
 
 model OtpVerification {
@@ -194,6 +329,8 @@ model Meeting {
   title       String
   description String?
   hostId      String
+  hostName    String?       @map("host_name")
+  hostEmail   String?       @map("host_email")
   status      MeetingStatus @default(SCHEDULED)
   roomMode    RoomMode      @default(MEETING)
   password    String?
@@ -213,7 +350,8 @@ model Meeting {
   host          User             @relation("MeetingHost", fields: [hostId], references: [id])
   settings      MeetingSettings?
   participants  Participant[]
-  registrants   MeetingRegistrant[]
+  registrationForm MeetingRegistrationForm?
+  registrations MeetingRegistration[]
   chatMessages  ChatMessage[]
   youtubeStream YouTubeStream?
 
@@ -244,21 +382,92 @@ model MeetingSettings {
   @@map("meeting_settings")
 }
 
-model MeetingRegistrant {
-  id          String   @id @default(cuid())
-  meetingId   String
-  fullName    String
-  email       String
-  phone       String?
-  company     String?
-  designation String?
-  createdAt   DateTime @default(now())
+model MeetingRegistrationForm {
+  id                    String   @id @default(cuid())
+  meetingId             String   @unique
+  requireApproval       Boolean  @default(false) @map("require_approval")
+  autoApprove           Boolean  @default(true) @map("auto_approve")
+  sendConfirmationEmail Boolean  @default(false) @map("send_confirmation_email")
+  limitRegistrations    Boolean  @default(false) @map("limit_registrations")
+  maxRegistrations      Int?     @map("max_registrations")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting       Meeting                   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  fields        MeetingRegistrationField[]
+  registrations MeetingRegistration[]
+
+  @@map("meeting_registration_forms")
+}
+
+model MeetingRegistrationField {
+  id            String                     @id @default(cuid())
+  formId        String
+  fieldKey      String
+  label         String
+  fieldType     RegistrationFieldType
+  standardField StandardRegistrationField?
+  isRequired    Boolean                    @default(false) @map("is_required")
+  isEnabled     Boolean                    @default(true) @map("is_enabled")
+  isLocked      Boolean                    @default(false) @map("is_locked")
+  sortOrder     Int                        @default(0) @map("sort_order")
+  options       Json?
+  placeholder   String?
+  helpText      String?                    @map("help_text")
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  form    MeetingRegistrationForm     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers MeetingRegistrationAnswer[]
+
+  @@unique([formId, fieldKey])
+  @@index([formId, sortOrder])
+  @@map("meeting_registration_fields")
+}
+
+model MeetingRegistration {
+  id           String             @id @default(cuid())
+  meetingId    String
+  formId       String?
+  email        String
+  fullName     String             @map("full_name")
+  phone        String?
+  company      String?
+  designation  String?
+  city         String?
+  state        String?
+  country      String?
+  website      String?
+  linkedInUrl  String?            @map("linkedin_url")
+  status       RegistrationStatus @default(PENDING)
+  joinedAt     DateTime?          @map("joined_at")
+  approvedAt   DateTime?          @map("approved_at")
+  rejectedAt   DateTime?          @map("rejected_at")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  meeting Meeting                  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  form    MeetingRegistrationForm? @relation(fields: [formId], references: [id], onDelete: SetNull)
+  answers MeetingRegistrationAnswer[]
 
   @@unique([meetingId, email])
-  @@index([meetingId])
-  @@map("meeting_registrants")
+  @@index([meetingId, status])
+  @@index([formId])
+  @@map("meeting_registrations")
+}
+
+model MeetingRegistrationAnswer {
+  id             String @id @default(cuid())
+  registrationId String @map("registration_id")
+  fieldId        String @map("field_id")
+  value          String @db.Text
+
+  registration MeetingRegistration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  field        MeetingRegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, fieldId])
+  @@index([fieldId])
+  @@map("meeting_registration_answers")
 }
 
 model Participant {
