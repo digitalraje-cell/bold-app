@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { SubscriptionPlan } from '@boldmeet/shared';
+import { SubscriptionPlan, isPlatformAdmin } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { navLinkClass } from '@/lib/ui';
 import { appConfig } from '@/lib/app-config';
@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const plan = (session?.user?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
-  const isAdmin = mounted && session?.user?.role === 'ADMIN';
+  const isAdmin = mounted && isPlatformAdmin(session?.user?.role);
   const isPro = plan === SubscriptionPlan.PRO;
 
   function isNavActive(item: (typeof navItems)[number]) {

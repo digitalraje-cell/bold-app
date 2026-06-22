@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { savePendingJoin, clearPendingJoin } from '@/lib/pwa-pending-join';
+import { IosInstallGuide } from '@/components/pwa/IosInstallGuide';
+import { AndroidInstallGuide } from '@/components/pwa/AndroidInstallGuide';
 import type { PublicMeetingPreview } from '@/components/meeting/MeetingLobby';
 
 export function MeetingJoinGate({
@@ -19,15 +22,31 @@ export function MeetingJoinGate({
   initialPreviewError: string | null;
 }) {
   const router = useRouter();
-  const { isInstalled, continueLabel, isIos, canNativeInstall, promptInstall, trackPwaEvent } =
-    usePwaInstall();
-  const [showIosHelp, setShowIosHelp] = useState(false);
+  const {
+    isInstalled,
+    ready,
+    continueLabel,
+    isIos,
+    isAndroid,
+    canNativeInstall,
+    promptInstall,
+    trackPwaEvent,
+  } = usePwaInstall();
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
-    if (isInstalled) {
-      router.replace(`/meeting/${meetingId}`);
-    }
-  }, [isInstalled, meetingId, router]);
+    if (!ready || !isInstalled) return;
+    clearPendingJoin();
+    router.replace(`/meeting/${meetingId}`);
+  }, [isInstalled, ready, meetingId, router]);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
 
   if (isInstalled) {
     return (
@@ -41,16 +60,19 @@ export function MeetingJoinGate({
   const hostName = initialPreview?.hostName ?? 'your host';
 
   async function handleDownload() {
+    savePendingJoin(meetingId);
     const result = await promptInstall();
-    if (result.mode === 'manual' || isIos) {
-      setShowIosHelp(true);
+    if (result.mode === 'manual' || isIos || isAndroid) {
+      setShowInstallHelp(true);
     }
     if (result.accepted) {
+      clearPendingJoin();
       router.push(`/meeting/${meetingId}`);
     }
   }
 
   function handleContinueInBrowser() {
+    clearPendingJoin();
     void trackPwaEvent('BROWSER_JOIN_SELECTED', {
       meetingId: initialPreview?.id,
       meetingCode: meetingId,
@@ -85,14 +107,17 @@ export function MeetingJoinGate({
           </Button>
         </div>
 
-        {showIosHelp && (
+        {showInstallHelp && isIos && <IosInstallGuide />}
+        {showInstallHelp && isAndroid && (
+          <AndroidInstallGuide hasNativePrompt={canNativeInstall} />
+        )}
+        {showInstallHelp && !isIos && !isAndroid && (
           <p className="mt-4 text-sm text-muted-foreground">
-            To install on {isIos ? 'iOS' : 'this device'}: open the browser menu and choose{' '}
-            <strong>Add to Home Screen</strong> or <strong>Install app</strong>.
+            For the best install experience, use Chrome or Edge, then choose Install from the menu.
           </p>
         )}
 
-        {!canNativeInstall && !isIos && !showIosHelp && (
+        {!showInstallHelp && !canNativeInstall && !isIos && !isAndroid && (
           <p className="mt-4 text-sm text-muted-foreground">
             For the best install experience, use Chrome or Edge, then choose Install from the menu.
           </p>

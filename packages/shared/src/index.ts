@@ -1,6 +1,7 @@
 export enum UserRole {
   USER = 'USER',
   ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum MeetingStatus {
@@ -122,6 +123,7 @@ export interface SocketEvents {
 
 export * from './room/types';
 export * from './rbac/roles';
+export * from './admin/roles';
 
 export * from './media/types';
 export * from './types/meeting';

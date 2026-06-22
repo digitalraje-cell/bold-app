@@ -18,11 +18,15 @@ type BeforeInstallPromptEvent = Event & {
 export function isPwaStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   const nav = window.navigator as Navigator & { standalone?: boolean };
+  if (nav.standalone === true) return true;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    window.matchMedia('(display-mode: fullscreen)').matches ||
-    nav.standalone === true
+    window.matchMedia('(display-mode: minimal-ui)').matches
   );
+}
+
+export function isAndroidDevice(userAgent: string): boolean {
+  return /android/i.test(userAgent);
 }
 
 export function usePwaInstall() {
@@ -30,12 +34,16 @@ export function usePwaInstall() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [browser, setBrowser] = useState<BrowserName>('other');
   const [isIos, setIsIos] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
     setBrowser(detectBrowser(ua));
     setIsIos(isIosDevice(ua));
+    setIsAndroid(isAndroidDevice(ua));
     setIsInstalled(isPwaStandalone());
+    setReady(true);
 
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -48,12 +56,18 @@ export function usePwaInstall() {
       void trackPwaEvent('PWA_INSTALLED');
     };
 
+    const onDisplayModeChange = () => {
+      setIsInstalled(isPwaStandalone());
+    };
+
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', onDisplayModeChange);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
+      window.matchMedia('(display-mode: standalone)').removeEventListener('change', onDisplayModeChange);
     };
   }, []);
 
@@ -63,14 +77,14 @@ export function usePwaInstall() {
         await api.pwa.track({
           event,
           browser,
-          platform: isPwaStandalone() ? 'pwa' : isIos ? 'ios' : 'browser',
+          platform: isPwaStandalone() ? 'pwa' : isIos ? 'ios' : isAndroid ? 'android' : 'browser',
           ...extra,
         });
       } catch {
         // Non-blocking analytics
       }
     },
-    [browser, isIos],
+    [browser, isIos, isAndroid],
   );
 
   const promptInstall = useCallback(async () => {
@@ -96,7 +110,9 @@ export function usePwaInstall() {
     browser,
     continueLabel,
     isIos,
+    isAndroid,
     isInstalled,
+    ready,
     canNativeInstall: Boolean(deferredPrompt),
     promptInstall,
     trackPwaEvent,
@@ -107,11 +123,12 @@ export async function trackPwaEvent(
   event: PwaAnalyticsEvent,
   extra?: { meetingId?: string; meetingCode?: string; browser?: BrowserName },
 ) {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   try {
     await api.pwa.track({
       event,
-      browser: extra?.browser ?? detectBrowser(navigator.userAgent),
-      platform: isPwaStandalone() ? 'pwa' : 'browser',
+      browser: extra?.browser ?? detectBrowser(ua),
+      platform: isPwaStandalone() ? 'pwa' : isIosDevice(ua) ? 'ios' : isAndroidDevice(ua) ? 'android' : 'browser',
       meetingId: extra?.meetingId,
       meetingCode: extra?.meetingCode,
     });

@@ -1,5 +1,4 @@
 {
-  "id": "/",
   "name": "Bold",
   "short_name": "Bold",
   "description": "Professional browser-based video meetings — install Bold for faster joins.",
@@ -9,7 +8,10 @@
   "orientation": "any",
   "background_color": "#faf8f5",
   "theme_color": "#111111",
-  "categories": ["productivity", "communication"],
+  "categories": [
+    "productivity",
+    "communication"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.svg",
@@ -30,7 +32,12 @@
       "short_name": "Join",
       "description": "Join a Bold video meeting",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.svg",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

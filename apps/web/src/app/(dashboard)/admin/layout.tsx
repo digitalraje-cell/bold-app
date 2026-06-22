@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
+import { isPlatformAdmin } from '@boldmeet/shared';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect('/login?callbackUrl=/admin/payments');
+    redirect('/login?callbackUrl=/admin');
   }
 
   const user = await prisma.user.findUnique({
@@ -13,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     select: { role: true },
   });
 
-  if (user?.role !== 'ADMIN') {
+  if (!isPlatformAdmin(user?.role)) {
     redirect('/dashboard');
   }
 

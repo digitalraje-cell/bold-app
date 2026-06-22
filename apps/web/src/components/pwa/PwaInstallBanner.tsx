@@ -1,38 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { IosInstallGuide } from '@/components/pwa/IosInstallGuide';
+import { AndroidInstallGuide } from '@/components/pwa/AndroidInstallGuide';
 
 const DISMISS_KEY = 'bold-pwa-banner-dismissed';
 
 export function PwaInstallBanner() {
-  const { isInstalled, isIos, canNativeInstall, promptInstall } = usePwaInstall();
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem(DISMISS_KEY) === '1';
-  });
-  const [showIosHelp, setShowIosHelp] = useState(false);
+  const { isInstalled, isIos, isAndroid, canNativeInstall, promptInstall, ready } = usePwaInstall();
+  const [dismissed, setDismissed] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  if (isInstalled || dismissed) return null;
+  useEffect(() => {
+    setHydrated(true);
+    setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
+  }, []);
+
+  if (!hydrated || !ready) {
+    return null;
+  }
+
+  if (isInstalled || dismissed) {
+    return null;
+  }
 
   async function handleInstall() {
     const result = await promptInstall();
-    if (result.mode === 'manual' || isIos) {
-      setShowIosHelp(true);
+    if (result.mode === 'manual' || isIos || isAndroid) {
+      setShowInstallHelp(true);
     }
   }
 
   function dismiss() {
-    sessionStorage.setItem(DISMISS_KEY, '1');
+    localStorage.setItem(DISMISS_KEY, '1');
     setDismissed(true);
   }
 
   return (
-    <div className={cn(cardClass({ bordered: true }), 'mb-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between')}>
+    <div
+      className={cn(
+        cardClass({ bordered: true }),
+        'sticky top-0 z-20 mb-8 flex flex-col gap-4 bg-surface p-5 sm:flex-row sm:items-center sm:justify-between',
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--badge-bg)]">
           <Smartphone className="h-5 w-5" />
@@ -42,12 +58,11 @@ export function PwaInstallBanner() {
           <p className="mt-1 text-sm text-muted-foreground">
             Launch meetings instantly from your home screen — no browser tabs required.
           </p>
-          {showIosHelp && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              On iPhone/iPad: tap Share → <strong>Add to Home Screen</strong>.
-            </p>
+          {showInstallHelp && isIos && <IosInstallGuide />}
+          {showInstallHelp && isAndroid && (
+            <AndroidInstallGuide hasNativePrompt={canNativeInstall} />
           )}
-          {!canNativeInstall && !isIos && !showIosHelp && (
+          {showInstallHelp && !isIos && !isAndroid && (
             <p className="mt-2 text-sm text-muted-foreground">
               Use Chrome or Edge menu → <strong>Install app</strong>.
             </p>
