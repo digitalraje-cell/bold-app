@@ -16,6 +16,8 @@ import { api } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { useRoomStore, RoomParticipant } from '@/stores/roomStore';
+import { useMediaQuery, MOBILE_MEETING_MEDIA_QUERY } from '@/hooks/useMediaQuery';
+import { cn } from '@/lib/utils';
 
 type ParticipantRecord = RoomParticipant & { status?: string };
 
@@ -41,6 +43,12 @@ const ROLE_LABELS: Record<string, string> = {
   GUEST: 'Guest',
 };
 
+function roleBadgeClass(role: string): string {
+  if (role === 'HOST') return 'bg-primary/25 text-primary';
+  if (role === 'CO_HOST') return 'bg-sky-500/20 text-sky-300';
+  return 'bg-white/10 text-white/70';
+}
+
 export function ParticipantsPanel({
   meetingId,
   isModerator,
@@ -53,6 +61,7 @@ export function ParticipantsPanel({
   onRemoveFromStage,
   onMuteAll,
 }: ParticipantsPanelProps) {
+  const isMobile = useMediaQuery(MOBILE_MEETING_MEDIA_QUERY);
   const { can } = usePermissions();
   const storeParticipants = useRoomStore((s) => s.participants);
   const [participants, setParticipants] = useState<ParticipantRecord[]>(storeParticipants);
@@ -78,6 +87,15 @@ export function ParticipantsPanel({
     void refresh();
   }, [meetingId, storeParticipants, refresh]);
 
+  useEffect(() => {
+    if (!isMobile) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isMobile]);
+
   const admitted = participants.filter((p) => p.status !== 'WAITING' && p.status !== 'REMOVED');
   const waiting = participants.filter((p) => p.status === 'WAITING');
 
@@ -92,203 +110,284 @@ export function ParticipantsPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col border-l border-white/10 bg-slate-900/98 backdrop-blur sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-sm">
-      <UpgradeModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        feature="Multiple co-hosts"
-      />
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <h3 className="font-semibold text-white">
-          Participants ({admitted.length})
-        </h3>
-        <button onClick={onClose} className="text-white/60 hover:text-white">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+    <>
+      {isMobile && (
+        <button
+          type="button"
+          aria-label="Close participants"
+          className="meeting-panel-backdrop fixed inset-0 z-40 bg-black/55"
+          onClick={onClose}
+        />
+      )}
 
-      {isModerator && onMuteAll && (
-        <div className="border-b border-white/10 px-4 py-2">
+      <div
+        className={cn(
+          'z-50 flex flex-col border-white/10 bg-slate-900/98 backdrop-blur',
+          isMobile
+            ? 'meeting-panel-slide-up fixed inset-x-0 bottom-0 max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top)))] w-full rounded-t-2xl border-t shadow-2xl'
+            : 'absolute inset-y-0 right-0 z-40 h-full w-full max-w-sm border-l',
+        )}
+        style={
+          isMobile
+            ? {
+                paddingBottom: 'env(safe-area-inset-bottom)',
+              }
+            : undefined
+        }
+      >
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          feature="Multiple co-hosts"
+        />
+
+        <div
+          className={cn(
+            'flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3',
+            isMobile && 'pt-[max(0.75rem,env(safe-area-inset-top))]',
+          )}
+        >
+          <div className="min-w-0">
+            <h3 className="font-semibold text-white">Participants</h3>
+            <p className="text-xs text-white/50">{admitted.length} in meeting</p>
+          </div>
           <button
             type="button"
-            onClick={onMuteAll}
-            className="w-full rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+            onClick={onClose}
+            aria-label="Close participants"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
           >
-            Mute all
+            <X className="h-5 w-5" />
           </button>
         </div>
-      )}
 
-      {isModerator && waitingRoomEnabled && waiting.length > 0 && (
-        <div className="border-b border-white/10 px-4 py-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-white/50">
-            Waiting room ({waiting.length})
-          </p>
-          <div className="space-y-2">
-            {waiting.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2 py-2">
-                <span className="truncate text-sm text-white">{p.displayName}</span>
-                <button
-                  type="button"
-                  disabled={loadingId === p.id}
-                  title="Admit"
-                  onClick={() =>
-                    runAction(p.id, () => api.participants.admitWaiting(meetingId, p.id))
-                  }
-                  className="rounded bg-primary/20 p-1.5 text-primary hover:bg-primary/30 disabled:opacity-50"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+        {isMobile && <div className="mx-auto mt-1 h-1 w-10 shrink-0 rounded-full bg-white/20" />}
+
+        {isModerator && onMuteAll && (
+          <div className="shrink-0 border-b border-white/10 px-4 py-2">
+            <button
+              type="button"
+              onClick={onMuteAll}
+              className="w-full rounded-lg bg-white/10 px-3 py-3 text-sm font-medium text-white hover:bg-white/20"
+            >
+              Mute all
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="flex-1 overflow-y-auto p-2">
-        {admitted.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-primary">
-              {p.displayName[0]?.toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-sm font-medium text-white">{p.displayName}</span>
-                {p.role !== 'PARTICIPANT' && (
-                  <span className="rounded bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
-                    {ROLE_LABELS[p.role] ?? p.role}
-                  </span>
-                )}
-                {!p.userId && p.role === 'PARTICIPANT' && (
-                  <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/60">
-                    Guest
-                  </span>
-                )}
-                {roomMode === RoomMode.WEBINAR && p.isOnStage && p.role === 'PARTICIPANT' && (
-                  <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs text-amber-400">
-                    On stage
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-white/40">
-              {p.handRaised && (
-                <Hand className="h-4 w-4 text-amber-400" aria-label="Hand raised" />
-              )}
-              {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-            </div>
-            {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT') && (
-              <div className="relative">
-                <button
-                  type="button"
-                  title="Participant actions"
-                  disabled={loadingId === p.id}
-                  onClick={() => setOpenMenuId((current) => (current === p.id ? null : p.id))}
-                  className="rounded p-1.5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
+        {isModerator && waitingRoomEnabled && waiting.length > 0 && (
+          <div className="shrink-0 border-b border-white/10 px-4 py-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-white/50">
+              Waiting room ({waiting.length})
+            </p>
+            <div className="space-y-2">
+              {waiting.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-3 py-3"
                 >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-                {openMenuId === p.id && (
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-white/10 bg-slate-900 py-1 shadow-xl">
-                    <button
-                      type="button"
-                      className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        void runAction(p.id, () =>
-                          api.participants.mute(meetingId, p.id, !p.isMuted),
-                        );
-                      }}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold text-primary">
+                      {p.displayName[0]?.toUpperCase()}
+                    </div>
+                    <span className="truncate text-sm text-white">{p.displayName}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={loadingId === p.id}
+                    title="Admit"
+                    onClick={() =>
+                      runAction(p.id, () => api.participants.admitWaiting(meetingId, p.id))
+                    }
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary hover:bg-primary/30 disabled:opacity-50"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+          {admitted.map((p) => (
+            <div
+              key={p.id}
+              className={cn(
+                'flex items-center gap-3 rounded-xl px-3 hover:bg-white/5',
+                isMobile ? 'py-3.5' : 'py-2.5',
+              )}
+            >
+              <div
+                className={cn(
+                  'flex shrink-0 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary',
+                  isMobile ? 'h-11 w-11 text-base' : 'h-9 w-9 text-sm',
+                )}
+              >
+                {p.displayName[0]?.toUpperCase()}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="truncate text-sm font-medium text-white">{p.displayName}</span>
+                  {p.role !== 'PARTICIPANT' && (
+                    <span
+                      className={cn(
+                        'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                        roleBadgeClass(p.role),
+                      )}
                     >
-                      {p.isMuted ? 'Ask to unmute' : 'Mute'}
-                    </button>
-                    {isHost && p.role === 'PARTICIPANT' && (
+                      {ROLE_LABELS[p.role] ?? p.role}
+                    </span>
+                  )}
+                  {!p.userId && p.role === 'PARTICIPANT' && (
+                    <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">
+                      Guest
+                    </span>
+                  )}
+                  {roomMode === RoomMode.WEBINAR && p.isOnStage && p.role === 'PARTICIPANT' && (
+                    <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                      On stage
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2 text-white/50">
+                {p.handRaised && (
+                  <Hand className="h-4 w-4 text-amber-400" aria-label="Hand raised" />
+                )}
+                <span
+                  className={cn(
+                    'flex items-center justify-center rounded-full',
+                    isMobile ? 'h-9 w-9 bg-white/5' : '',
+                    p.isMuted ? 'text-red-400' : 'text-emerald-400',
+                  )}
+                  aria-label={p.isMuted ? 'Muted' : 'Unmuted'}
+                >
+                  {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </span>
+                <span
+                  className={cn(
+                    'flex items-center justify-center rounded-full',
+                    isMobile ? 'h-9 w-9 bg-white/5' : '',
+                    p.isVideoOff ? 'text-red-400' : 'text-emerald-400',
+                  )}
+                  aria-label={p.isVideoOff ? 'Camera off' : 'Camera on'}
+                >
+                  {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                </span>
+              </div>
+
+              {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT') && (
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    title="Participant actions"
+                    disabled={loadingId === p.id}
+                    onClick={() => setOpenMenuId((current) => (current === p.id ? null : p.id))}
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  {openMenuId === p.id && (
+                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-white/10 bg-slate-900 py-1 shadow-xl">
                       <button
                         type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                        onClick={() => {
-                          setOpenMenuId(null);
-                          if (!can('canUseCohost')) {
-                            setUpgradeOpen(true);
-                            return;
-                          }
-                          void runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id));
-                        }}
-                      >
-                        Make co-host
-                      </button>
-                    )}
-                    {isHost && p.role === 'CO_HOST' && (
-                      <button
-                        type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
                         onClick={() => {
                           setOpenMenuId(null);
                           void runAction(p.id, () =>
-                            api.participants.removeCoHost(meetingId, p.id),
+                            api.participants.mute(meetingId, p.id, !p.isMuted),
                           );
                         }}
                       >
-                        Remove co-host
+                        {p.isMuted ? 'Ask to unmute' : 'Mute'}
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      className="flex w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        void runAction(p.id, () => api.participants.remove(meetingId, p.id));
-                      }}
-                    >
-                      Remove from meeting
-                    </button>
-                    {onPromotePanelist && p.role === 'PARTICIPANT' && (
+                      {isHost && p.role === 'PARTICIPANT' && (
+                        <button
+                          type="button"
+                          className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            if (!can('canUseCohost')) {
+                              setUpgradeOpen(true);
+                              return;
+                            }
+                            void runAction(p.id, () => api.participants.makeCoHost(meetingId, p.id));
+                          }}
+                        >
+                          Make co-host
+                        </button>
+                      )}
+                      {isHost && p.role === 'CO_HOST' && (
+                        <button
+                          type="button"
+                          className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            void runAction(p.id, () =>
+                              api.participants.removeCoHost(meetingId, p.id),
+                            );
+                          }}
+                        >
+                          Remove co-host
+                        </button>
+                      )}
                       <button
                         type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        className="flex w-full px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
                         onClick={() => {
                           setOpenMenuId(null);
-                          onPromotePanelist(p.id);
+                          void runAction(p.id, () => api.participants.remove(meetingId, p.id));
                         }}
                       >
-                        Promote to panelist
+                        Remove from meeting
                       </button>
-                    )}
-                    {roomMode === RoomMode.WEBINAR && onBringOnStage && !p.isOnStage && (
-                      <button
-                        type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                        onClick={() => {
-                          setOpenMenuId(null);
-                          onBringOnStage(p.id);
-                        }}
-                      >
-                        Bring on stage
-                      </button>
-                    )}
-                    {roomMode === RoomMode.WEBINAR && onRemoveFromStage && p.isOnStage && (
-                      <button
-                        type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                        onClick={() => {
-                          setOpenMenuId(null);
-                          onRemoveFromStage(p.id);
-                        }}
-                      >
-                        Remove from stage
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+                      {onPromotePanelist && p.role === 'PARTICIPANT' && (
+                        <button
+                          type="button"
+                          className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            onPromotePanelist(p.id);
+                          }}
+                        >
+                          Promote to panelist
+                        </button>
+                      )}
+                      {roomMode === RoomMode.WEBINAR && onBringOnStage && !p.isOnStage && (
+                        <button
+                          type="button"
+                          className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            onBringOnStage(p.id);
+                          }}
+                        >
+                          Bring on stage
+                        </button>
+                      )}
+                      {roomMode === RoomMode.WEBINAR && onRemoveFromStage && p.isOnStage && (
+                        <button
+                          type="button"
+                          className="flex w-full px-3 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            onRemoveFromStage(p.id);
+                          }}
+                        >
+                          Remove from stage
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
