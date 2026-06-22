@@ -22,6 +22,7 @@ import { navLinkClass } from '@/lib/ui';
 import { appConfig } from '@/lib/app-config';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: '/dashboard' },
@@ -41,9 +42,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const plan = (session?.user?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
-  const isAdmin = mounted && isPlatformAdmin(session?.user?.role);
-  const isPro = plan === SubscriptionPlan.PRO;
+  const { plan } = usePermissions();
+  const isAdmin = mounted && isPlatformAdmin(session?.user?.role, session?.user?.email);
+  const isPro = plan !== SubscriptionPlan.FREE;
 
   function isNavActive(item: (typeof navItems)[number]) {
     if (!mounted) return false;
@@ -97,6 +98,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {isAdmin && (
             <>
               <Link
+                href="/admin"
+                onClick={() => setSidebarOpen(false)}
+                className={navLinkClass(pathname === '/admin')}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+              <Link
                 href="/admin/users"
                 onClick={() => setSidebarOpen(false)}
                 className={navLinkClass(pathname.startsWith('/admin/users'))}
@@ -122,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-sm font-medium">{mounted ? session?.user?.name : null}</p>
               {mounted && isPro && (
                 <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase text-background">
-                  Pro
+                  {plan === SubscriptionPlan.ENTERPRISE ? 'Enterprise' : 'Pro'}
                 </span>
               )}
             </div>

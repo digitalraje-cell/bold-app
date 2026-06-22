@@ -7,6 +7,9 @@ import {
   getPlanLimit,
   computeMeetingDurationStatus,
   MeetingDurationStatus,
+  resolveEffectivePlan,
+  resolvePlatformRole,
+  isSuperAdmin,
 } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -23,14 +26,26 @@ export class PermissionsService {
   async getUserPlanContext(userId: string): Promise<UserPlanContext> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, subscriptionPlan: true, isVerified: true, subscriptionExpiresAt: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        subscriptionPlan: true,
+        isVerified: true,
+        subscriptionExpiresAt: true,
+      },
     });
 
+    const role = resolvePlatformRole(user.role, user.email);
     let plan = user.subscriptionPlan as SubscriptionPlan;
 
-    if (user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
-      plan = SubscriptionPlan.FREE;
+    if (!isSuperAdmin(role, user.email)) {
+      if (user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
+        plan = SubscriptionPlan.FREE;
+      }
     }
+
+    plan = resolveEffectivePlan(role, plan, user.email);
 
     return {
       userId: user.id,

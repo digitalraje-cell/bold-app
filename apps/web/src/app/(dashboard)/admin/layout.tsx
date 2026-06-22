@@ -11,10 +11,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true },
+    select: { role: true, email: true },
   });
 
-  if (!isPlatformAdmin(user?.role)) {
+  if (!isPlatformAdmin(user?.role, user?.email)) {
     redirect('/dashboard');
   }
 
