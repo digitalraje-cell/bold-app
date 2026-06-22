@@ -793,6 +793,13 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private streamNeedsBrowserResume(streamId: string): boolean {
+    if (!this.relay.isRunning(streamId)) return false;
+    const stats = this.relay.getIngestStats(streamId);
+    if (!stats) return false;
+    return stats.chunksReceived > 0 && !stats.ingestConnected;
+  }
+
   private async reconcileAbandonedLiveStreams(
     meetingId: string,
   ): Promise<void> {
@@ -1040,7 +1047,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       startedAt: primary.startedAt?.toISOString() ?? null,
       endedAt: primary.endedAt?.toISOString() ?? null,
       relayActive: streams.some((s) => this.relay.isRunning(s.id)),
-      canResume: streams.some((s) => s.status === StreamStatus.LIVE),
+      canResume: streams.some((s) => this.streamNeedsBrowserResume(s.id)),
       captureActive: false,
       viewerCount: totalViewers > 0 ? totalViewers : null,
       visibility: this.mapVisibilityToApi(primary.visibility),
@@ -1086,7 +1093,9 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       startedAt: stream.startedAt?.toISOString() ?? null,
       endedAt: stream.endedAt?.toISOString() ?? null,
       relayActive,
-      canResume: stream.status === StreamStatus.LIVE,
+      canResume:
+        stream.status === StreamStatus.LIVE &&
+        this.streamNeedsBrowserResume(stream.id),
       captureActive: false,
       viewerCount,
       visibility: this.mapVisibilityToApi(stream.visibility),

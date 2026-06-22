@@ -18,8 +18,8 @@ export function YouTubeLiveResumeBanner({
     <div className="absolute left-1/2 top-20 z-40 w-[min(100%,24rem)] -translate-x-1/2 rounded-xl border border-amber-500/40 bg-slate-900/95 p-4 text-white shadow-xl backdrop-blur">
       <YouTubeBetaBanner />
       <p className="mt-3 text-sm text-white/90">
-        Reconnecting your stream automatically… Choose the same screen or tab when prompted, or stop
-        the broadcast.
+        Your YouTube broadcast is still running, but screen capture was disconnected. Click Resume
+        Stream and choose the same screen or tab to continue.
       </p>
       <div className="mt-4 flex gap-2">
         <Button className="flex-1" disabled={loading} onClick={onResume}>

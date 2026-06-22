@@ -243,7 +243,8 @@ export function YouTubeLiveModal({
               </div>
 
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Title and description are set from this meeting automatically.
+                Title and description are set from this meeting automatically. When you click Go Live,
+                your browser will ask you to share this meeting tab or screen once.
               </p>
             </div>
 

@@ -57,6 +57,10 @@ export function formatYouTubeLiveUserError(
     return 'YouTube live streaming is not enabled for this channel. Enable it in YouTube Studio, then refresh in Settings → Integrations.';
   }
 
+  if (lower.includes('invalid state') || lower.includes('already in progress')) {
+    return 'Screen capture failed to start. Stop the stream, refresh the page, and try Go Live again.';
+  }
+
   if (lower.includes('already active for this meeting')) {
     return 'A YouTube Live session is still open for this meeting. Use Resume Stream to reconnect screen sharing, or Stop Stream to end it before starting again.';
   }
