@@ -131,6 +131,9 @@ model User {
   subscriptionPayments SubscriptionPayment[]
   pendingPayments      PendingPayment[]
   roadmapVotes         RoadmapVote[]
+  isPwaInstalled       Boolean   @default(false) @map("is_pwa_installed")
+  pwaInstalledAt       DateTime? @map("pwa_installed_at")
+  lastPwaLaunchAt      DateTime? @map("last_pwa_launch_at")
 
   @@map("users")
 }

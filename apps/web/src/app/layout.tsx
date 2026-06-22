@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { PwaRegistrar } from '@/components/pwa/PwaRegistrar';
 import { UserSettingsInit } from '@/components/settings/UserSettingsInit';
 import { APP_CONFIG, getServerAppOrigin } from '@/lib/app-config';
 import './globals.css';
@@ -23,6 +24,12 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
   },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'Bold',
+    statusBarStyle: 'default',
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +42,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AuthProvider>
           <UserSettingsInit />
+          <PwaRegistrar />
           {children}
         </AuthProvider>
       </body>

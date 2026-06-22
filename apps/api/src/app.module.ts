@@ -19,6 +19,7 @@ import { WebinarModule } from './webinar/webinar.module';
 import { RoomModule } from './room/room.module';
 import { StreamModule } from './stream/stream.module';
 import { PublicModule } from './public/public.module';
+import { PwaModule } from './pwa/pwa.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { PublicModule } from './public/public.module';
     StreamModule,
     YoutubeModule,
     PublicModule,
+    PwaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
