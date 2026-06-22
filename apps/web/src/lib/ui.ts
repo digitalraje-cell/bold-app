@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-/** BoldMeet V3 — Nixtio-style soft UI helpers */
+/** Bold V3 — Nixtio-style soft UI helpers */
 export const ui = {
   pageTitle: 'text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-[3.25rem] lg:leading-[1.08]',
   pageSubtitle: 'mt-4 text-base font-medium leading-relaxed text-muted-foreground sm:text-lg',

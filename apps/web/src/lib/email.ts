@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { APP_CONFIG } from '@boldmeet/shared';
 
 const DEV_OTP_EMAIL_FROM = 'onboarding@resend.dev';
-const OTP_EMAIL_SUBJECT = 'Your BoldMeet login code';
+const OTP_EMAIL_SUBJECT = `Your ${APP_CONFIG.name} login code`;
 
 /** Read env at request time — bracket access avoids Next.js build-time inlining. */
 function runtimeEnv(key: string): string | undefined {
@@ -30,7 +30,7 @@ export function getOtpExpiryDate(): Date {
 }
 
 function buildOtpEmailHtml(code: string, expiryMinutes: number): string {
-  const appName = 'BoldMeet';
+  const appName = APP_CONFIG.name;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,7 +83,7 @@ function buildOtpEmailHtml(code: string, expiryMinutes: number): string {
 
 function buildOtpEmailText(code: string, expiryMinutes: number): string {
   return [
-    'BoldMeet — Verify your account',
+    `${APP_CONFIG.name} — Verify your account`,
     '',
     `Your verification code is: ${code}`,
     '',
@@ -151,7 +151,7 @@ export async function sendContactEmail(input: {
   const supportTo = runtimeEnv('CONTACT_INBOX_EMAIL') || runtimeEnv('NEXT_PUBLIC_SUPPORT_EMAIL') || 'support@boldmeet.com';
 
   const bodyText = [
-    `New contact form submission for BoldMeet`,
+    `New contact form submission for ${APP_CONFIG.name}`,
     '',
     `Name: ${input.name}`,
     `Email: ${input.email}`,
@@ -175,7 +175,7 @@ export async function sendContactEmail(input: {
     from,
     to: supportTo,
     replyTo: input.email,
-    subject: `[BoldMeet Contact] ${input.subject}`,
+    subject: `[${APP_CONFIG.name} Contact] ${input.subject}`,
     text: bodyText,
   });
 

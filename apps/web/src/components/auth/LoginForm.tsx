@@ -108,8 +108,8 @@ function LoginFormInner() {
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
           {appConfig.name.charAt(0).toUpperCase()}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {step === 'email' ? 'Welcome to BoldMeet' : 'Enter your code'}
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          {step === 'email' ? `Welcome to ${appConfig.name}` : 'Enter your code'}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {step === 'email'
@@ -119,7 +119,7 @@ function LoginFormInner() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+        <div className="rounded-[var(--radius-md)] border border-border bg-[var(--badge-bg)] px-4 py-3 text-sm text-foreground">
           {error}
         </div>
       )}

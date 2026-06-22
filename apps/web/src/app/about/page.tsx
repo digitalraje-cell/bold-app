@@ -3,9 +3,9 @@ import { AboutContent } from '@/components/marketing/AboutContent';
 import { fetchPlatformStatsServer } from '@/lib/platform-stats';
 import { getServerAppOrigin } from '@/lib/urls';
 
-const TITLE = 'About BoldMeet | Modern Video Meetings & Webinars';
+const TITLE = 'About Bold | Modern Video Meetings & Webinars';
 const DESCRIPTION =
-  'Learn about BoldMeet, our mission, founders and vision for the future of virtual meetings, webinars and online collaboration.';
+  'Learn about Bold, our mission, founders and vision for the future of virtual meetings, webinars and online collaboration.';
 
 export const metadata: Metadata = {
   title: TITLE,

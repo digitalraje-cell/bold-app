@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PricingSection } from '@/components/marketing/PricingSection';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { PageCta } from '@/components/marketing/PageCta';
 import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,8 @@ export default function HomePage() {
 
         <PricingSection />
       </main>
+
+      <PageCta />
 
       <MarketingFooter />
     </div>
