@@ -183,8 +183,15 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       where: { meetingId, status: StreamStatus.LIVE },
     });
     if (existingLive > 0) {
+      await this.reconcileAbandonedLiveStreams(meetingId);
+    }
+
+    const stillLive = await this.prisma.youTubeStream.count({
+      where: { meetingId, status: StreamStatus.LIVE },
+    });
+    if (stillLive > 0) {
       throw new BadRequestException(
-        'YouTube Live is already active for this meeting. Use Resume Stream if you refreshed the page.',
+        'YouTube Live is already active for this meeting. Use Resume Stream if you refreshed the page, or Stop Stream to end the broadcast.',
       );
     }
 
@@ -786,6 +793,44 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private async reconcileAbandonedLiveStreams(
+    meetingId: string,
+  ): Promise<void> {
+    const liveStreams = await this.prisma.youTubeStream.findMany({
+      where: { meetingId, status: StreamStatus.LIVE },
+    });
+    if (liveStreams.length === 0) return;
+
+    const toFinalize: string[] = [];
+    for (const stream of liveStreams) {
+      if (!this.relay.isRunning(stream.id)) {
+        toFinalize.push(stream.id);
+        continue;
+      }
+      const stats = this.relay.getIngestStats(stream.id);
+      if (stats && !stats.ingestConnected && stats.chunksReceived > 0) {
+        toFinalize.push(stream.id);
+      }
+    }
+
+    if (toFinalize.length === 0) return;
+
+    this.logger.warn(
+      `[youtube-live] stream.reconcile-abandoned meetingId=${meetingId} streamIds=${JSON.stringify(toFinalize)}`,
+    );
+
+    for (const streamId of toFinalize) {
+      await this.finalizeStop(
+        streamId,
+        meetingId,
+        toFinalize.length === liveStreams.length,
+      );
+    }
+    if (toFinalize.length > 0) {
+      this.gateway.broadcastStreamStopped(meetingId);
+    }
+  }
+
   private async finalizeStop(
     streamId: string,
     meetingId: string,
@@ -799,6 +844,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.relay.stop(streamId);
+    this.pendingYoutubeTransitions.delete(streamId);
 
     if (stream.broadcastId && stream.youtubeAccountId) {
       await this.youtube

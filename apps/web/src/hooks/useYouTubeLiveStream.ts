@@ -93,6 +93,7 @@ export function useYouTubeLiveStream(meetingId: string) {
   const stopLiveRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => undefined);
   const resumeLiveRef = useRef<() => Promise<unknown>>(async () => undefined);
   const streamSessionIdRef = useRef<string | null>(null);
+  const serverStreamActiveRef = useRef(false);
   const stoppingRef = useRef(false);
   const reconnectStartedAtRef = useRef<number | null>(null);
 
@@ -242,12 +243,16 @@ export function useYouTubeLiveStream(meetingId: string) {
       reconnectStartedAtRef.current = null;
       if (!options?.silent) setStopping(true);
       cleanupCapture();
-      streamSessionIdRef.current = null;
       setPendingResume(false);
 
+      const shouldStopOnServer =
+        serverStreamActiveRef.current || Boolean(streamSessionIdRef.current);
+
       try {
-        if (broadcastStatus === 'LIVE' || broadcastStatus === 'ERROR') {
+        if (shouldStopOnServer || broadcastStatus === 'LIVE' || broadcastStatus === 'ERROR') {
           const result = (await api.stream.stop(meetingId)) as { status?: BroadcastStatus };
+          serverStreamActiveRef.current = false;
+          streamSessionIdRef.current = null;
           applyStreamState({
             status: result.status ?? 'ENDED',
             startedAt: null,
@@ -265,6 +270,7 @@ export function useYouTubeLiveStream(meetingId: string) {
           setError(formatYouTubeLiveUserError(err, 'youtube-live:stop'));
         }
       } finally {
+        streamSessionIdRef.current = null;
         stoppingRef.current = false;
         if (!options?.silent) setStopping(false);
       }
@@ -279,11 +285,14 @@ export function useYouTubeLiveStream(meetingId: string) {
       if (!isYouTubeLiveEnabled()) return;
       setError(null);
       setStarting(true);
+      let startedOnServer = false;
       try {
         const session = (await api.stream.start(meetingId, params)) as StreamSession & {
           ingestToken: string;
           sessions?: StreamSession[];
         };
+        startedOnServer = true;
+        serverStreamActiveRef.current = true;
         const relaySessions =
           session.sessions && session.sessions.length > 0
             ? session.sessions
@@ -292,6 +301,11 @@ export function useYouTubeLiveStream(meetingId: string) {
         return session;
       } catch (err) {
         cleanupCapture();
+        if (startedOnServer) {
+          serverStreamActiveRef.current = false;
+          streamSessionIdRef.current = null;
+          await api.stream.stop(meetingId).catch(() => undefined);
+        }
         const message = formatYouTubeLiveUserError(err, 'youtube-live:start');
         setError(message);
         setBroadcastStatus('ERROR');
@@ -317,6 +331,7 @@ export function useYouTubeLiveStream(meetingId: string) {
           ? session.sessions
           : [{ ...session, ingestToken: session.ingestToken }];
       await attachCaptureAndSockets(relaySessions);
+      serverStreamActiveRef.current = true;
       return session;
     } catch (err) {
       cleanupCapture();
