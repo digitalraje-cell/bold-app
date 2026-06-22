@@ -25,7 +25,7 @@ const baseNav = [
 export function SettingsNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = isPlatformAdmin(session?.user?.role);
+  const isAdmin = isPlatformAdmin(session?.user?.role, session?.user?.email);
 
   const nav = isAdmin
     ? [...baseNav, { href: '/settings/admin', label: 'Admin', icon: Settings2 }]

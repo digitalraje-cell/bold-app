@@ -1,6 +1,7 @@
 import NextAuth, { type NextAuthConfig } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Credentials from 'next-auth/providers/credentials';
+import { SubscriptionPlan, resolveEffectivePlan, resolvePlatformRole } from '@boldmeet/shared';
 import { authConfig } from './auth.config';
 import { prisma } from './prisma';
 import { verifyAuthOtp } from './otp-service';
@@ -54,13 +55,19 @@ const providers: NextAuthConfig['providers'] = [
         }
 
         const user = result.user;
+        const role = resolvePlatformRole(user.role, user.email);
+        const subscriptionPlan = resolveEffectivePlan(
+          role,
+          user.subscriptionPlan as SubscriptionPlan,
+          user.email,
+        );
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           isVerified: user.isVerified,
-          subscriptionPlan: user.subscriptionPlan,
-          role: user.role,
+          subscriptionPlan,
+          role,
         };
       } catch (error) {
         console.error('[auth] OTP authorize failed:', error);
@@ -89,21 +96,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
             select: {
+              email: true,
               isVerified: true,
               subscriptionPlan: true,
               subscriptionExpiresAt: true,
               role: true,
             },
           });
-          token.isVerified = dbUser?.isVerified ?? false;
-          token.subscriptionPlan = dbUser?.subscriptionPlan ?? 'FREE';
-          token.role = dbUser?.role ?? 'USER';
+          const email = dbUser?.email ?? (token.email as string | undefined);
+          const role = resolvePlatformRole(dbUser?.role, email);
+          let plan = (dbUser?.subscriptionPlan as SubscriptionPlan) ?? SubscriptionPlan.FREE;
+
           if (
             dbUser?.subscriptionExpiresAt &&
-            dbUser.subscriptionExpiresAt < new Date()
+            dbUser.subscriptionExpiresAt < new Date() &&
+            role !== 'SUPER_ADMIN'
           ) {
-            token.subscriptionPlan = 'FREE';
+            plan = SubscriptionPlan.FREE;
           }
+
+          token.isVerified = dbUser?.isVerified ?? false;
+          token.subscriptionPlan = resolveEffectivePlan(role, plan, email);
+          token.role = role;
         } catch (error) {
           console.error('[auth] JWT callback DB lookup failed:', error);
         }
