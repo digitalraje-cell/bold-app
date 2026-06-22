@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
   Mic,
   MicOff,
@@ -12,16 +12,7 @@ import {
   Users,
   Hand,
   Smile,
-  Maximize,
-  PhoneOff,
-  UserPlus,
   LogOut,
-  VolumeX,
-  Lock,
-  Unlock,
-  DoorOpen,
-  Radio,
-  Square,
   MoreHorizontal,
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
@@ -107,237 +98,246 @@ function ControlButton({
 
 const MEETING_REACTIONS = ['👍', '❤️', '👏', '🎉', '😂', '🙌'] as const;
 
-export function ControlsBar({
-  isMuted,
-  isVideoOff,
-  isFullscreen,
-  isScreenSharing,
-  activePanel,
-  onToggleMic,
-  onToggleVideo,
-  onToggleShare,
-  micDisabled,
-  cameraDisabled,
-  shareDisabled,
-  onToggleChat,
-  onToggleParticipants,
-  onReaction,
-  onRaiseHand,
-  handRaised = false,
-  onToggleFullscreen,
-  onInvite,
-  onLeave,
-  isHost,
-  isModerator,
-  onEndMeeting,
-  onMuteAll,
-  isLocked,
-  onToggleLock,
-  waitingRoomEnabled,
-  onToggleWaitingRoom,
-  participantScreenShareEnabled,
-  onToggleParticipantScreenShare,
-  roomMode,
-  onSwitchRoomMode,
-  reactionsEnabled = true,
-  raiseHandEnabled = true,
-  isLiveStream,
-  onGoLive,
-  onStopLive,
-  streamStopping,
-  canManageBroadcast,
-}: ControlsBarProps) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [reactionsOpen, setReactionsOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+export const ControlsBar = forwardRef<HTMLDivElement, ControlsBarProps>(
+  function ControlsBar(
+    {
+      isMuted,
+      isVideoOff,
+      isFullscreen,
+      isScreenSharing,
+      activePanel,
+      onToggleMic,
+      onToggleVideo,
+      onToggleShare,
+      micDisabled,
+      cameraDisabled,
+      shareDisabled,
+      onToggleChat,
+      onToggleParticipants,
+      onReaction,
+      onRaiseHand,
+      handRaised = false,
+      onToggleFullscreen,
+      onInvite,
+      onLeave,
+      isHost,
+      isModerator,
+      onEndMeeting,
+      onMuteAll,
+      isLocked,
+      onToggleLock,
+      waitingRoomEnabled,
+      onToggleWaitingRoom,
+      participantScreenShareEnabled,
+      onToggleParticipantScreenShare,
+      roomMode,
+      onSwitchRoomMode,
+      reactionsEnabled = true,
+      raiseHandEnabled = true,
+      isLiveStream,
+      onGoLive,
+      onStopLive,
+      streamStopping,
+      canManageBroadcast,
+    },
+    ref,
+  ) {
+    const [moreOpen, setMoreOpen] = useState(false);
+    const [reactionsOpen, setReactionsOpen] = useState(false);
+    const moreRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [moreOpen]);
+    useEffect(() => {
+      if (!moreOpen) return;
+      const onDocClick = (e: MouseEvent) => {
+        if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+          setMoreOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', onDocClick);
+      return () => document.removeEventListener('mousedown', onDocClick);
+    }, [moreOpen]);
 
-  const hasMoreItems =
-    reactionsEnabled ||
-    raiseHandEnabled ||
-    Boolean(onInvite) ||
-    Boolean(onSwitchRoomMode) ||
-    Boolean(onToggleFullscreen) ||
-    Boolean(onToggleLock) ||
-    Boolean(onToggleWaitingRoom) ||
-    Boolean(onToggleParticipantScreenShare) ||
-    Boolean(onMuteAll) ||
-    Boolean(canManageBroadcast && onGoLive) ||
-    Boolean(isHost && onEndMeeting);
+    const hasMoreItems =
+      reactionsEnabled ||
+      raiseHandEnabled ||
+      Boolean(onInvite) ||
+      Boolean(onSwitchRoomMode) ||
+      Boolean(onToggleFullscreen) ||
+      Boolean(onToggleLock) ||
+      Boolean(onToggleWaitingRoom) ||
+      Boolean(onToggleParticipantScreenShare) ||
+      Boolean(onMuteAll) ||
+      Boolean(canManageBroadcast && onGoLive) ||
+      Boolean(isHost && onEndMeeting);
 
-  return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-10">
-      <div className="pointer-events-auto mx-auto flex max-w-full items-center justify-center gap-1.5 sm:max-w-lg sm:gap-2">
-        <ControlButton
-          icon={isMuted ? MicOff : Mic}
-          label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
-          active={!isMuted && !micDisabled}
-          danger={isMuted && !micDisabled}
-          disabled={micDisabled}
-          onClick={onToggleMic}
-        />
-        <ControlButton
-          icon={isVideoOff ? VideoOff : Video}
-          label={cameraDisabled ? 'Camera disabled' : isVideoOff ? 'Start video' : 'Stop video'}
-          active={!isVideoOff && !cameraDisabled}
-          danger={isVideoOff && !cameraDisabled}
-          disabled={cameraDisabled}
-          onClick={onToggleVideo}
-        />
-        {!shareDisabled && (
+    return (
+      <div
+        ref={ref}
+        data-meeting-controls
+        className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-10"
+      >
+        <div className="pointer-events-auto mx-auto flex max-w-full items-center justify-center gap-1.5 sm:max-w-lg sm:gap-2">
           <ControlButton
-            icon={isScreenSharing ? MonitorOff : MonitorUp}
-            label={isScreenSharing ? 'Stop sharing' : 'Share screen'}
-            active={isScreenSharing}
-            onClick={onToggleShare}
+            icon={isMuted ? MicOff : Mic}
+            label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
+            active={!isMuted && !micDisabled}
+            danger={isMuted && !micDisabled}
+            disabled={micDisabled}
+            onClick={onToggleMic}
           />
-        )}
-        <ControlButton
-          icon={MessageSquare}
-          label="Chat"
-          active={activePanel === 'chat'}
-          onClick={onToggleChat}
-        />
-        <ControlButton
-          icon={Users}
-          label="Participants"
-          active={activePanel === 'participants'}
-          onClick={onToggleParticipants}
-        />
-
-        {hasMoreItems && (
-          <div className="relative" ref={moreRef}>
+          <ControlButton
+            icon={isVideoOff ? VideoOff : Video}
+            label={cameraDisabled ? 'Camera disabled' : isVideoOff ? 'Start video' : 'Stop video'}
+            active={!isVideoOff && !cameraDisabled}
+            danger={isVideoOff && !cameraDisabled}
+            disabled={cameraDisabled}
+            onClick={onToggleVideo}
+          />
+          {!shareDisabled && (
             <ControlButton
-              icon={MoreHorizontal}
-              label="More options"
-              active={moreOpen}
-              onClick={() => setMoreOpen((v) => !v)}
+              icon={isScreenSharing ? MonitorOff : MonitorUp}
+              label={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+              active={isScreenSharing}
+              onClick={onToggleShare}
             />
-            {moreOpen && (
-              <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl">
-                {reactionsEnabled && (
-                  <div className="border-b border-white/10 px-3 py-2">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between text-left text-sm text-white hover:text-white/90"
-                      onClick={() => setReactionsOpen((open) => !open)}
-                    >
-                      <span>Reactions</span>
-                      <Smile className="h-4 w-4 text-white/60" />
-                    </button>
-                    {reactionsOpen && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {MEETING_REACTIONS.map((reaction) => (
-                          <button
-                            key={reaction}
-                            type="button"
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg hover:bg-white/20"
-                            aria-label={`Send ${reaction} reaction`}
-                            onClick={() => {
-                              setReactionsOpen(false);
-                              setMoreOpen(false);
-                              onReaction(reaction);
-                            }}
-                          >
-                            {reaction}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {raiseHandEnabled && (
-                  <MenuItem
-                    label={handRaised ? 'Lower hand' : 'Raise hand'}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onRaiseHand();
-                    }}
-                  />
-                )}
-                {onInvite && (
-                  <MenuItem label="Invite" onClick={() => { setMoreOpen(false); onInvite(); }} />
-                )}
-                {onSwitchRoomMode && roomMode && (
-                  <>
+          )}
+          <ControlButton
+            icon={MessageSquare}
+            label="Chat"
+            active={activePanel === 'chat'}
+            onClick={onToggleChat}
+          />
+          <ControlButton
+            icon={Users}
+            label="Participants"
+            active={activePanel === 'participants'}
+            onClick={onToggleParticipants}
+          />
+
+          {hasMoreItems && (
+            <div className="relative" ref={moreRef}>
+              <ControlButton
+                icon={MoreHorizontal}
+                label="More options"
+                active={moreOpen}
+                onClick={() => setMoreOpen((v) => !v)}
+              />
+              {moreOpen && (
+                <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] rounded-xl border border-white/10 bg-slate-900 py-1 shadow-xl">
+                  {reactionsEnabled && (
+                    <div className="border-b border-white/10 px-3 py-2">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between text-left text-sm text-white hover:text-white/90"
+                        onClick={() => setReactionsOpen((open) => !open)}
+                      >
+                        <span>Reactions</span>
+                        <Smile className="h-4 w-4 text-white/60" />
+                      </button>
+                      {reactionsOpen && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {MEETING_REACTIONS.map((reaction) => (
+                            <button
+                              key={reaction}
+                              type="button"
+                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg hover:bg-white/20"
+                              aria-label={`Send ${reaction} reaction`}
+                              onClick={() => {
+                                setReactionsOpen(false);
+                                setMoreOpen(false);
+                                onReaction(reaction);
+                              }}
+                            >
+                              {reaction}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {raiseHandEnabled && (
                     <MenuItem
-                      label={roomMode === RoomMode.MEETING ? 'Switch to webinar' : 'Switch to meeting'}
+                      label={handRaised ? 'Lower hand' : 'Raise hand'}
                       onClick={() => {
                         setMoreOpen(false);
-                        onSwitchRoomMode(
-                          roomMode === RoomMode.MEETING ? RoomMode.WEBINAR : RoomMode.MEETING,
-                        );
+                        onRaiseHand();
                       }}
                     />
-                  </>
-                )}
-                <MenuItem
-                  label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                  onClick={() => { setMoreOpen(false); onToggleFullscreen(); }}
-                />
-                {isModerator && onMuteAll && (
-                  <MenuItem label="Mute all" onClick={() => { setMoreOpen(false); onMuteAll(); }} />
-                )}
-                {isHost && onToggleLock && (
+                  )}
+                  {onInvite && (
+                    <MenuItem label="Invite" onClick={() => { setMoreOpen(false); onInvite(); }} />
+                  )}
+                  {onSwitchRoomMode && roomMode && (
+                    <>
+                      <MenuItem
+                        label={roomMode === RoomMode.MEETING ? 'Switch to webinar' : 'Switch to meeting'}
+                        onClick={() => {
+                          setMoreOpen(false);
+                          onSwitchRoomMode(
+                            roomMode === RoomMode.MEETING ? RoomMode.WEBINAR : RoomMode.MEETING,
+                          );
+                        }}
+                      />
+                    </>
+                  )}
                   <MenuItem
-                    label={isLocked ? 'Unlock meeting' : 'Lock meeting'}
-                    onClick={() => { setMoreOpen(false); onToggleLock(); }}
+                    label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                    onClick={() => { setMoreOpen(false); onToggleFullscreen(); }}
                   />
-                )}
-                {isHost && onToggleWaitingRoom && (
-                  <MenuItem
-                    label={waitingRoomEnabled ? 'Waiting room on' : 'Waiting room off'}
-                    onClick={() => { setMoreOpen(false); onToggleWaitingRoom(); }}
-                  />
-                )}
-                {isHost && onToggleParticipantScreenShare && (
-                  <MenuItem
-                    label={
-                      participantScreenShareEnabled
-                        ? 'Participant sharing on'
-                        : 'Participant sharing off'
-                    }
-                    onClick={() => { setMoreOpen(false); onToggleParticipantScreenShare(); }}
-                  />
-                )}
-                {canManageBroadcast && !isLiveStream && onGoLive && (
-                  <MenuItem label="Start YouTube Live" onClick={() => { setMoreOpen(false); onGoLive(); }} />
-                )}
-                {canManageBroadcast && isLiveStream && onStopLive && (
-                  <MenuItem
-                    label={streamStopping ? 'Stopping…' : 'Stop YouTube Live'}
-                    onClick={() => { setMoreOpen(false); onStopLive(); }}
-                  />
-                )}
-                {isHost && onEndMeeting && (
-                  <MenuItem
-                    label="End meeting for all"
-                    danger
-                    onClick={() => { setMoreOpen(false); onEndMeeting(); }}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  {isModerator && onMuteAll && (
+                    <MenuItem label="Mute all" onClick={() => { setMoreOpen(false); onMuteAll(); }} />
+                  )}
+                  {isHost && onToggleLock && (
+                    <MenuItem
+                      label={isLocked ? 'Unlock meeting' : 'Lock meeting'}
+                      onClick={() => { setMoreOpen(false); onToggleLock(); }}
+                    />
+                  )}
+                  {isHost && onToggleWaitingRoom && (
+                    <MenuItem
+                      label={waitingRoomEnabled ? 'Waiting room on' : 'Waiting room off'}
+                      onClick={() => { setMoreOpen(false); onToggleWaitingRoom(); }}
+                    />
+                  )}
+                  {isHost && onToggleParticipantScreenShare && (
+                    <MenuItem
+                      label={
+                        participantScreenShareEnabled
+                          ? 'Participant sharing on'
+                          : 'Participant sharing off'
+                      }
+                      onClick={() => { setMoreOpen(false); onToggleParticipantScreenShare(); }}
+                    />
+                  )}
+                  {canManageBroadcast && !isLiveStream && onGoLive && (
+                    <MenuItem label="Start YouTube Live" onClick={() => { setMoreOpen(false); onGoLive(); }} />
+                  )}
+                  {canManageBroadcast && isLiveStream && onStopLive && (
+                    <MenuItem
+                      label={streamStopping ? 'Stopping…' : 'Stop YouTube Live'}
+                      onClick={() => { setMoreOpen(false); onStopLive(); }}
+                    />
+                  )}
+                  {isHost && onEndMeeting && (
+                    <MenuItem
+                      label="End meeting for all"
+                      danger
+                      onClick={() => { setMoreOpen(false); onEndMeeting(); }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        <div className="mx-1 h-8 w-px shrink-0 bg-white/20" />
+          <div className="mx-1 h-8 w-px shrink-0 bg-white/20" />
 
-        <ControlButton icon={LogOut} label="Leave meeting" danger onClick={onLeave} />
+          <ControlButton icon={LogOut} label="Leave meeting" danger onClick={onLeave} />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+);
 
 function MenuItem({
   label,

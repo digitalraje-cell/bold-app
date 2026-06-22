@@ -32,6 +32,7 @@ import {
 import { useMeetingDuration } from '@/hooks/useMeetingDuration';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useYouTubeLiveStream } from '@/hooks/useYouTubeLiveStream';
+import { useElementHeight } from '@/hooks/useElementHeight';
 import { isYouTubeLiveEnabled } from '@/lib/features';
 import { api } from '@/lib/api';
 import { readGuestJoinSession } from '@/lib/meeting-join';
@@ -69,6 +70,8 @@ function MeetingRoomInner({
   const { data: session } = useSession();
   const { can } = usePermissions();
   const containerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const controlsHeight = useElementHeight(controlsRef);
   const { isFullscreen, toggleFullscreen } = useMeetingFullscreen();
 
   const [activePanel, setActivePanel] = useState<'chat' | 'participants' | null>(null);
@@ -599,6 +602,7 @@ function MeetingRoomInner({
           chatEnabled={chatEnabled}
           canSend={canChat}
           isHost={isModerator}
+          controlsHeight={controlsHeight}
           onClose={() => setActivePanel(null)}
           onChatModeChange={isModerator ? (mode) => updateChatMode(mode) : undefined}
           onSend={(content) =>
@@ -645,6 +649,7 @@ function MeetingRoomInner({
       </div>
 
       <ControlsBar
+        ref={controlsRef}
         isMuted={isAudioMuted}
         isVideoOff={isVideoMuted}
         isFullscreen={isFullscreen}
