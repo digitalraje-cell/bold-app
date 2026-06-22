@@ -11,6 +11,7 @@ import {
   LifeBuoy,
   Settings2,
 } from 'lucide-react';
+import { isPlatformAdmin } from '@boldmeet/shared';
 import { cardClass, navLinkClass, ui } from '@/lib/ui';
 
 const baseNav = [
@@ -24,7 +25,7 @@ const baseNav = [
 export function SettingsNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = isPlatformAdmin(session?.user?.role);
 
   const nav = isAdmin
     ? [...baseNav, { href: '/settings/admin', label: 'Admin', icon: Settings2 }]

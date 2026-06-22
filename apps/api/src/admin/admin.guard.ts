@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { isPlatformAdmin } from '@boldmeet/shared';
 import { Request } from 'express';
 import { AuthUser } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,7 +26,7 @@ export class AdminGuard implements CanActivate {
       select: { role: true },
     });
 
-    if (user?.role !== UserRole.ADMIN) {
+    if (!isPlatformAdmin(user?.role ?? '')) {
       throw new ForbiddenException('Admin access required');
     }
 

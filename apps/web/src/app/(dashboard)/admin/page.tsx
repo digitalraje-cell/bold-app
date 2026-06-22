@@ -27,8 +27,9 @@ export default function AdminOverviewPage() {
         const data = (await api.pwa.adminStats()) as PwaAdminStats;
         setStats(data);
         setError(null);
-      } catch {
-        setError('Unable to load admin analytics.');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to load admin analytics.';
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -55,6 +56,11 @@ export default function AdminOverviewPage() {
       {error && (
         <p className="mb-6 rounded-[var(--radius-md)] border border-border bg-[var(--badge-bg)] px-4 py-3 text-sm">
           {error}
+          {error.includes('Admin') && (
+            <span className="mt-2 block text-muted-foreground">
+              Sign out and sign back in after your role is updated to Admin or Super Admin.
+            </span>
+          )}
         </p>
       )}
 

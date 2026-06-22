@@ -1,3 +1,4 @@
+import { isPlatformAdmin } from '@boldmeet/shared';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { AdminSettings } from '@/components/settings/AdminSettings';
@@ -15,7 +16,7 @@ export default async function AdminSettingsPage() {
     select: { role: true },
   });
 
-  if (user?.role !== 'ADMIN') {
+  if (!isPlatformAdmin(user?.role)) {
     redirect('/settings/account');
   }
 
