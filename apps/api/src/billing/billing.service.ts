@@ -146,7 +146,7 @@ export class BillingService {
 
     const link = await this.createRazorpayPaymentLink({
       amountInr,
-      description: 'BoldMeet Pro — Early Founder Pricing (₹299/month)',
+      description: 'Bold Pro — Early Founder Pricing (₹299/month)',
       customer: {
         name: user.name || user.email.split('@')[0],
         email: user.email,

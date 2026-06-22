@@ -64,7 +64,7 @@ export default function UpgradePage() {
           <Sparkles className="h-6 w-6" />
         </div>
 
-        <h2 className="text-xl font-bold">BoldMeet Pro</h2>
+        <h2 className="text-xl font-bold">Bold Pro</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Pricing may increase after the founder launch period.
         </p>

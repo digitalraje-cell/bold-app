@@ -81,7 +81,7 @@ export function MeetingPreferencesSettings() {
             />
             <Toggle
               label="Dark mode"
-              description="Use dark theme across BoldMeet"
+              description="Use dark theme across Bold"
               checked={meeting.darkMode}
               onChange={(checked) => updateMeeting({ darkMode: checked })}
             />
@@ -95,7 +95,7 @@ export function MeetingPreferencesSettings() {
           <div className="space-y-4">
             <Toggle
               label="Allow guest attendees"
-              description="Guests can join without a BoldMeet account"
+              description="Guests can join without a Bold account"
               checked={host.allowGuestAttendees}
               onChange={(checked) => updateHost({ allowGuestAttendees: checked })}
             />

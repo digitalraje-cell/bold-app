@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { ThumbsUp, Loader2 } from 'lucide-react';
+import { ThumbsUp, Loader2, Check, Clock, Sparkles } from 'lucide-react';
 import {
   ROADMAP_AVAILABLE_NOW,
   ROADMAP_COMING_SOON,
@@ -12,6 +12,7 @@ import {
   PLAN_PRICING_INR,
 } from '@boldmeet/shared';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { PageCta } from '@/components/marketing/PageCta';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { badgeClass, cardClass, ui } from '@/lib/ui';
@@ -23,6 +24,82 @@ type VoteRow = {
   voteCount: number;
   voted: boolean;
 };
+
+const NOW_FEATURES = [
+  ...ROADMAP_AVAILABLE_NOW,
+  'YouTube Live Streaming',
+  'Co-hosts',
+  'Waiting Room',
+  'Host Controls',
+] as const;
+
+const NEXT_FEATURES = ROADMAP_COMING_SOON.slice(0, 3);
+const LATER_FEATURES = ROADMAP_COMING_SOON.slice(3);
+
+function PhaseHeader({
+  label,
+  title,
+  description,
+  icon: Icon,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="mb-10">
+      <div className="flex items-center gap-3">
+        <div className={ui.iconWell}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <span className={badgeClass('text-[10px] uppercase')}>{label}</span>
+      </div>
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
+      <p className="mt-3 max-w-xl text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function FeatureCard({
+  title,
+  proIncluded,
+  status,
+}: {
+  title: string;
+  proIncluded?: boolean;
+  status: 'live' | 'building' | 'planned';
+}) {
+  const statusLabel = { live: 'Live', building: 'In progress', planned: 'Planned' } as const;
+
+  return (
+    <li
+      className={cn(
+        cardClass({ bordered: true }),
+        'flex items-center justify-between gap-4 px-5 py-4',
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className={cn(
+            'h-2 w-2 shrink-0 rounded-full',
+            status === 'live'
+              ? 'bg-foreground'
+              : status === 'building'
+                ? 'bg-foreground/50'
+                : 'bg-border',
+          )}
+          aria-hidden
+        />
+        <span className="font-medium">{title}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {proIncluded && <span className={badgeClass('text-[10px] uppercase')}>Pro</span>}
+        <span className="text-xs font-medium text-muted-foreground">{statusLabel[status]}</span>
+      </div>
+    </li>
+  );
+}
 
 export function RoadmapContent() {
   const { status } = useSession();
@@ -36,13 +113,14 @@ export function RoadmapContent() {
       const data = (await api.roadmap.votes(status === 'authenticated')) as VoteRow[];
       setVotes(data);
     } catch {
-      const fallback = ROADMAP_VOTABLE_FEATURES.map((f) => ({
-        key: f.key,
-        title: f.title,
-        voteCount: 0,
-        voted: false,
-      }));
-      setVotes(fallback);
+      setVotes(
+        ROADMAP_VOTABLE_FEATURES.map((f) => ({
+          key: f.key,
+          title: f.title,
+          voteCount: 0,
+          voted: false,
+        })),
+      );
     } finally {
       setLoading(false);
     }
@@ -57,14 +135,10 @@ export function RoadmapContent() {
       window.location.href = `/login?callbackUrl=${encodeURIComponent('/roadmap')}`;
       return;
     }
-
     setVotingKey(featureKey);
     try {
-      if (currentlyVoted) {
-        await api.roadmap.removeVote(featureKey);
-      } else {
-        await api.roadmap.vote(featureKey);
-      }
+      if (currentlyVoted) await api.roadmap.removeVote(featureKey);
+      else await api.roadmap.vote(featureKey);
       await loadVotes();
     } finally {
       setVotingKey(null);
@@ -72,44 +146,100 @@ export function RoadmapContent() {
   }
 
   const voteByKey = Object.fromEntries(votes.map((v) => [v.key, v]));
+  const sortedFeatures = [...ROADMAP_VOTABLE_FEATURES].sort((a, b) => {
+    const countA = voteByKey[a.key]?.voteCount ?? 0;
+    const countB = voteByKey[b.key]?.voteCount ?? 0;
+    return countB - countA;
+  });
 
   return (
     <div className="flex min-h-full flex-col">
       <MarketingHeader active="roadmap" />
 
       <main className="flex-1">
-        <section className="border-b border-border px-6 py-20 sm:py-28">
+        <section className="border-b border-border/60 bg-[var(--badge-bg)]/30 px-6 py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <p className={ui.eyebrow}>Product roadmap</p>
-            <h1 className="mt-6 text-3xl font-semibold tracking-tight sm:text-5xl">Built in public</h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              See what&apos;s live today, what&apos;s shipping next, and vote for the features you
-              need most.
+            <h1 className="mt-6 text-3xl font-semibold tracking-tight sm:text-5xl">
+              Now, next, and later
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              We ship in public. See what&apos;s live today, what we&apos;re building next, and vote
+              on what matters most to you.
             </p>
           </div>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <RoadmapSection title="Available now" items={[...ROADMAP_AVAILABLE_NOW]} status="live" />
-            <ComingSoonSection />
+        <section className="px-6 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl space-y-20">
+            <div>
+              <PhaseHeader
+                label="Now"
+                title="Available today"
+                description="Core meeting features you can use right now — no install, no waiting."
+                icon={Check}
+              />
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {NOW_FEATURES.map((title) => (
+                  <FeatureCard key={title} title={title} status="live" />
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-border/60 pt-20">
+              <PhaseHeader
+                label="Next"
+                title="Actively building"
+                description="In development now — these ship before the rest of the backlog."
+                icon={Clock}
+              />
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {NEXT_FEATURES.map((item) => (
+                  <FeatureCard
+                    key={item.title}
+                    title={item.title}
+                    proIncluded={item.proIncluded}
+                    status="building"
+                  />
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-border/60 pt-20">
+              <PhaseHeader
+                label="Later"
+                title="On the horizon"
+                description="Planned features we're designing and scoping for future releases."
+                icon={Sparkles}
+              />
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {LATER_FEATURES.map((item) => (
+                  <FeatureCard
+                    key={item.title}
+                    title={item.title}
+                    proIncluded={item.proIncluded}
+                    status="planned"
+                  />
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
-        <section className="border-t border-border px-6 py-20">
+        <section className="border-t border-border/60 bg-[var(--badge-bg)]/30 px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <h2 className="text-2xl font-semibold tracking-tight">Vote for what we build next</h2>
-            <p className="mt-2 text-muted-foreground">
-              Sign in to vote once per feature. Your vote helps us prioritise the roadmap.
+            <h2 className={ui.sectionTitle}>Vote for what we build next</h2>
+            <p className={cn(ui.sectionSubtitle, 'max-w-2xl')}>
+              Sign in to vote once per feature. Your vote directly shapes our priorities.
             </p>
 
             {loading ? (
-              <div className="mt-12 flex justify-center">
+              <div className="mt-16 flex justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {ROADMAP_VOTABLE_FEATURES.map((feature) => {
+              <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {sortedFeatures.map((feature, index) => {
                   const row = voteByKey[feature.key];
                   const count = row?.voteCount ?? 0;
                   const voted = row?.voted ?? false;
@@ -117,25 +247,43 @@ export function RoadmapContent() {
                   return (
                     <div
                       key={feature.key}
-                      className={cn(cardClass({ bordered: true }), 'p-6')}
-                    >
-                      <h3 className="font-semibold">{feature.title}</h3>
-                      {feature.proIncluded && (
-                        <span className={cn(badgeClass(), 'mt-3')}>Included in Pro</span>
+                      className={cn(
+                        cardClass({ interactive: true }),
+                        'relative flex flex-col p-7',
+                        voted && 'ring-1 ring-foreground/10',
                       )}
-                      <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
-                      <p className="mt-4 text-sm font-medium text-muted-foreground">
-                        {count} user{count === 1 ? '' : 's'} requested this feature
+                    >
+                      {index === 0 && count > 0 && (
+                        <span className="absolute right-5 top-5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Top voted
+                        </span>
+                      )}
+                      <div className="flex flex-wrap items-start justify-between gap-2 pr-16">
+                        <h3 className="font-semibold leading-snug">{feature.title}</h3>
+                        {feature.proIncluded && (
+                          <span className={badgeClass('text-[10px] uppercase')}>Pro</span>
+                        )}
+                      </div>
+                      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                        {feature.description}
                       </p>
-                      <Button
-                        variant={voted ? 'secondary' : 'primary'}
-                        className="mt-5 w-full"
-                        loading={votingKey === feature.key}
-                        onClick={() => void toggleVote(feature.key, voted)}
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                        {voted ? 'Voted' : 'Vote for this'}
-                      </Button>
+                      <div className="mt-6 flex items-center justify-between gap-4 border-t border-border/60 pt-5">
+                        <p className="text-sm font-semibold tabular-nums">
+                          {count}
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            vote{count === 1 ? '' : 's'}
+                          </span>
+                        </p>
+                        <Button
+                          variant={voted ? 'secondary' : 'primary'}
+                          size="sm"
+                          loading={votingKey === feature.key}
+                          onClick={() => void toggleVote(feature.key, voted)}
+                        >
+                          <ThumbsUp className={cn('h-4 w-4', voted && 'fill-current')} />
+                          {voted ? 'Voted' : 'Vote'}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -144,27 +292,21 @@ export function RoadmapContent() {
           </div>
         </section>
 
-        <section className="border-t border-border px-6 py-20">
-          <div className="mx-auto max-w-3xl text-center">
+        <section className="border-t border-border/60 px-6 py-16 sm:py-20">
+          <div className={cn(cardClass(), 'mx-auto max-w-3xl p-10 text-center sm:p-12')}>
             <span className={badgeClass()}>
               Early Founder Pricing — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
             </span>
             <h2 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Upgrade to Pro
+              Get early access to what we ship
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Pricing may increase after the founder launch period. Pro members get priority access,
-              early releases, YouTube recording, co-host support, and advanced attendee management.
+            <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
+              Pro members get priority access to new features, YouTube recording, co-hosts, and
+              advanced attendee management.
             </p>
-            <ul className="mx-auto mt-8 max-w-md space-y-2 text-left text-sm text-muted-foreground">
-              <li>✓ Priority feature access</li>
-              <li>✓ Early access to new releases</li>
-              <li>✓ YouTube recording &amp; co-hosts</li>
-              <li>✓ Advanced attendee management</li>
-            </ul>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/billing/upgrade">
-                <Button size="lg">Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
+                <Button size="lg">Upgrade — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
               </Link>
               <Link href="/login">
                 <Button size="lg" variant="secondary">
@@ -174,72 +316,11 @@ export function RoadmapContent() {
             </div>
           </div>
         </section>
+
+        <PageCta title="Start your first meeting" />
       </main>
 
       <MarketingFooter />
-    </div>
-  );
-}
-
-function ComingSoonSection() {
-  return (
-    <div className="mb-12">
-      <div className="mb-6 flex items-center gap-3">
-        <h2 className="text-xl font-semibold">Coming soon</h2>
-        <span className={badgeClass('text-[10px] uppercase')}>On the roadmap</span>
-      </div>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ROADMAP_COMING_SOON.map((item) => (
-          <li
-            key={item.title}
-            className={cn(
-              cardClass({ bordered: true }),
-              'flex flex-wrap items-center gap-2 px-4 py-3 text-sm',
-            )}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
-            <span className="font-medium">{item.title}</span>
-            {item.proIncluded && (
-              <span className={badgeClass('text-[10px] uppercase')}>Included in Pro</span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function RoadmapSection({
-  title,
-  items,
-  status,
-}: {
-  title: string;
-  items: string[];
-  status: 'live' | 'soon' | 'future';
-}) {
-  return (
-    <div className="mb-12">
-      <div className="mb-6 flex items-center gap-3">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <span className={badgeClass('text-[10px] uppercase')}>
-          {status === 'live' ? 'Live' : status === 'soon' ? 'Q3 2026' : 'Q4 2026'}
-        </span>
-      </div>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <li
-            key={item}
-            className={cn(
-              cardClass({ bordered: true }),
-              'flex items-center gap-2 px-4 py-3 text-sm',
-            )}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full bg-foreground/30" />
-            {item}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

@@ -2,11 +2,12 @@
  * Canonical founder profiles — sourced from AuthorityNova production content.
  *
  * Source of truth (update there first, then sync here):
- *   Authoritynova/authoritynova-app/authoritynova-app/frontend/src/lib/aboutContent.js
- *   Authoritynova/authoritynova-app/authoritynova-app/frontend/public/img/founders/
+ *   https://www.authoritynova.com/about
+ *   authoritynova-app/frontend/src/lib/aboutContent.js
+ *   authoritynova-app/frontend/public/img/founders/
  *
  * Architecture:
- *   AuthorityNova aboutContent.js → @boldmeet/shared founders → BoldMeet About page
+ *   AuthorityNova aboutContent.js → @boldmeet/shared founders → Bold About page
  */
 
 export const FOUNDER_CONTENT_SOURCE = {
@@ -15,7 +16,8 @@ export const FOUNDER_CONTENT_SOURCE = {
     'authoritynova-app/authoritynova-app/frontend/src/lib/aboutContent.js',
   assetsPath:
     'authoritynova-app/authoritynova-app/frontend/public/img/founders/',
-  lastSynced: '2025-06-22',
+  lastSynced: '2026-06-22',
+  sourceUrl: 'https://www.authoritynova.com/about',
 } as const;
 
 export interface FounderSocialLinks {
@@ -39,34 +41,64 @@ export interface FounderProfile {
   social: FounderSocialLinks;
 }
 
-/** BoldMeet-specific roles; bios adapted from AuthorityNova ABOUT_LEADERS. */
-export const BOLDMEET_FOUNDERS: FounderProfile[] = [
+/** Bold-specific roles and bios adapted from AuthorityNova Executive Team. */
+export const BOLD_FOUNDERS: FounderProfile[] = [
+  {
+    id: 'ayush-prajapati',
+    name: 'Ayush Prajapati',
+    role: 'Founder & CEO',
+    photo: '/founders/ayush-prajapati.jpg',
+    photoWebp: '/founders/ayush-prajapati.webp',
+    photoFocus: 'center 42%',
+    bio: [
+      'Ayush Prajapati is the Founder & CEO of Bold, leading the company\'s vision, growth strategy, customer acquisition, product positioning, and market expansion.',
+      'Driven by a passion for helping professionals connect through technology, Ayush focuses on creating scalable systems that help founders, coaches, consultants, agencies, and teams host meetings, webinars, and virtual events with confidence.',
+      'Under his leadership, Bold is building the next generation of browser-based communication infrastructure that enables professionals to meet, collaborate, and grow without friction or unnecessary complexity.',
+    ],
+    focusLabel: 'Focus areas',
+    focus: [
+      'Business Growth',
+      'Go-To-Market Strategy',
+      'Founder Branding',
+      'Product Positioning',
+      'Customer Acquisition',
+      'Strategic Partnerships',
+      'Webinar & Events Marketing',
+      'Community Building',
+    ],
+    quote:
+      'Trust isn\'t built by adding more tools. It\'s built by creating systems that compound reliability over time.',
+    social: {
+      linkedin: 'https://www.linkedin.com/in/ayushprajapatiofficial/',
+      x: 'https://x.com/Ayushpromax',
+    },
+  },
   {
     id: 'sambhav-kumar',
     name: 'Dr. Sambhav Kumar',
-    role: 'Founder & CEO',
+    role: 'Co-Founder & CTO',
     photo: '/founders/sambhav-kumar.png',
     photoFocus: 'center 38%',
     bio: [
-      'Dr. Sambhav Kumar is the Founder & CEO of BoldMeet and the technology architect behind the platform\'s meeting, webinar, and virtual events infrastructure.',
+      'Dr. Sambhav Kumar is the Co-Founder & CTO of Bold and the technology architect behind the platform\'s meeting, webinar, and virtual events engine.',
       'With more than 21 years of experience in software engineering, enterprise architecture, digital transformation, automation systems, and product innovation, he has spent his career building scalable technology solutions that solve complex business challenges.',
       'After years of studying how professionals connect, collaborate, and grow online, he recognized a recurring problem: most teams struggle with fragmented, expensive, or unreliable video tools — not because they lack ambition, but because they lack a unified platform built for modern work.',
-      'That insight became the foundation of BoldMeet.',
-      'Today, he leads platform architecture, product engineering, security infrastructure, and innovation initiatives that power the BoldMeet ecosystem.',
+      'That insight became the foundation of Bold.',
+      'Today, he leads platform architecture, real-time communication systems, security infrastructure, and product engineering initiatives that power the Bold ecosystem.',
     ],
     focusLabel: 'Areas of expertise',
     focus: [
+      'Artificial Intelligence & Automation',
       'Enterprise Software Architecture',
-      'Video & Real-Time Communication',
+      'Real-Time Communication Systems',
       'Product Innovation',
+      'Virtual Events Technology',
+      'Meeting Infrastructure',
       'Workflow Automation',
       'Digital Transformation',
-      'Secure Cloud Infrastructure',
-      'AI-Powered Productivity',
-      'Virtual Events Technology',
     ],
     quote:
-      'Professional communication should be reliable, accessible, and engineered for scale — not held back by fragmented tools.',
+      'Professional communication should be engineered through systems, amplified through technology, and sustained through reliable infrastructure.',
     social: {
       linkedin: 'https://www.linkedin.com/in/thesambhavkumar/',
       x: 'https://x.com/thesambhavkumar',
@@ -74,51 +106,25 @@ export const BOLDMEET_FOUNDERS: FounderProfile[] = [
       website: 'https://robozant.com',
     },
   },
-  {
-    id: 'ayush-prajapati',
-    name: 'Ayush Prajapati',
-    role: 'Co-Founder & Chief Growth Officer',
-    photo: '/founders/ayush-prajapati.jpg',
-    photoWebp: '/founders/ayush-prajapati.webp',
-    photoFocus: 'center 42%',
-    bio: [
-      'Ayush Prajapati is the Co-Founder & Chief Growth Officer of BoldMeet, leading growth strategy, customer acquisition, product positioning, and market expansion.',
-      'Driven by a passion for helping businesses and creators connect through technology, Ayush focuses on building scalable go-to-market systems that help coaches, consultants, educators, agencies, and teams adopt BoldMeet with confidence.',
-      'Under his leadership, BoldMeet is expanding as an affordable, professional communication platform — combining meetings, webinars, registrations, and collaboration into one seamless experience.',
-    ],
-    focusLabel: 'Focus areas',
-    focus: [
-      'Business Growth',
-      'Go-To-Market Strategy',
-      'Customer Acquisition',
-      'Product Positioning',
-      'Strategic Partnerships',
-      'Founder & Team Branding',
-      'Webinar & Events Marketing',
-      'Community Building',
-    ],
-    quote:
-      'Great products win when they remove friction — BoldMeet helps professionals show up, connect, and grow without limits.',
-    social: {
-      linkedin: 'https://www.linkedin.com/in/ayushprajapatiofficial/',
-      x: 'https://x.com/Ayushpromax',
-    },
-  },
 ];
 
-export const BOLDMEET_ABOUT_CONTENT = {
+/** @deprecated use BOLD_FOUNDERS */
+export const BOLDMEET_FOUNDERS = BOLD_FOUNDERS;
+
+export const BOLD_ABOUT_CONTENT = {
   hero: {
-    eyebrow: 'About BoldMeet',
-    title: 'About BoldMeet',
+    eyebrow: 'About Bold',
+    title: 'About Bold',
     subtitle:
-      'BoldMeet is a modern video conferencing, webinar and virtual events platform built to help businesses, coaches, consultants, educators, agencies and teams connect without limits.',
+      'Bold is a modern video conferencing, webinar and virtual events platform built to help businesses, coaches, consultants, educators, agencies and teams connect without limits.',
   },
   story: {
-    title: 'Why We Built BoldMeet',
+    title: 'Why We Built Bold',
     paragraphs: [
       'Most video conferencing tools are either expensive, complicated, fragmented or lack the flexibility needed by modern businesses.',
-      'BoldMeet was built to provide a reliable, scalable and affordable communication platform that combines meetings, webinars, registrations, collaboration and future AI-powered productivity features into one seamless experience.',
-      'Whether you\'re hosting a team meeting, coaching session, webinar, classroom or virtual event, BoldMeet helps you connect confidently.',
+      'Bold was built to provide a reliable, scalable and affordable communication platform that combines meetings, webinars, registrations, collaboration and future AI-powered productivity features into one seamless experience.',
+      'Founded by Ayush Prajapati and Dr. Sambhav Kumar, Bold combines entrepreneurial vision, growth strategy, and more than two decades of technology leadership to help professionals connect confidently.',
+      'Whether you\'re hosting a team meeting, coaching session, webinar, classroom or virtual event, Bold helps you show up without compromise.',
     ],
   },
   mission: {
@@ -129,35 +135,6 @@ export const BOLDMEET_ABOUT_CONTENT = {
     title: 'Our Vision',
     body: 'To become the most trusted all-in-one platform for meetings, webinars, collaboration and AI-powered communication.',
   },
-  differentiators: [
-    'HD Video Meetings',
-    'Webinar Registration',
-    'Attendee Management',
-    'Screen Sharing',
-    'Chat & Collaboration',
-    'Meeting Analytics',
-    'Secure Infrastructure',
-    'Future AI Features',
-    'Mobile & PWA Ready',
-  ],
-  values: [
-    { title: 'Customer First', body: 'Every decision starts with how it helps our users connect and succeed.' },
-    { title: 'Innovation', body: 'We continuously improve with modern technology and thoughtful product design.' },
-    { title: 'Simplicity', body: 'Powerful features should feel effortless — no steep learning curves required.' },
-    { title: 'Reliability', body: 'Meetings matter. We build for uptime, clarity, and consistent performance.' },
-    { title: 'Privacy & Security', body: 'Your conversations and data deserve enterprise-grade protection.' },
-    { title: 'Continuous Improvement', body: 'We ship, listen, and iterate based on real user feedback.' },
-  ],
-  roadmap: [
-    'AI Meeting Assistant',
-    'Meeting Summaries',
-    'AI Transcriptions',
-    'Meeting Recordings',
-    'Webinar Automation',
-    'Team Collaboration',
-    'Mobile Apps',
-    'Enterprise Features',
-  ],
   audiences: [
     {
       id: 'coaches',
@@ -180,9 +157,35 @@ export const BOLDMEET_ABOUT_CONTENT = {
       body: 'Daily standups, all-hands, and cross-border collaboration — with host controls, waiting rooms, and the reliability modern teams expect.',
     },
   ],
+  browserFirst: {
+    title: 'Why Browser First',
+    subtitle: 'No downloads. No friction. Just open a link and meet.',
+    paragraphs: [
+      'Bold runs entirely in your browser — the same way the best modern products should. No installers, no IT tickets, no device-specific apps that break on update day.',
+      'Guests join with a link. Hosts sign in with email. Everyone gets HD video, chat, and controls without leaving the tab they already trust.',
+    ],
+    points: [
+      'Instant join for guests — no account required',
+      'Works on Mac, Windows, Chromebook, and mobile browsers',
+      'Always on the latest version — no manual updates',
+      'Lighter than native apps, faster to start',
+    ],
+  },
+  futureVision: {
+    title: 'Future Vision',
+    body: 'We are building toward the most trusted all-in-one platform for meetings, webinars, collaboration, and AI-powered communication — accessible to solo creators and global teams alike.',
+    highlights: [
+      'AI Meeting Assistant',
+      'Meeting Summaries & Transcriptions',
+      'Webinar Automation',
+      'Enterprise-grade security & scale',
+    ],
+  },
   cta: {
     title: 'Ready to Meet Smarter?',
-    subtitle:
-      'Start hosting meetings, webinars and virtual events with BoldMeet today.',
+    subtitle: 'Start hosting meetings, webinars and virtual events with Bold today.',
   },
 } as const;
+
+/** @deprecated use BOLD_ABOUT_CONTENT */
+export const BOLDMEET_ABOUT_CONTENT = BOLD_ABOUT_CONTENT;

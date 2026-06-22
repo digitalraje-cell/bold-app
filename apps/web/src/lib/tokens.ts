@@ -1,5 +1,5 @@
 /**
- * BoldMeet V3 Design Tokens
+ * Bold V3 Design Tokens
  * Nixtio-inspired: warm cream, soft UI, pill CTAs, monochrome.
  */
 export const tokens = {

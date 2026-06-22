@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ─── BoldMeet V3 — Nixtio-inspired soft UI ─────────────────────────────── */
+/* ─── Bold V3 — Nixtio-inspired soft UI ─────────────────────────────── */
 :root {
   /* Warm cream surfaces (Nixtio-style) */
   --background: #faf8f5;
@@ -186,4 +186,104 @@ body {
 
 .animate-v3-fade-up {
   animation: v3-fade-up 0.45s ease-out both;
+}
+
+/* ─── Legal documents (no typography plugin — custom Apple-style prose) ─── */
+.legal-document {
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.75;
+  font-weight: 500;
+}
+
+.legal-document h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.legal-document h2,
+.legal-section h2 {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  color: var(--foreground);
+}
+
+.legal-document h2:first-child,
+.legal-section:first-child h2 {
+  margin-top: 0;
+}
+
+.legal-document h3,
+.legal-section h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+.legal-lead {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--foreground) !important;
+}
+
+.legal-document p,
+.legal-section p {
+  margin-top: 1rem;
+  margin-bottom: 0;
+  color: var(--muted-foreground);
+}
+
+.legal-document ul,
+.legal-section ul {
+  margin-top: 1rem;
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.legal-document li,
+.legal-section li {
+  margin-top: 0.5rem;
+  color: var(--muted-foreground);
+}
+
+.legal-document li::marker {
+  color: var(--foreground);
+}
+
+.legal-document a,
+.legal-section a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.legal-document a:hover,
+.legal-section a:hover {
+  opacity: 0.8;
+}
+
+.legal-document strong,
+.legal-section strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.legal-document hr {
+  margin: 2.5rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.legal-document-body > .legal-section + .legal-section {
+  margin-top: 0;
 }

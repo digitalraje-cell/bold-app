@@ -48,7 +48,7 @@ export class YoutubeService {
       message: account
         ? 'YouTube channel connected.'
         : this.isOAuthConfigured()
-          ? 'Connect your YouTube channel to stream BoldMeet meetings live.'
+          ? 'Connect your YouTube channel to stream Bold meetings live.'
           : 'Add YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, and YOUTUBE_REDIRECT_URI to enable OAuth.',
     };
   }
@@ -208,7 +208,7 @@ export class YoutubeService {
         'Host starts meeting and clicks Start YouTube Live',
         'Bold creates RTMP ingest session and relays display capture',
         'watchUrl saved on youtube_streams when live',
-        'Host stops stream from BoldMeet; session marked ENDED',
+        'Host stops stream from Bold; session marked ENDED',
       ],
     };
   }
