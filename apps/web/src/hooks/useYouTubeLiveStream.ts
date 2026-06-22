@@ -13,6 +13,7 @@ import { MeetingBroadcastProviderType } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { getSocketOrigin } from '@/lib/api-base';
 import { isYouTubeLiveEnabled } from '@/lib/features';
+import { formatYouTubeLiveUserError } from '@/lib/youtube-live-errors';
 
 export type StartLiveStreamParams = {
   provider: MeetingBroadcastProviderType;
@@ -261,8 +262,7 @@ export function useYouTubeLiveStream(meetingId: string) {
         }
       } catch (err) {
         if (!options?.silent) {
-          const message = err instanceof Error ? err.message : 'Failed to stop YouTube Live';
-          setError(message);
+          setError(formatYouTubeLiveUserError(err, 'youtube-live:stop'));
         }
       } finally {
         stoppingRef.current = false;
@@ -292,10 +292,10 @@ export function useYouTubeLiveStream(meetingId: string) {
         return session;
       } catch (err) {
         cleanupCapture();
-        const message = err instanceof Error ? err.message : 'Failed to start YouTube Live';
+        const message = formatYouTubeLiveUserError(err, 'youtube-live:start');
         setError(message);
         setBroadcastStatus('ERROR');
-        throw err;
+        throw new Error(message);
       } finally {
         setStarting(false);
       }
@@ -320,12 +320,14 @@ export function useYouTubeLiveStream(meetingId: string) {
       return session;
     } catch (err) {
       cleanupCapture();
-      const message =
-        err instanceof Error ? err.message : 'Could not resume YouTube Live. Stop and start again.';
+      const message = formatYouTubeLiveUserError(
+        err,
+        'youtube-live:resume',
+      );
       setError(message);
       setBroadcastStatus('ERROR');
       setPendingResume(false);
-      throw err;
+      throw new Error(message);
     } finally {
       setResuming(false);
     }
