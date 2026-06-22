@@ -12,6 +12,8 @@ import { YoutubeModule } from './youtube/youtube.module';
 import { BillingModule } from './billing/billing.module';
 import { AdminModule } from './admin/admin.module';
 import { RoadmapModule } from './roadmap/roadmap.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { PlanInterestModule } from './plan-interest/plan-interest.module';
 
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
@@ -31,6 +33,8 @@ import { PwaModule } from './pwa/pwa.module';
     BillingModule,
     AdminModule,
     RoadmapModule,
+    IntegrationsModule,
+    PlanInterestModule,
     MeetingsModule,
     ParticipantsModule,
     GatewayModule,

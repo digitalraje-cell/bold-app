@@ -32,7 +32,7 @@ export function FullscreenWrapper({ children }: FullscreenWrapperProps) {
             type="button"
             onClick={() => void exitFullscreen()}
             aria-label="Exit fullscreen"
-            className="fixed bottom-24 right-6 z-[60] inline-flex items-center gap-2 rounded-full bg-black/75 px-4 py-2.5 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/90"
+            className="fixed bottom-[calc(var(--meeting-controls-offset,5.5rem)+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-black/75 px-4 py-2.5 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/90 sm:right-6"
           >
             <Minimize2 className="h-4 w-4" />
             Exit Fullscreen

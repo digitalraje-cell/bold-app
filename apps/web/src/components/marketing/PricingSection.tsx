@@ -9,8 +9,12 @@ import {
   FREE_FEATURE_LIST,
   FREE_RESTRICTIONS,
   PRO_FEATURE_LIST,
-  FEATURE_COMPARISON,
+  MAX_FEATURE_LIST,
+  MAX_PLAN_DISPLAY,
+  MAX_FEATURE_COMPARISON_ROWS,
+  isMaxPlanComingSoon,
 } from '@boldmeet/shared';
+import { PlanComparisonTable } from '@/components/ui/PlanComparisonTable';
 import { badgeClass, cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
@@ -22,11 +26,12 @@ export function PricingSection() {
           <p className={ui.eyebrow}>Pricing</p>
           <h2 className={cn('mt-6', ui.sectionTitle, 'sm:text-4xl')}>Simple, transparent pricing</h2>
           <p className={cn(ui.sectionSubtitle, 'sm:text-lg')}>
-            Start free. Upgrade when you need recordings, co-hosts, and YouTube Live streaming.
+            Start free on Pro when you need YouTube Live. Max multi-platform streaming is launching
+            soon.
           </p>
         </div>
 
-        <div className="mt-20 grid gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="mt-20 grid gap-8 lg:grid-cols-3 lg:gap-6">
           <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/login" ctaLabel="Start free" />
           <PlanCard
             plan={SubscriptionPlan.PRO}
@@ -34,6 +39,7 @@ export function PricingSection() {
             ctaLabel="Upgrade to Pro"
             recommended
           />
+          <MaxPlanCard />
         </div>
 
         <div className={cn(cardClass(), 'mt-12 p-8 sm:p-10')}>
@@ -44,8 +50,8 @@ export function PricingSection() {
                 Lock in ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month before prices increase
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Founder launch pricing includes priority access to new features, YouTube recording,
-                co-hosts, and advanced attendee management.
+                Founder launch pricing includes YouTube Live, co-hosts, and webinar tools. Max waitlist
+                members get early access to multi-platform streaming.
               </p>
             </div>
             <Link href="/billing/upgrade" className="shrink-0">
@@ -57,33 +63,18 @@ export function PricingSection() {
         </div>
 
         <div className="mt-16">
-          <h3 className="mb-6 text-center text-lg font-semibold tracking-tight">
-            Compare plans
-          </h3>
-          <div className={cn(cardClass(), 'overflow-x-auto')}>
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-[var(--badge-bg)]">
-                  <th className="px-6 py-4 font-semibold">Feature</th>
-                  <th className="px-6 py-4 font-semibold">Free</th>
-                  <th className="px-6 py-4 font-semibold">Pro</th>
-                </tr>
-              </thead>
-              <tbody>
-                {FEATURE_COMPARISON.map((row) => (
-                  <tr key={row.feature} className="border-b border-border/80 last:border-0">
-                    <td className="px-6 py-4 font-medium">{row.feature}</td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {typeof row.free === 'boolean' ? (row.free ? '✓' : '—') : row.free}
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {typeof row.pro === 'boolean' ? (row.pro ? '✓' : '—') : row.pro}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h3 className="mb-6 text-center text-lg font-semibold tracking-tight">Compare plans</h3>
+          <PlanComparisonTable
+            columns={[
+              { key: 'free', label: 'Free' },
+              { key: 'pro', label: 'Pro' },
+              { key: 'max', label: 'Max' },
+            ]}
+            rows={MAX_FEATURE_COMPARISON_ROWS.map((row) => ({
+              feature: row.feature,
+              values: { free: row.free, pro: row.pro, max: row.max },
+            }))}
+          />
         </div>
       </div>
     </section>
@@ -109,7 +100,7 @@ function PlanCard({
     <div
       className={cn(
         cardClass({ interactive: recommended }),
-        'relative flex flex-col p-9 sm:p-11',
+        'relative flex flex-col p-9 sm:p-10',
         recommended && 'ring-1 ring-foreground/15',
       )}
     >
@@ -155,6 +146,47 @@ function PlanCard({
         )}
       >
         {ctaLabel}
+      </Link>
+    </div>
+  );
+}
+
+function MaxPlanCard() {
+  return (
+    <div
+      className={cn(
+        cardClass(),
+        'relative flex flex-col overflow-hidden border-foreground/10 bg-gradient-to-br from-surface via-surface to-muted/40 p-9 sm:p-10',
+      )}
+    >
+      <span
+        className={cn(
+          badgeClass('absolute right-4 top-4'),
+          'bg-foreground text-background text-[10px]',
+        )}
+      >
+        {MAX_PLAN_DISPLAY.badge}
+      </span>
+      <h3 className="text-xl font-semibold">{MAX_PLAN_DISPLAY.name}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{MAX_PLAN_DISPLAY.tagline}</p>
+      <p className="mt-10 text-3xl font-semibold tracking-tight text-muted-foreground">
+        {isMaxPlanComingSoon() ? 'Coming Soon' : 'Contact us'}
+      </p>
+      <ul className="mt-10 flex-1 space-y-3 text-sm text-muted-foreground">
+        {MAX_FEATURE_LIST.slice(0, 6).map((feature) => (
+          <li key={feature} className="flex gap-3">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+            {feature}
+          </li>
+        ))}
+        <li className="text-xs text-muted-foreground/80">+ more on launch</li>
+      </ul>
+      <p className="mt-4 text-xs text-muted-foreground">{MAX_PLAN_DISPLAY.foundingOffer}</p>
+      <Link
+        href="/max"
+        className="mt-10 block rounded-full border border-foreground/20 bg-foreground px-6 py-3.5 text-center text-sm font-semibold text-background transition hover:opacity-90"
+      >
+        {isMaxPlanComingSoon() ? 'Join Waitlist' : 'Learn more'}
       </Link>
     </div>
   );

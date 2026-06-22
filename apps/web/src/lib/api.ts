@@ -191,6 +191,34 @@ export const api = {
     listPendingPayments: () => apiFetch('/admin/payments/pending'),
     activatePayment: (id: string) =>
       apiFetch(`/admin/payments/${id}/activate`, { method: 'POST' }),
+    listReleases: () => apiFetch('/admin/releases'),
+    createRelease: (data: {
+      version: string;
+      releaseDate: string;
+      releaseNotes: string[];
+      forceUpdate?: boolean;
+    }) =>
+      apiFetch('/admin/releases', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    youtubeStats: () => apiFetch('/admin/youtube/stats'),
+    featureInterestStats: () => apiFetch('/admin/feature-interest/stats'),
+    productAnalytics: () => apiFetch('/admin/product-analytics/stats'),
+  },
+  integrations: {
+    overview: () => apiFetch('/integrations'),
+  },
+  planInterest: {
+    maxStatus: () => apiFetch('/plan-interest/max'),
+    joinMaxWaitlist: (data?: {
+      requestedProviders?: string[];
+      expectedDestinations?: string;
+    }) =>
+      apiFetch('/plan-interest/max', {
+        method: 'POST',
+        body: JSON.stringify(data ?? {}),
+      }),
   },
   pwa: {
     track: (payload: {
@@ -218,8 +246,16 @@ export const api = {
       apiFetch(`/roadmap/votes/${featureKey}`, { method: 'DELETE' }),
   },
   youtube: {
-    status: () => apiFetch('/youtube/status'),
-    connectUrl: () => apiFetch('/youtube/connect'),
+    status: (refresh?: boolean) =>
+      apiFetch(`/youtube/status${refresh ? '?refresh=true' : ''}`),
+    connectUrl: (returnTo?: string) =>
+      apiFetch(
+        `/youtube/connect${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,
+      ),
+    refreshEligibility: (accountId: string) =>
+      apiFetch(`/youtube/accounts/${accountId}/refresh-eligibility`, { method: 'POST' }),
+    disconnectAccount: (accountId: string) =>
+      apiFetch(`/youtube/accounts/${accountId}`, { method: 'DELETE' }),
     disconnect: () => apiFetch('/youtube/disconnect', { method: 'POST' }),
     architecture: () => apiFetch('/youtube/architecture'),
   },
@@ -259,10 +295,10 @@ export const api = {
       meetingId: string,
       data: {
         provider: string;
-        title: string;
-        rtmpUrl?: string;
-        streamKey: string;
-        watchUrl?: string;
+        youtubeAccountIds?: string[];
+        /** @deprecated use youtubeAccountIds */
+        youtubeAccountId?: string;
+        visibility?: 'public' | 'unlisted' | 'private';
       },
     ) =>
       apiFetch(`/meetings/${meetingId}/stream/start`, {
@@ -271,6 +307,8 @@ export const api = {
       }),
     stop: (meetingId: string) =>
       apiFetch(`/meetings/${meetingId}/stream/stop`, { method: 'POST' }),
+    resume: (meetingId: string) =>
+      apiFetch(`/meetings/${meetingId}/stream/resume`, { method: 'POST' }),
   },
   room: {
     get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`, {}, false),

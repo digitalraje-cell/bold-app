@@ -11,6 +11,11 @@ function resolveRewriteApiOrigin(): string {
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@boldmeet/shared'],
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
+    NEXT_PUBLIC_BUILD_TIMESTAMP: process.env.NEXT_PUBLIC_BUILD_TIMESTAMP,
+    NEXT_PUBLIC_BUILD_ID: process.env.NEXT_PUBLIC_BUILD_ID,
+  },
   async rewrites() {
     const apiOrigin = resolveRewriteApiOrigin();
     return {

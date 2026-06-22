@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   ConnectedSocket,
   OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
@@ -18,7 +19,7 @@ import { StreamRelayService } from './stream-relay.service';
   },
   maxHttpBufferSize: 10e6,
 })
-export class StreamIngestGateway implements OnGatewayConnection {
+export class StreamIngestGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(StreamIngestGateway.name);
 
   @WebSocketServer()
@@ -37,7 +38,16 @@ export class StreamIngestGateway implements OnGatewayConnection {
     }
 
     client.data.streamId = streamId;
+    this.relay.setIngestConnected(streamId, true);
     this.logger.log(`[stream-ingest] connected ${streamId}`);
+  }
+
+  handleDisconnect(client: Socket) {
+    const streamId = client.data.streamId as string | undefined;
+    if (streamId) {
+      this.relay.setIngestConnected(streamId, false);
+      this.logger.log(`[stream-ingest] disconnected ${streamId}`);
+    }
   }
 
   @SubscribeMessage('ingest-chunk')

@@ -66,6 +66,8 @@ interface ControlsBarProps {
   onStopLive?: () => void;
   streamStopping?: boolean;
   canManageBroadcast?: boolean;
+  controlsVisible?: boolean;
+  onRevealControls?: () => void;
 }
 
 function ControlButton({
@@ -146,6 +148,8 @@ export function ControlsBar({
   onStopLive,
   streamStopping,
   canManageBroadcast,
+  controlsVisible = true,
+  onRevealControls,
 }: ControlsBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -176,8 +180,18 @@ export function ControlsBar({
     Boolean(isHost && onEndMeeting);
 
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-      <div className="pointer-events-auto meeting-controls-float mx-auto flex max-w-full items-center justify-center gap-1.5 px-2 py-2 sm:max-w-lg sm:gap-2 sm:px-3 sm:py-2.5">
+    <div
+      className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+      style={{ ['--meeting-controls-offset' as string]: '5.5rem' }}
+      onMouseMove={onRevealControls}
+      onTouchStart={onRevealControls}
+    >
+      <div
+        className={cn(
+          'pointer-events-auto meeting-controls-float mx-auto flex max-w-full items-center justify-center gap-1.5 px-2 py-2 sm:max-w-lg sm:gap-2 sm:px-3 sm:py-2.5',
+          !controlsVisible && 'meeting-controls-float--hidden',
+        )}
+      >
         <ControlButton
           icon={isMuted ? MicOff : Mic}
           label={micDisabled ? 'Mic disabled' : isMuted ? 'Unmute' : 'Mute'}
@@ -311,7 +325,7 @@ export function ControlsBar({
                   />
                 )}
                 {canManageBroadcast && !isLiveStream && onGoLive && (
-                  <MenuItem label="Start YouTube Live" onClick={() => { setMoreOpen(false); onGoLive(); }} />
+                  <MenuItem label="Go Live on YouTube" onClick={() => { setMoreOpen(false); onGoLive(); }} />
                 )}
                 {canManageBroadcast && isLiveStream && onStopLive && (
                   <MenuItem

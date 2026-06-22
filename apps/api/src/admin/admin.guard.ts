@@ -26,7 +26,10 @@ export class AdminGuard implements CanActivate {
       select: { role: true, email: true },
     });
 
-    if (!isPlatformAdmin(user?.role ?? '', user?.email)) {
+    const email = user?.email ?? request.user?.email;
+    const role = user?.role ?? '';
+
+    if (!isPlatformAdmin(role, email)) {
       throw new ForbiddenException('Admin access required');
     }
 

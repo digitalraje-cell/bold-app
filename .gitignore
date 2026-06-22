@@ -41,3 +41,7 @@ apps/api/prisma/migrations/**/migration.sql.bak
 
 # Misc
 *.pem
+
+# QA screenshot artifacts (large; keep local only)
+docs/qa-screenshots/
+sidebar-active-screenshots/

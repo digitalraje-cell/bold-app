@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-06-22T10:56:48.166Z",
+  "phase": "technical-pipeline-only",
+  "disclaimer": "This does NOT validate a real YouTube RTMP connection or meeting tab capture.",
+  "checks": {
+    "ffmpeg_available": {
+      "ok": true,
+      "version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    "webm_pipe_to_h264_aac": {
+      "ok": false,
+      "exitCode": 183,
+      "stderr": "[in#0 @ 0x13d613a80] EBML header parsing failed\n[in#0 @ 0x13d613810] Error opening input: Invalid data found when processing input\nError opening input file pipe:0.\nError opening input files: Invalid data found when processing input"
+    }
+  },
+  "production_api": {
+    "url": "https://boldmeetapi-production.up.railway.app/api/health",
+    "note": "FFmpeg presence on Railway not directly verifiable from here; nixpacks.toml includes ffmpeg"
+  },
+  "architecture": {
+    "type": "browser_tab_capture_relay",
+    "capture": "navigator.mediaDevices.getDisplayMedia (host browser)",
+    "browser_encode": "MediaRecorder VP8/Opus WebM @ 2.5Mbps, 1s chunks",
+    "transport": "Socket.IO /stream namespace ingest-chunk",
+    "server_transcode": "ffmpeg webm pipe → libx264 + aac → flv RTMP",
+    "youtube": "rtmp://a.rtmp.youtube.com/live2/{streamKey}",
+    "not_implemented": [
+      "Server-side Jitsi compositor",
+      "Per-participant track mixing",
+      "YouTube Data API broadcast creation",
+      "Stream reconnect after host refresh",
+      "Auto-stop on host leave"
+    ]
+  },
+  "verdict": {
+    "real_youtube_e2e": "NOT_TESTED",
+    "production_ready": "FAIL_FFMPEG_PIPELINE"
+  }
+}

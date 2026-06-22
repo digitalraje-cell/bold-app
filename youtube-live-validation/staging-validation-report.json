@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-06-22T11:15:45.981Z",
+  "stagingWebUrl": "http://localhost:3000",
+  "stagingApiUrl": "http://localhost:4000/api",
+  "betaReady": false,
+  "verdict": "FAIL — manual YouTube e2e test required before Production Beta Ready",
+  "automated": {
+    "pass": 2,
+    "total": 3
+  },
+  "manualPending": 7,
+  "results": [
+    {
+      "id": "api-health",
+      "pass": false,
+      "detail": "TypeError: fetch failed"
+    },
+    {
+      "id": "ffmpeg-nixpacks",
+      "pass": true,
+      "detail": "Verify ffmpeg in nixpacks.toml on deploy image"
+    },
+    {
+      "id": "stream-resume-endpoint",
+      "pass": true,
+      "detail": "Implemented: POST /meetings/:meetingId/stream/resume"
+    },
+    {
+      "id": "rtmp-connect",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "video-host",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "video-participants",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "audio-participants",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "screen-share",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "host-leave-stop",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    },
+    {
+      "id": "screenshots",
+      "pass": null,
+      "detail": "MANUAL — complete during staging test with real YouTube stream key"
+    }
+  ],
+  "manualTestSteps": [
+    "Deploy web + API to staging (do not use production until PASS)",
+    "Create meeting as Pro/Enterprise host",
+    "Open YouTube Studio → Create → Stream key",
+    "In meeting: More → Start YouTube Live → paste key",
+    "Share Bold meeting tab + enable Share tab audio",
+    "Confirm watch URL in modal; Open YouTube + verify live preview",
+    "Join Attendee A and B; speak and share video",
+    "Verify on public YouTube watch URL",
+    "Host leaves meeting; confirm YouTube stream ends",
+    "Capture screenshots to youtube-live-validation/"
+  ]
+}

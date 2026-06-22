@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { generateOtpCode, hashOtpCode } from './crypto';
 import { getOtpExpiryDate, sendOtpEmail } from './email';
 import { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from './otp-constants';
+import { SUPER_ADMIN_EMAIL } from '@boldmeet/shared';
 
 export { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from './otp-constants';
 const MAX_ATTEMPTS = 5;
@@ -142,6 +143,7 @@ export async function verifyAuthOtp(
 
   const now = new Date();
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const isSuperAdminEmail = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
   const user = existing
     ? await prisma.user.update({
@@ -150,6 +152,7 @@ export async function verifyAuthOtp(
           isVerified: true,
           verifiedAt: existing.verifiedAt ?? now,
           emailVerified: now,
+          ...(isSuperAdminEmail ? { role: 'SUPER_ADMIN' } : {}),
         },
         select: {
           id: true,
@@ -167,6 +170,7 @@ export async function verifyAuthOtp(
           isVerified: true,
           verifiedAt: now,
           emailVerified: now,
+          ...(isSuperAdminEmail ? { role: 'SUPER_ADMIN' } : {}),
         },
         select: {
           id: true,

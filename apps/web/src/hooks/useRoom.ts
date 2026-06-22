@@ -169,6 +169,19 @@ export function useRoom(meetingId: string, isHost: boolean) {
       }
     });
 
+    const unsubMedia = on('participant:update', (data: unknown) => {
+      const patch = data as {
+        participantId?: string;
+        isMuted?: boolean;
+        isVideoOff?: boolean;
+      };
+      if (!patch.participantId) return;
+      updateParticipant(patch.participantId, {
+        ...(typeof patch.isMuted === 'boolean' ? { isMuted: patch.isMuted } : {}),
+        ...(typeof patch.isVideoOff === 'boolean' ? { isVideoOff: patch.isVideoOff } : {}),
+      });
+    });
+
     const unsubHandRaise = on('hand:raise', (data: unknown) => {
       const { participantId } = data as { participantId?: string };
       if (participantId) {
@@ -191,6 +204,7 @@ export function useRoom(meetingId: string, isHost: boolean) {
       unsubLeft?.();
       unsubJoined?.();
       unsubRole?.();
+      unsubMedia?.();
       unsubHandRaise?.();
       unsubHandLower?.();
     };

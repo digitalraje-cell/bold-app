@@ -10,6 +10,7 @@ import {
   CreditCard,
   LifeBuoy,
   Settings2,
+  Radio,
 } from 'lucide-react';
 import { isPlatformAdmin } from '@boldmeet/shared';
 import { cardClass, navLinkClass, ui } from '@/lib/ui';
@@ -17,6 +18,7 @@ import { cardClass, navLinkClass, ui } from '@/lib/ui';
 const baseNav = [
   { href: '/settings/profile', label: 'Profile', icon: User },
   { href: '/settings/account', label: 'Account', icon: Shield },
+  { href: '/settings/integrations', label: 'Integrations', icon: Radio },
   { href: '/settings/meeting', label: 'Meeting Preferences', icon: Video },
   { href: '/settings/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings/support', label: 'Support', icon: LifeBuoy },

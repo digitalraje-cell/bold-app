@@ -3,13 +3,13 @@ import { YoutubeService } from './youtube.service';
 import { YoutubeController } from './youtube.controller';
 import { AuthModule } from '../auth/auth.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 
 /**
- * YouTube integration module (prep only).
- * Full live streaming implementation will be added in a later phase.
+ * YouTube integration module — OAuth + Live Broadcast API.
  */
 @Module({
-  imports: [AuthModule, SubscriptionsModule],
+  imports: [AuthModule, SubscriptionsModule, IntegrationsModule],
   controllers: [YoutubeController],
   providers: [YoutubeService],
   exports: [YoutubeService],

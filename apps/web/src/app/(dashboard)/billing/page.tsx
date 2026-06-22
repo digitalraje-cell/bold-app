@@ -9,6 +9,7 @@ import {
   FEATURE_COMPARISON,
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
+import { PlanComparisonTable } from '@/components/ui/PlanComparisonTable';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { cardClass, ui, badgeClass } from '@/lib/ui';
@@ -53,11 +54,6 @@ const FAQ_ITEMS = [
 
 function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatComparisonCell(value: boolean | string): string {
-  if (typeof value === 'boolean') return value ? '✓' : '—';
-  return value;
 }
 
 export default function BillingPage() {
@@ -161,30 +157,17 @@ export default function BillingPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Compare what&apos;s included in each plan.
             </p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[480px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="pb-3 pr-4 font-medium">Feature</th>
-                    <th className="pb-3 pr-4 font-medium">Free</th>
-                    <th className="pb-3 font-medium">Pro</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FEATURE_COMPARISON.map((row) => (
-                    <tr key={row.feature} className="border-b border-border last:border-0">
-                      <td className="py-3 pr-4">{row.feature}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        {formatComparisonCell(row.free)}
-                      </td>
-                      <td className="py-3 text-muted-foreground">
-                        {formatComparisonCell(row.pro)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PlanComparisonTable
+              className="mt-4"
+              columns={[
+                { key: 'free', label: 'Free' },
+                { key: 'pro', label: 'Pro' },
+              ]}
+              rows={FEATURE_COMPARISON.map((row) => ({
+                feature: row.feature,
+                values: { free: row.free, pro: row.pro },
+              }))}
+            />
           </section>
 
           <section className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)] p-6">

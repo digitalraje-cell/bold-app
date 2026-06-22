@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { GatewayModule } from '../gateway/gateway.module';
+import { YoutubeModule } from '../youtube/youtube.module';
 import { StreamController } from './stream.controller';
 import { StreamService } from './stream.service';
 import { StreamRelayService } from './stream-relay.service';
@@ -12,7 +13,7 @@ import {
 } from './stream.providers';
 
 @Module({
-  imports: [AuthModule, SubscriptionsModule, GatewayModule],
+  imports: [AuthModule, SubscriptionsModule, GatewayModule, YoutubeModule],
   controllers: [StreamController],
   providers: [
     StreamService,

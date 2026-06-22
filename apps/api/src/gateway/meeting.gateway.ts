@@ -209,6 +209,36 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     return { success: true };
   }
 
+  @SubscribeMessage('participant:media')
+  async handleParticipantMedia(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: { participantId: string; isMuted?: boolean; isVideoOff?: boolean },
+  ) {
+    const meetingId = client.handshake.query.meetingId as string;
+    if (!meetingId || !data.participantId) return { success: false };
+
+    const patch: { isMuted?: boolean; isVideoOff?: boolean } = {};
+    if (typeof data.isMuted === 'boolean') patch.isMuted = data.isMuted;
+    if (typeof data.isVideoOff === 'boolean') patch.isVideoOff = data.isVideoOff;
+    if (Object.keys(patch).length === 0) return { success: false };
+
+    await this.prisma.participant.updateMany({
+      where: {
+        id: data.participantId,
+        meetingId,
+        status: ParticipantStatus.ADMITTED,
+      },
+      data: patch,
+    });
+
+    this.server.to(meetingId).emit('participant:update', {
+      participantId: data.participantId,
+      ...patch,
+    });
+    return { success: true };
+  }
+
   @SubscribeMessage('settings:update')
   handleSettingsUpdate(
     @ConnectedSocket() client: Socket,
@@ -294,6 +324,14 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   broadcastParticipantRoleChanged(meetingId: string, participantId: string, role: string) {
     this.server.to(meetingId).emit('participant:role-changed', { meetingId, participantId, role });
+  }
+
+  broadcastParticipantUpdate(
+    meetingId: string,
+    participantId: string,
+    patch: { isMuted?: boolean; isVideoOff?: boolean },
+  ) {
+    this.server.to(meetingId).emit('participant:update', { participantId, ...patch });
   }
 
   broadcastWaitingAdmit(meetingId: string, participantId: string) {

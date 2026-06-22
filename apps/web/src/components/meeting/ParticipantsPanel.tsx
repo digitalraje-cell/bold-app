@@ -68,11 +68,17 @@ export function ParticipantsPanel({
   useEffect(() => {
     if (storeParticipants.length > 0) {
       setParticipants((prev) => {
-        const handById = new Map(storeParticipants.map((p) => [p.id, p.handRaised]));
-        return prev.map((p) => ({
-          ...p,
-          handRaised: handById.get(p.id) ?? p.handRaised,
-        }));
+        const storeById = new Map(storeParticipants.map((p) => [p.id, p]));
+        return prev.map((p) => {
+          const live = storeById.get(p.id);
+          if (!live) return p;
+          return {
+            ...p,
+            handRaised: live.handRaised ?? p.handRaised,
+            isMuted: live.isMuted ?? p.isMuted,
+            isVideoOff: live.isVideoOff ?? p.isVideoOff,
+          };
+        });
       });
     }
     void refresh();
@@ -92,7 +98,8 @@ export function ParticipantsPanel({
   };
 
   return (
-    <div className="fixed inset-x-3 top-3 bottom-20 z-40 flex flex-col overflow-hidden meeting-glass-panel rounded-[var(--radius-meeting)] sm:absolute sm:inset-y-3 sm:left-auto sm:right-3 sm:bottom-24 sm:h-auto sm:w-full sm:max-w-sm">
+    <div className="fixed inset-0 z-50 flex flex-col meeting-panel-mobile bg-black/40 sm:absolute sm:inset-y-3 sm:right-3 sm:left-auto sm:bottom-[calc(var(--meeting-controls-offset,5.5rem)+env(safe-area-inset-bottom,0px))] sm:top-3 sm:z-40 sm:h-auto sm:w-full sm:max-w-sm sm:bg-transparent">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden meeting-glass-panel rounded-none sm:rounded-[var(--radius-meeting)]">
       <UpgradeModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
@@ -174,12 +181,20 @@ export function ParticipantsPanel({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-white/40">
+            <div className="flex items-center gap-1.5">
               {p.handRaised && (
                 <Hand className="h-4 w-4 text-amber-400" aria-label="Hand raised" />
               )}
-              {p.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {p.isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+              {p.isMuted ? (
+                <MicOff className="h-4 w-4 text-red-400" aria-label="Microphone off" />
+              ) : (
+                <Mic className="h-4 w-4 text-emerald-400" aria-label="Microphone on" />
+              )}
+              {p.isVideoOff ? (
+                <VideoOff className="h-4 w-4 text-red-400" aria-label="Camera off" />
+              ) : (
+                <Video className="h-4 w-4 text-emerald-400" aria-label="Camera on" />
+              )}
             </div>
             {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT') && (
               <div className="relative">
@@ -288,6 +303,7 @@ export function ParticipantsPanel({
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

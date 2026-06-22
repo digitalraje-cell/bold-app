@@ -35,7 +35,7 @@ export function LegalPageLayout({
   });
 
   return (
-    <div className="flex min-h-full flex-col bg-background">
+    <div className="flex min-h-full min-w-0 flex-col overflow-x-clip bg-background">
       <MarketingHeader />
       <main className="flex-1">
         <section className="border-b border-border/60 bg-[var(--badge-bg)]/30 px-6 py-14 sm:py-16">

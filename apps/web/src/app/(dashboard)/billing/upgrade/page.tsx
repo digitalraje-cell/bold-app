@@ -8,7 +8,10 @@ import {
   SubscriptionPlan,
   PLAN_PRICING_INR,
   PRO_FEATURE_LIST,
+  MAX_PLAN_DISPLAY,
+  isMaxPlanComingSoon,
 } from '@boldmeet/shared';
+import { MaxWaitlistForm } from '@/components/billing/MaxWaitlistForm';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { badgeClass, cardClass, ui } from '@/lib/ui';
@@ -117,6 +120,18 @@ export default function UpgradePage() {
           .
         </p>
       </div>
+
+      {isMaxPlanComingSoon() && (
+        <div className={cn(cardClass(), 'mt-8 p-8')}>
+          <span className={badgeClass()}>{MAX_PLAN_DISPLAY.badge}</span>
+          <h2 className="mt-4 text-lg font-semibold">{MAX_PLAN_DISPLAY.name} — multi-platform streaming</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{MAX_PLAN_DISPLAY.foundingOffer}</p>
+          <MaxWaitlistForm className="mt-6" compact />
+          <Link href="/max" className="mt-4 inline-block text-sm font-medium underline">
+            View all Max features
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

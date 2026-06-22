@@ -107,6 +107,27 @@ enum OtpChannel {
   WHATSAPP
 }
 
+enum ConnectedAccountProvider {
+  YOUTUBE
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  X
+  TWITCH
+  CUSTOM_RTMP
+}
+
+enum ConnectedAccountStatus {
+  ACTIVE
+  PENDING_ACTIVATION
+  DISABLED
+  DISCONNECTED
+}
+
+enum PlanInterestType {
+  MAX
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -127,11 +148,13 @@ model User {
   hostedMeetings Meeting[]       @relation("MeetingHost")
   hostedWebinars Webinar[]       @relation("WebinarHost")
   participants   Participant[]
-  youtubeAccount YouTubeAccount?
+  youtubeAccounts YouTubeAccount[]
   chatMessages   ChatMessage[]
   subscriptionPayments SubscriptionPayment[]
   pendingPayments      PendingPayment[]
   roadmapVotes         RoadmapVote[]
+  connectedAccounts    ConnectedAccount[]
+  planInterests        PlanInterest[]
   isPwaInstalled       Boolean   @default(false) @map("is_pwa_installed")
   pwaInstalledAt       DateTime? @map("pwa_installed_at")
   lastPwaLaunchAt      DateTime? @map("last_pwa_launch_at")
@@ -219,7 +242,7 @@ model Meeting {
   participants  Participant[]
   registrants   MeetingRegistrant[]
   chatMessages  ChatMessage[]
-  youtubeStream YouTubeStream?
+  youtubeStreams YouTubeStream[]
 
   @@index([hostId])
   @@index([status])
@@ -306,41 +329,51 @@ model ChatMessage {
 }
 
 model YouTubeAccount {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
+  id                   String    @id @default(cuid())
+  userId               String
   channelId            String
   channelName          String
   channelUrl           String?
-  accessToken          String   @db.Text
-  refreshToken         String   @db.Text
+  channelAvatar        String?
+  gmailAccount         String?
+  accessToken          String    @db.Text
+  refreshToken         String    @db.Text
   tokenExpiresAt       DateTime
-  liveStreamingEnabled Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  liveStreamingEnabled Boolean   @default(false)
+  eligibilityCheckedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  streams YouTubeStream[]
 
+  @@unique([userId, channelId])
+  @@index([userId])
   @@map("youtube_accounts")
 }
 
 model YouTubeStream {
-  id          String                 @id @default(cuid())
-  meetingId   String                 @unique
-  provider    StreamingProviderType  @default(YOUTUBE_RTMP)
-  title       String?
-  broadcastId String?
-  streamId    String?
-  streamKey   String?                @db.Text
-  rtmpUrl     String?
-  watchUrl    String?
-  visibility  StreamVisibility       @default(PRIVATE)
-  status      StreamStatus           @default(IDLE)
-  startedAt   DateTime?
-  endedAt     DateTime?
-  createdAt   DateTime               @default(now())
+  id               String                 @id @default(cuid())
+  meetingId        String
+  youtubeAccountId String?
+  provider         StreamingProviderType  @default(YOUTUBE_RTMP)
+  title            String?
+  broadcastId      String?
+  streamId         String?
+  streamKey        String?                @db.Text
+  rtmpUrl          String?
+  watchUrl         String?
+  visibility       StreamVisibility       @default(PRIVATE)
+  status           StreamStatus           @default(IDLE)
+  startedAt        DateTime?
+  endedAt          DateTime?
+  createdAt        DateTime               @default(now())
 
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting        Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  youtubeAccount YouTubeAccount? @relation(fields: [youtubeAccountId], references: [id], onDelete: SetNull)
 
+  @@unique([meetingId, youtubeAccountId])
+  @@index([meetingId, status])
   @@map("youtube_streams")
 }
 
@@ -460,4 +493,57 @@ model RoadmapVote {
   @@unique([userId, featureKey])
   @@index([featureKey])
   @@map("roadmap_votes")
+}
+
+model ConnectedAccount {
+  id                   String                   @id @default(cuid())
+  userId               String                   @map("user_id")
+  provider             ConnectedAccountProvider
+  accountId            String                   @map("account_id")
+  accountName          String                   @map("account_name")
+  accountType          String?                  @map("account_type")
+  accountAvatar        String?                  @map("account_avatar")
+  accountEmail         String?                  @map("account_email")
+  status               ConnectedAccountStatus   @default(ACTIVE)
+  metadata             Json?
+  legacyYoutubeAccountId String?                @unique @map("legacy_youtube_account_id")
+  connectedAt          DateTime                 @default(now()) @map("connected_at")
+  lastValidatedAt      DateTime?                @map("last_validated_at")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, accountId])
+  @@index([userId, provider])
+  @@map("connected_accounts")
+}
+
+model PlanInterest {
+  id                 String           @id @default(cuid())
+  userId             String           @map("user_id")
+  planInterest       PlanInterestType @default(MAX) @map("plan_interest")
+  requestedProviders String[]         @default([]) @map("requested_providers")
+  expectedDestinations String?       @map("expected_destinations")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, planInterest])
+  @@index([planInterest])
+  @@map("plan_interests")
+}
+
+model AppRelease {
+  id           String   @id @default(cuid())
+  version      String   @unique
+  releaseDate  DateTime
+  releaseNotes Json
+  forceUpdate  Boolean  @default(false)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("app_releases")
 }

@@ -1,6 +1,8 @@
 import {
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -22,15 +24,27 @@ export class YoutubeController {
   @Get('status')
   @UseGuards(AuthGuard, VerifiedGuard, PermissionsGuard)
   @RequirePermission('canStreamToYoutube')
-  status(@Req() req: Request & { user: AuthUser }) {
-    return this.youtubeService.getConnectionStatus(req.user.id);
+  status(
+    @Req() req: Request & { user: AuthUser },
+    @Query('refresh') refresh?: string,
+  ) {
+    return this.youtubeService.getConnectionStatus(
+      req.user.id,
+      refresh === 'true' || refresh === '1',
+    );
   }
 
   @Get('connect')
   @UseGuards(AuthGuard, VerifiedGuard, PermissionsGuard)
   @RequirePermission('canStreamToYoutube')
-  connect(@Req() req: Request & { user: AuthUser }) {
-    return this.youtubeService.getConnectUrl(req.user.id);
+  connect(
+    @Req() req: Request & { user: AuthUser },
+    @Query('returnTo') returnTo?: string,
+  ) {
+    return this.youtubeService.getConnectUrl(
+      req.user.id,
+      returnTo ?? '/settings/integrations',
+    );
   }
 
   @Get('callback')
@@ -42,27 +56,60 @@ export class YoutubeController {
   ) {
     const frontend = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
 
-    if (error || !code || !state) {
-      return res.redirect(`${frontend}/settings/profile?youtube=error`);
+    let returnTo: string | null = null;
+    let userId: string | null = null;
+
+    if (state) {
+      try {
+        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8')) as {
+          userId?: string;
+          returnTo?: string | null;
+        };
+        userId = parsed.userId ?? null;
+        returnTo = parsed.returnTo ?? null;
+      } catch {
+        userId = null;
+      }
     }
 
-    let userId: string;
-    try {
-      const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8')) as {
-        userId?: string;
-      };
-      if (!parsed.userId) throw new Error('missing userId');
-      userId = parsed.userId;
-    } catch {
-      return res.redirect(`${frontend}/settings/profile?youtube=error`);
+    const successRedirect = returnTo
+      ? `${frontend}${returnTo.startsWith('/') ? returnTo : `/${returnTo}`}?youtube=connected`
+      : `${frontend}/settings/integrations?youtube=connected`;
+    const errorRedirect = returnTo
+      ? `${frontend}${returnTo.startsWith('/') ? returnTo : `/${returnTo}`}?youtube=error`
+      : `${frontend}/settings/integrations?youtube=error`;
+
+    if (error || !code || !userId) {
+      return res.redirect(errorRedirect);
     }
 
     try {
       await this.youtubeService.handleOAuthCallback(code, userId);
-      return res.redirect(`${frontend}/settings/profile?youtube=connected`);
+      return res.redirect(successRedirect);
     } catch {
-      return res.redirect(`${frontend}/settings/profile?youtube=error`);
+      return res.redirect(errorRedirect);
     }
+  }
+
+  @Post('accounts/:accountId/refresh-eligibility')
+  @UseGuards(AuthGuard, VerifiedGuard, PermissionsGuard)
+  @RequirePermission('canStreamToYoutube')
+  async refreshEligibility(
+    @Req() req: Request & { user: AuthUser },
+    @Param('accountId') accountId: string,
+  ) {
+    await this.youtubeService.refreshAccountEligibility(accountId, req.user.id);
+    return this.youtubeService.getConnectionStatus(req.user.id, false);
+  }
+
+  @Delete('accounts/:accountId')
+  @UseGuards(AuthGuard, VerifiedGuard, PermissionsGuard)
+  @RequirePermission('canStreamToYoutube')
+  disconnectAccount(
+    @Req() req: Request & { user: AuthUser },
+    @Param('accountId') accountId: string,
+  ) {
+    return this.youtubeService.disconnectAccount(req.user.id, accountId);
   }
 
   @Post('disconnect')

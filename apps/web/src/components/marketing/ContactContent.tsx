@@ -55,7 +55,7 @@ export function ContactContent() {
   const { companyName, productName, supportEmail, businessEmail, responseTime } = LEGAL_CONFIG;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full min-w-0 flex-col overflow-x-clip">
       <MarketingHeader />
 
       <section className="border-b border-border/60 bg-[var(--badge-bg)]/30 px-6 py-16 sm:py-20">

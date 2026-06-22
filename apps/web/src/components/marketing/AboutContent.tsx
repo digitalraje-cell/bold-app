@@ -149,7 +149,7 @@ export function AboutContent({
   const content = BOLD_ABOUT_CONTENT;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full min-w-0 flex-col overflow-x-clip">
       <MarketingHeader active="about" />
 
       <section className="border-b border-border/60">

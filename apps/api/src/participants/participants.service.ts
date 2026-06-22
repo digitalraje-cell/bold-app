@@ -48,10 +48,31 @@ export class ParticipantsService {
     isMuted: boolean,
   ) {
     await this.ensureParticipant(meetingId, participantId);
-    return this.prisma.participant.update({
+    const updated = await this.prisma.participant.update({
       where: { id: participantId },
       data: { isMuted },
     });
+    this.gateway.broadcastParticipantUpdate(meetingId, participantId, { isMuted });
+    return updated;
+  }
+
+  async setMediaState(
+    meetingId: string,
+    participantId: string,
+    patch: { isMuted?: boolean; isVideoOff?: boolean },
+  ) {
+    const participant = await this.ensureParticipant(meetingId, participantId);
+    const data: { isMuted?: boolean; isVideoOff?: boolean } = {};
+    if (typeof patch.isMuted === 'boolean') data.isMuted = patch.isMuted;
+    if (typeof patch.isVideoOff === 'boolean') data.isVideoOff = patch.isVideoOff;
+    if (Object.keys(data).length === 0) return participant;
+
+    const updated = await this.prisma.participant.update({
+      where: { id: participantId },
+      data,
+    });
+    this.gateway.broadcastParticipantUpdate(meetingId, participantId, data);
+    return updated;
   }
 
   async remove(meetingId: string, participantId: string, actorId: string) {

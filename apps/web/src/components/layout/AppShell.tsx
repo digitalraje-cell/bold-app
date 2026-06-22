@@ -3,34 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import {
-  LayoutDashboard,
-  Video,
-  CreditCard,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Shield,
-  Map,
-  Users,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { SubscriptionPlan, isPlatformAdmin } from '@boldmeet/shared';
+import { LogOut, Menu, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { SubscriptionPlan, isPlatformAdmin, isSuperAdmin } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { navLinkClass } from '@/lib/ui';
 import { appConfig } from '@/lib/app-config';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 import { usePermissions } from '@/hooks/usePermissions';
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: '/dashboard' },
-  { href: '/dashboard', label: 'Meetings', icon: Video, match: '/dashboard', meetingsTab: true },
-  { href: '/billing', label: 'Billing', icon: CreditCard, match: '/billing' },
-  { href: '/roadmap', label: 'Roadmap', icon: Map, match: '/roadmap' },
-  { href: '/settings/profile', label: 'Settings', icon: Settings, match: '/settings' },
-];
+import { getActiveNavId, isSidebarItemActive } from '@/lib/sidebar-nav';
+import { adminNavItems, primaryNavItems } from '@/lib/sidebar-nav-config';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -44,17 +27,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const { plan } = usePermissions();
   const isAdmin = mounted && isPlatformAdmin(session?.user?.role, session?.user?.email);
+  const isSuperAdminUser =
+    mounted && isSuperAdmin(session?.user?.role, session?.user?.email ?? undefined);
   const isPro = plan !== SubscriptionPlan.FREE;
 
-  function isNavActive(item: (typeof navItems)[number]) {
-    if (!mounted) return false;
-    if (item.meetingsTab) return pathname === '/dashboard';
-    if (item.label === 'Dashboard') return pathname === '/dashboard';
-    return pathname.startsWith(item.match);
-  }
+  const visibleAdminNavItems = useMemo(
+    () =>
+      adminNavItems.filter(
+        (item) => item.id !== 'admin-releases' || isSuperAdminUser,
+      ),
+    [isSuperAdminUser],
+  );
+
+  const activePrimaryId = useMemo(
+    () => (mounted ? getActiveNavId(primaryNavItems, pathname) : null),
+    [mounted, pathname],
+  );
+
+  const activeAdminId = useMemo(
+    () => (mounted && isAdmin ? getActiveNavId(adminNavItems, pathname) : null),
+    [mounted, isAdmin, pathname],
+  );
 
   return (
-    <div className="flex min-h-full bg-background">
+    <div className="flex min-h-full min-w-0 max-w-full overflow-x-clip bg-background">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
@@ -84,45 +80,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-4">
-          {navItems.map((item) => (
+          {primaryNavItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.id}
               href={item.href}
               onClick={() => setSidebarOpen(false)}
-              className={navLinkClass(isNavActive(item))}
+              className={navLinkClass(isSidebarItemActive(item, pathname, activePrimaryId))}
+              aria-current={isSidebarItemActive(item, pathname, activePrimaryId) ? 'page' : undefined}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
             </Link>
           ))}
-          {isAdmin && (
-            <>
+          {isAdmin &&
+            visibleAdminNavItems.map((item) => (
               <Link
-                href="/admin"
+                key={item.id}
+                href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={navLinkClass(pathname === '/admin')}
+                className={navLinkClass(isSidebarItemActive(item, pathname, activeAdminId))}
+                aria-current={isSidebarItemActive(item, pathname, activeAdminId) ? 'page' : undefined}
               >
-                <Shield className="h-4 w-4" />
-                Admin
+                <item.icon className="h-4 w-4" />
+                {item.label}
               </Link>
-              <Link
-                href="/admin/users"
-                onClick={() => setSidebarOpen(false)}
-                className={navLinkClass(pathname.startsWith('/admin/users'))}
-              >
-                <Users className="h-4 w-4" />
-                Admin Users
-              </Link>
-              <Link
-                href="/admin/payments"
-                onClick={() => setSidebarOpen(false)}
-                className={navLinkClass(pathname.startsWith('/admin/payments'))}
-              >
-                <Shield className="h-4 w-4" />
-                Admin Payments
-              </Link>
-            </>
-          )}
+            ))}
         </nav>
 
         <div className="border-t border-border/50 p-4">
@@ -163,14 +145,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
         <header className="flex items-center gap-4 border-b border-border/50 bg-surface/80 px-6 py-4 backdrop-blur-md lg:hidden">
           <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-[var(--radius-sm)] p-1">
             <Menu className="h-5 w-5" />
           </button>
           <span className="font-semibold tracking-tight">{appConfig.name}</span>
         </header>
-        <main className="flex-1 p-6 sm:p-8 lg:p-10">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-clip p-6 sm:p-8 lg:p-10">{children}</main>
         <AppFooter />
       </div>
     </div>
