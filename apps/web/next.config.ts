@@ -12,6 +12,13 @@ function resolveRewriteApiOrigin(): string {
 const nextConfig: NextConfig = {
   transpilePackages: ['@boldmeet/shared'],
   env: {
+    // Railway web often sets API_URL for rewrites but omits NEXT_PUBLIC_* — inject for Socket.IO + client.
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL || resolveRewriteApiOrigin(),
+    NEXT_PUBLIC_SOCKET_URL:
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      resolveRewriteApiOrigin(),
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_BUILD_TIMESTAMP: process.env.NEXT_PUBLIC_BUILD_TIMESTAMP,
     NEXT_PUBLIC_BUILD_ID: process.env.NEXT_PUBLIC_BUILD_ID,

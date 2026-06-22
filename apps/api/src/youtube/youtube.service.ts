@@ -1037,10 +1037,12 @@ export class YoutubeService {
           status?: { streamStatus?: string; healthStatus?: string };
         }>;
       };
-      return {
-        streamStatus: parsed.items?.[0]?.status?.streamStatus ?? null,
-        healthStatus: parsed.items?.[0]?.status?.healthStatus ?? null,
-      };
+      const streamStatus = parsed.items?.[0]?.status?.streamStatus ?? null;
+      const healthStatus = parsed.items?.[0]?.status?.healthStatus ?? null;
+      this.logger.log(
+        `[youtube-live-pipeline] youtube:liveStreams.list youtubeStreamId=${youtubeStreamId} streamStatus=${streamStatus} healthStatus=${healthStatus}`,
+      );
+      return { streamStatus, healthStatus };
     } catch {
       return { streamStatus: null, healthStatus: null };
     }

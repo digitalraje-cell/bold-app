@@ -1,0 +1,20 @@
+/** Structured client-side logs for the post–Go Live ingest pipeline (grep: youtube-live-pipeline). */
+export function logYouTubePipeline(
+  step: string,
+  detail?: Record<string, unknown>,
+): void {
+  const payload = detail ? ` ${JSON.stringify(detail)}` : '';
+  console.log(`[youtube-live-pipeline] ${step}${payload}`);
+}
+
+export function logYouTubePipelineError(
+  step: string,
+  error: unknown,
+  detail?: Record<string, unknown>,
+): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[youtube-live-pipeline] ${step}`, {
+    ...detail,
+    error: message,
+  });
+}

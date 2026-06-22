@@ -45,7 +45,12 @@ export class StreamRelayService {
           '-hide_banner',
           '-loglevel',
           'warning',
-          '-re',
+          '-fflags',
+          '+genpts+discardcorrupt',
+          '-probesize',
+          '32M',
+          '-analyzeduration',
+          '10M',
           '-f',
           'webm',
           '-i',
@@ -78,18 +83,36 @@ export class StreamRelayService {
 
     ffmpeg.stderr.on('data', (chunk: Buffer) => {
       const line = chunk.toString().trim();
-      if (line) this.logger.debug(`[ffmpeg:${input.streamId}] ${line}`);
+      if (!line) return;
+      const lower = line.toLowerCase();
+      if (
+        lower.includes('error') ||
+        lower.includes('invalid') ||
+        lower.includes('failed') ||
+        lower.includes('could not')
+      ) {
+        this.logger.error(
+          `[youtube-live-pipeline] relay:ffmpeg-stderr streamId=${input.streamId} ${line}`,
+        );
+      } else {
+        this.logger.log(
+          `[youtube-live-pipeline] relay:ffmpeg-stderr streamId=${input.streamId} ${line}`,
+        );
+      }
     });
 
-    ffmpeg.on('close', (code) => {
-      this.logger.log(
-        `[ffmpeg:${input.streamId}] exited with code ${code ?? 'unknown'}`,
+    ffmpeg.on('close', (code, signal) => {
+      const relay = this.relays.get(input.streamId);
+      this.logger.warn(
+        `[youtube-live-pipeline] relay:ffmpeg-exit streamId=${input.streamId} code=${code ?? 'unknown'} signal=${signal ?? 'none'} chunksReceived=${relay?.chunksReceived ?? 0} bytesReceived=${relay?.bytesReceived ?? 0}`,
       );
       this.relays.delete(input.streamId);
     });
 
     ffmpeg.on('error', (error) => {
-      this.logger.error(`[ffmpeg:${input.streamId}] ${error.message}`);
+      this.logger.error(
+        `[youtube-live-pipeline] relay:ffmpeg-spawn-error streamId=${input.streamId} ${error.message}`,
+      );
       this.relays.delete(input.streamId);
     });
 
@@ -108,7 +131,7 @@ export class StreamRelayService {
 
     const redactedOutput = input.outputUrl.replace(/\/[^/]+$/, '/***');
     this.logger.log(
-      `[youtube-live] relay:ffmpeg-spawned streamId=${input.streamId} meetingId=${input.meetingId} output=${redactedOutput} note=waiting-for-browser-ingest-chunks`,
+      `[youtube-live-pipeline] relay:ffmpeg-spawned streamId=${input.streamId} meetingId=${input.meetingId} pid=${ffmpeg.pid ?? 'unknown'} output=${redactedOutput} note=waiting-for-browser-ingest-chunks`,
     );
 
     return { ok: true, ingestToken };
@@ -126,33 +149,53 @@ export class StreamRelayService {
     relay.ingestConnected = connected;
     if (connected) relay.lastChunkAt = new Date();
     this.logger.log(
-      `[youtube-live] relay:ingest-socket streamId=${streamId} connected=${connected} chunksReceived=${relay.chunksReceived} bytesReceived=${relay.bytesReceived}`,
+      `[youtube-live-pipeline] relay:ingest-socket streamId=${streamId} connected=${connected} chunksReceived=${relay.chunksReceived} bytesReceived=${relay.bytesReceived}`,
     );
   }
 
   writeChunk(streamId: string, chunk: Buffer): boolean {
     const relay = this.relays.get(streamId);
-    if (!relay?.process.stdin.writable) return false;
+    if (!relay) {
+      this.logger.warn(
+        `[youtube-live-pipeline] relay:write-chunk-no-relay streamId=${streamId} bytes=${chunk.length}`,
+      );
+      return false;
+    }
+    if (!relay.process.stdin.writable) {
+      this.logger.warn(
+        `[youtube-live-pipeline] relay:write-chunk-stdin-closed streamId=${streamId} bytes=${chunk.length} ffmpegPid=${relay.process.pid ?? 'unknown'}`,
+      );
+      return false;
+    }
     try {
-      relay.process.stdin.write(chunk);
+      const canWrite = relay.process.stdin.write(chunk);
       relay.lastChunkAt = new Date();
       relay.chunksReceived += 1;
       relay.bytesReceived += chunk.length;
       if (!relay.firstChunkAt) {
         relay.firstChunkAt = new Date();
         this.logger.log(
-          `[youtube-live] relay:first-chunk streamId=${streamId} bytes=${chunk.length} note=rtmp-pipeline-now-receiving-browser-data`,
+          `[youtube-live-pipeline] relay:first-chunk streamId=${streamId} bytes=${chunk.length} note=ffmpeg-stdin-now-receiving-browser-data`,
         );
       } else if (
         relay.chunksReceived === 10 ||
         relay.chunksReceived % 100 === 0
       ) {
-        this.logger.debug(
-          `[youtube-live] relay:ingest-progress streamId=${streamId} chunks=${relay.chunksReceived} bytes=${relay.bytesReceived}`,
+        this.logger.log(
+          `[youtube-live-pipeline] relay:ingest-progress streamId=${streamId} chunks=${relay.chunksReceived} bytesToFfmpeg=${relay.bytesReceived} stdinBackpressure=${!canWrite}`,
+        );
+      }
+      if (!canWrite) {
+        this.logger.warn(
+          `[youtube-live-pipeline] relay:stdin-backpressure streamId=${streamId} chunks=${relay.chunksReceived}`,
         );
       }
       return true;
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `[youtube-live-pipeline] relay:write-chunk-failed streamId=${streamId} error=${message}`,
+      );
       return false;
     }
   }

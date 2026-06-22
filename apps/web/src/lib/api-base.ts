@@ -63,10 +63,25 @@ export function getSocketOrigin(): string {
   const configured =
     normalizeApiOrigin(process.env.NEXT_PUBLIC_SOCKET_URL) ||
     normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL) ||
-    getServerApiOrigin();
+    (typeof window === 'undefined' ? getServerApiOrigin() : null);
 
   if (configured && !isLocalOrigin(configured)) {
     return configured;
+  }
+
+  if (typeof window !== 'undefined') {
+    const fallback = getServerApiOrigin();
+    if (isLocalOrigin(fallback) && !isLocalOrigin(window.location.origin)) {
+      console.error(
+        '[youtube-live-pipeline] socket-origin:misconfigured',
+        JSON.stringify({
+          resolved: fallback,
+          webOrigin: window.location.origin,
+          hint: 'Set NEXT_PUBLIC_SOCKET_URL (or API_URL at web build) to the Nest API origin',
+        }),
+      );
+    }
+    return fallback;
   }
 
   return getServerApiOrigin();
