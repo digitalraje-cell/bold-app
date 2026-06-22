@@ -18,6 +18,7 @@ import { RecordingModule } from './recording/recording.module';
 import { WebinarModule } from './webinar/webinar.module';
 import { RoomModule } from './room/room.module';
 import { StreamModule } from './stream/stream.module';
+import { PublicModule } from './public/public.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { StreamModule } from './stream/stream.module';
     RoomModule,
     StreamModule,
     YoutubeModule,
+    PublicModule,
   ],
   controllers: [AppController],
   providers: [AppService],
