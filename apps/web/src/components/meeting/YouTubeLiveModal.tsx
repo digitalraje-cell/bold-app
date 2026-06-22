@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   MeetingBroadcastProviderType,
+  YOUTUBE_LIVE_ACTIVATION_MESSAGE,
   isMaxPlanComingSoon,
   type YouTubeChannelAccount,
   type YouTubeConnectionStatus,
@@ -38,7 +39,7 @@ export function YouTubeLiveModal({
   const loadConnection = useCallback(async () => {
     setConnectionLoading(true);
     try {
-      const status = (await api.youtube.status(false)) as YouTubeConnectionStatus;
+      const status = (await api.youtube.status(true)) as YouTubeConnectionStatus;
       setConnection(status);
       const eligible = (status.accounts ?? []).filter(
         (a) => a.status === 'live_enabled' || a.liveStreamingEnabled,
@@ -158,14 +159,18 @@ export function YouTubeLiveModal({
         ) : accounts.length === 0 ? (
           <div className="mt-5 space-y-4">
             {allAccounts.length > 0 ? (
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Your connected channels need live streaming activation before you can go live.
-                Enable live streaming in Settings → Connected Channels.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {YOUTUBE_LIVE_ACTIVATION_MESSAGE}
+                </p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Manage your channel in Settings → Integrations.
+                </p>
+              </div>
             ) : (
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Connect a YouTube channel in Settings first. You only sign in once — then go live
-                from any meeting with one click.
+                Connect a YouTube channel in Settings → Integrations first. You only sign in once —
+                then go live from any meeting with one click.
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}

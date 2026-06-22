@@ -56,6 +56,10 @@ export interface MeetingLiveStreamView {
 export const YOUTUBE_LIVE_LEARN_MORE_URL =
   'https://support.google.com/youtube/answer/2853702';
 
+/** Shown when a connected channel has not completed YouTube live activation. */
+export const YOUTUBE_LIVE_ACTIVATION_MESSAGE =
+  'Live streaming is not enabled on this channel. Enable it in YouTube Studio. Activation may take up to 24 hours.';
+
 export function buildYouTubeActivationUrl(channelId: string): string {
   return `https://studio.youtube.com/channel/${channelId}/livestreaming`;
 }

@@ -322,7 +322,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
         }
         if (!account.liveStreamingEnabled) {
           throw new BadRequestException(
-            `${account.channelName} is not enabled for live streaming. Enable it in Settings → Connected Channels.`,
+            `${account.channelName} is not enabled for live streaming. Enable it in Settings → Integrations.`,
           );
         }
 
@@ -766,7 +766,6 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       provider: primary.provider as MeetingBroadcastProviderType,
       title: primary.title,
       watchUrl: primary.watchUrl,
-      rtmpUrl: primary.rtmpUrl,
       status: primary.status,
       startedAt: primary.startedAt?.toISOString() ?? null,
       endedAt: primary.endedAt?.toISOString() ?? null,
@@ -815,7 +814,6 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
       provider: stream.provider as MeetingBroadcastProviderType,
       title: stream.title,
       watchUrl: stream.watchUrl,
-      rtmpUrl: stream.rtmpUrl,
       status: stream.status,
       startedAt: stream.startedAt?.toISOString() ?? null,
       endedAt: stream.endedAt?.toISOString() ?? null,

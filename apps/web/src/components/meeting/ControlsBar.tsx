@@ -325,7 +325,7 @@ export function ControlsBar({
                   />
                 )}
                 {canManageBroadcast && !isLiveStream && onGoLive && (
-                  <MenuItem label="Start YouTube Live" onClick={() => { setMoreOpen(false); onGoLive(); }} />
+                  <MenuItem label="Go Live on YouTube" onClick={() => { setMoreOpen(false); onGoLive(); }} />
                 )}
                 {canManageBroadcast && isLiveStream && onStopLive && (
                   <MenuItem

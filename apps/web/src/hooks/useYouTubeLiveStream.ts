@@ -18,11 +18,6 @@ export type StartLiveStreamParams = {
   provider: MeetingBroadcastProviderType;
   youtubeAccountIds: string[];
   visibility?: YouTubePrivacyStatus;
-  /** @deprecated manual RTMP only */
-  title?: string;
-  rtmpUrl?: string;
-  streamKey?: string;
-  watchUrl?: string;
 };
 
 type StreamSession = {

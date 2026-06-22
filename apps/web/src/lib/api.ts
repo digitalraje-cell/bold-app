@@ -299,10 +299,6 @@ export const api = {
         /** @deprecated use youtubeAccountIds */
         youtubeAccountId?: string;
         visibility?: 'public' | 'unlisted' | 'private';
-        title?: string;
-        rtmpUrl?: string;
-        streamKey?: string;
-        watchUrl?: string;
       },
     ) =>
       apiFetch(`/meetings/${meetingId}/stream/start`, {

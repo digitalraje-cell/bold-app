@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
+  YOUTUBE_LIVE_ACTIVATION_MESSAGE,
   YOUTUBE_LIVE_LEARN_MORE_URL,
   isMaxPlanComingSoon,
   MAX_PLAN_DISPLAY,
@@ -156,6 +157,11 @@ export function IntegrationsSettings() {
             >
               {liveEnabled ? 'Live enabled' : 'Activation required'}
             </span>
+            {!liveEnabled && (
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                {YOUTUBE_LIVE_ACTIVATION_MESSAGE}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

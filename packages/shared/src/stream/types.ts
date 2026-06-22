@@ -54,7 +54,6 @@ export interface LiveStreamSessionView {
   status: BroadcastStatus;
   title?: string | null;
   watchUrl?: string | null;
-  rtmpUrl?: string | null;
   startedAt?: string | null;
   endedAt?: string | null;
   /** Server ffmpeg relay is accepting ingest chunks */
