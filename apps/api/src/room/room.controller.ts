@@ -31,7 +31,11 @@ export class RoomController {
     @Param('meetingId') meetingId: string,
     @Body() body: { roomMode: RoomMode },
   ) {
-    return this.roomService.switchRoomMode(meetingId, req.user.id, body.roomMode);
+    return this.roomService.switchRoomMode(
+      meetingId,
+      req.user.id,
+      body.roomMode,
+    );
   }
 
   @Patch('chat-mode')
@@ -56,7 +60,11 @@ export class RoomController {
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
   ) {
-    return this.roomService.promoteToPanelist(meetingId, participantId, req.user.id);
+    return this.roomService.promoteToPanelist(
+      meetingId,
+      participantId,
+      req.user.id,
+    );
   }
 
   @Post('participants/:participantId/stage')
@@ -67,7 +75,12 @@ export class RoomController {
     @Param('participantId') participantId: string,
     @Body() body: { micAllowed?: boolean; cameraAllowed?: boolean },
   ) {
-    return this.roomService.bringOnStage(meetingId, participantId, req.user.id, body);
+    return this.roomService.bringOnStage(
+      meetingId,
+      participantId,
+      req.user.id,
+      body,
+    );
   }
 
   @Post('participants/:participantId/stage/remove')
@@ -77,7 +90,11 @@ export class RoomController {
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
   ) {
-    return this.roomService.removeFromStage(meetingId, participantId, req.user.id);
+    return this.roomService.removeFromStage(
+      meetingId,
+      participantId,
+      req.user.id,
+    );
   }
 
   @Patch('participants/:participantId/media')

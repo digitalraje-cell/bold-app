@@ -23,7 +23,12 @@ export class PermissionsService {
   async getUserPlanContext(userId: string): Promise<UserPlanContext> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, subscriptionPlan: true, isVerified: true, subscriptionExpiresAt: true },
+      select: {
+        id: true,
+        subscriptionPlan: true,
+        isVerified: true,
+        subscriptionExpiresAt: true,
+      },
     });
 
     let plan = user.subscriptionPlan as SubscriptionPlan;
@@ -48,9 +53,13 @@ export class PermissionsService {
     }
   }
 
-  async getAttendeeLimit(userId: string, roomMode: 'MEETING' | 'WEBINAR' = 'MEETING'): Promise<number> {
+  async getAttendeeLimit(
+    userId: string,
+    roomMode: 'MEETING' | 'WEBINAR' = 'MEETING',
+  ): Promise<number> {
     const ctx = await this.getUserPlanContext(userId);
-    const key = roomMode === 'WEBINAR' ? 'webinarAttendeeLimit' : 'meetingAttendeeLimit';
+    const key =
+      roomMode === 'WEBINAR' ? 'webinarAttendeeLimit' : 'meetingAttendeeLimit';
     return getPlanLimit(ctx.plan, key) ?? 100;
   }
 

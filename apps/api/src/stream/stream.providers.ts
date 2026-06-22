@@ -65,10 +65,19 @@ export class CustomRtmpBroadcastProvider implements MeetingBroadcastProvider {
 }
 
 export class MeetingBroadcastProviderRegistry {
-  private providers: Map<MeetingBroadcastProviderType, MeetingBroadcastProvider>;
+  private providers: Map<
+    MeetingBroadcastProviderType,
+    MeetingBroadcastProvider
+  >;
 
-  constructor(youtube: YoutubeRtmpBroadcastProvider, custom: CustomRtmpBroadcastProvider) {
-    this.providers = new Map<MeetingBroadcastProviderType, MeetingBroadcastProvider>([
+  constructor(
+    youtube: YoutubeRtmpBroadcastProvider,
+    custom: CustomRtmpBroadcastProvider,
+  ) {
+    this.providers = new Map<
+      MeetingBroadcastProviderType,
+      MeetingBroadcastProvider
+    >([
       [MeetingBroadcastProviderType.YOUTUBE_RTMP, youtube],
       [MeetingBroadcastProviderType.CUSTOM_RTMP, custom],
     ]);

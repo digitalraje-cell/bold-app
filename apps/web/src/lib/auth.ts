@@ -4,6 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from './auth.config';
 import { prisma } from './prisma';
 import { verifyAuthOtp } from './otp-service';
+import { logUserActivity } from './activity-log';
 
 if (process.env.NEXT_RUNTIME !== 'edge') {
   console.log('[auth] runtime = nodejs');
@@ -75,6 +76,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   secret: authSecret,
   providers,
+  events: {
+    async signOut(message) {
+      if ('token' in message && message.token?.id) {
+        await logUserActivity(message.token.id as string, 'LOGOUT');
+      }
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {

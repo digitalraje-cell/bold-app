@@ -19,7 +19,11 @@ export class ParticipantsService {
   async list(meetingId: string) {
     return this.prisma.participant.findMany({
       where: { meetingId, status: { not: ParticipantStatus.REMOVED } },
-      include: { user: { select: { id: true, name: true, email: true, isVerified: true } } },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, isVerified: true },
+        },
+      },
       orderBy: { joinedAt: 'asc' },
     });
   }
@@ -54,7 +58,7 @@ export class ParticipantsService {
     });
   }
 
-  async remove(meetingId: string, participantId: string, actorId: string) {
+  async remove(meetingId: string, participantId: string, _actorId: string) {
     await this.ensureParticipant(meetingId, participantId);
     const updated = await this.prisma.participant.update({
       where: { id: participantId },
@@ -65,7 +69,9 @@ export class ParticipantsService {
   }
 
   async assertHost(meetingId: string, actorId: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+    });
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can manage roles');
     }
@@ -77,7 +83,9 @@ export class ParticipantsService {
     actorId: string,
     role: ParticipantRole,
   ) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+    });
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can change roles');
     }
@@ -86,16 +94,26 @@ export class ParticipantsService {
     if (target.role === ParticipantRole.HOST) {
       throw new ForbiddenException('Cannot change the host role');
     }
-    if (role === ParticipantRole.CO_HOST && target.role !== ParticipantRole.PARTICIPANT) {
-      throw new ForbiddenException('Only participants can be promoted to co-host');
+    if (
+      role === ParticipantRole.CO_HOST &&
+      target.role !== ParticipantRole.PARTICIPANT
+    ) {
+      throw new ForbiddenException(
+        'Only participants can be promoted to co-host',
+      );
     }
-    if (role === ParticipantRole.PARTICIPANT && target.role !== ParticipantRole.CO_HOST) {
+    if (
+      role === ParticipantRole.PARTICIPANT &&
+      target.role !== ParticipantRole.CO_HOST
+    ) {
       throw new ForbiddenException('Only co-hosts can be demoted');
     }
 
     if (role === ParticipantRole.CO_HOST) {
       await this.permissionsService.check(meeting.hostId, 'canUseCohost');
-      const maxCohosts = await this.permissionsService.getMaxCohosts(meeting.hostId);
+      const maxCohosts = await this.permissionsService.getMaxCohosts(
+        meeting.hostId,
+      );
       const currentCohosts = await this.prisma.participant.count({
         where: {
           meetingId,
@@ -118,12 +136,22 @@ export class ParticipantsService {
       where: { id: participantId },
       data: { role },
     });
-    this.gateway.broadcastParticipantRoleChanged(meetingId, participantId, role);
+    this.gateway.broadcastParticipantRoleChanged(
+      meetingId,
+      participantId,
+      role,
+    );
     return updated;
   }
 
-  async transferHost(meetingId: string, participantId: string, actorId: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+  async transferHost(
+    meetingId: string,
+    participantId: string,
+    actorId: string,
+  ) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+    });
     if (!meeting || meeting.hostId !== actorId) {
       throw new ForbiddenException('Only the host can transfer host role');
     }
@@ -151,7 +179,7 @@ export class ParticipantsService {
   async admitFromWaitingRoom(
     meetingId: string,
     participantId: string,
-    actorId: string,
+    _actorId: string,
   ) {
     await this.ensureParticipant(meetingId, participantId);
     const updated = await this.prisma.participant.update({

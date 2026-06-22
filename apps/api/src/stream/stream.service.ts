@@ -50,12 +50,16 @@ export class StreamService {
     userId: string,
   ): Promise<LiveStreamSessionView | null> {
     await this.assertCanManageBroadcast(meetingId, userId);
-    const stream = await this.prisma.youTubeStream.findUnique({ where: { meetingId } });
+    const stream = await this.prisma.youTubeStream.findUnique({
+      where: { meetingId },
+    });
     return stream ? this.toView(stream) : null;
   }
 
   async getPublic(meetingId: string): Promise<PublicLiveStreamView> {
-    const stream = await this.prisma.youTubeStream.findUnique({ where: { meetingId } });
+    const stream = await this.prisma.youTubeStream.findUnique({
+      where: { meetingId },
+    });
     if (!stream) {
       return { isLive: false, status: 'IDLE' };
     }
@@ -77,7 +81,7 @@ export class StreamService {
     const meeting = await this.assertCanManageBroadcast(meetingId, actorUserId);
     await this.permissions.check(meeting.hostId, 'canStreamToYoutube');
 
-    const providerType = dto.provider as MeetingBroadcastProviderType;
+    const providerType = dto.provider;
 
     if (providerType === MeetingBroadcastProviderType.NONE) {
       throw new BadRequestException('Select a broadcast provider');
@@ -88,8 +92,13 @@ export class StreamService {
       throw new BadRequestException('Unsupported broadcast provider');
     }
 
-    if (providerType === MeetingBroadcastProviderType.CUSTOM_RTMP && !dto.rtmpUrl?.trim()) {
-      throw new BadRequestException('RTMP URL is required for custom streaming');
+    if (
+      providerType === MeetingBroadcastProviderType.CUSTOM_RTMP &&
+      !dto.rtmpUrl?.trim()
+    ) {
+      throw new BadRequestException(
+        'RTMP URL is required for custom streaming',
+      );
     }
 
     const rtmpUrl =
@@ -105,9 +114,13 @@ export class StreamService {
       throw new BadRequestException(validationError);
     }
 
-    const existing = await this.prisma.youTubeStream.findUnique({ where: { meetingId } });
+    const existing = await this.prisma.youTubeStream.findUnique({
+      where: { meetingId },
+    });
     if (existing?.status === StreamStatus.LIVE) {
-      throw new BadRequestException('YouTube Live is already running for this meeting');
+      throw new BadRequestException(
+        'YouTube Live is already running for this meeting',
+      );
     }
 
     const outputUrl = providerImpl.buildOutputUrl(rtmpUrl, dto.streamKey);
@@ -117,7 +130,7 @@ export class StreamService {
       where: { meetingId },
       create: {
         meetingId,
-        provider: dto.provider as StreamingProviderType,
+        provider: dto.provider,
         title: dto.title,
         rtmpUrl,
         streamKey: encryptedKey,
@@ -125,7 +138,7 @@ export class StreamService {
         status: StreamStatus.IDLE,
       },
       update: {
-        provider: dto.provider as StreamingProviderType,
+        provider: dto.provider,
         title: dto.title,
         rtmpUrl,
         streamKey: encryptedKey,
@@ -174,10 +187,15 @@ export class StreamService {
     };
   }
 
-  async stop(meetingId: string, actorUserId: string): Promise<LiveStreamSessionView> {
+  async stop(
+    meetingId: string,
+    actorUserId: string,
+  ): Promise<LiveStreamSessionView> {
     await this.assertCanManageBroadcast(meetingId, actorUserId);
 
-    const stream = await this.prisma.youTubeStream.findUnique({ where: { meetingId } });
+    const stream = await this.prisma.youTubeStream.findUnique({
+      where: { meetingId },
+    });
     if (!stream) {
       throw new NotFoundException('No YouTube Live session for this meeting');
     }
@@ -217,7 +235,9 @@ export class StreamService {
     });
 
     if (!coHost) {
-      throw new ForbiddenException('Only the host or co-host can manage YouTube Live');
+      throw new ForbiddenException(
+        'Only the host or co-host can manage YouTube Live',
+      );
     }
 
     return meeting;

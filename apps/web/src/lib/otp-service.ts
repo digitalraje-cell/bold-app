@@ -1,7 +1,12 @@
+import {
+  defaultSubscriptionCreateData,
+  resolveUserRoleForEmail,
+} from '@boldmeet/shared';
 import { prisma } from './prisma';
+import { logUserActivity, touchUserLogin } from './activity-log';
 import { generateOtpCode, hashOtpCode } from './crypto';
 import { getOtpExpiryDate, sendOtpEmail } from './email';
-import { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from './otp-constants';
+import { RESEND_COOLDOWN_SECONDS } from './otp-constants';
 
 export { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from './otp-constants';
 const MAX_ATTEMPTS = 5;
@@ -23,7 +28,20 @@ export type AuthUserRecord = {
   isVerified: boolean;
   subscriptionPlan: string;
   role: string;
+  signupProfileComplete: boolean;
+  isNewUser: boolean;
 };
+
+async function ensureSuperAdminRole(userId: string, email: string) {
+  const role = resolveUserRoleForEmail(email);
+  if (role === 'SUPER_ADMIN') {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: 'SUPER_ADMIN' },
+    });
+  }
+  return role;
+}
 
 async function checkResendCooldown(normalizedEmail: string): Promise<OtpResult | null> {
   const recent = await prisma.otpVerification.findFirst({
@@ -124,6 +142,24 @@ async function validateAndConsumeOtp(
   return { ok: true, message: 'Code accepted' };
 }
 
+function isSignupComplete(user: {
+  name: string | null;
+  profile: {
+    mobile: string | null;
+    country: string | null;
+    organization: string | null;
+    designation: string | null;
+  } | null;
+}) {
+  return Boolean(
+    user.name?.trim() &&
+      user.profile?.mobile?.trim() &&
+      user.profile?.country?.trim() &&
+      user.profile?.organization?.trim() &&
+      user.profile?.designation?.trim(),
+  );
+}
+
 /** Verify OTP and sign in — creates account automatically if new. */
 export async function verifyAuthOtp(
   email: string,
@@ -141,8 +177,16 @@ export async function verifyAuthOtp(
   }
 
   const now = new Date();
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const existing = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    include: { profile: true },
+  });
 
+  if (existing && !existing.isActive) {
+    return { ok: false, error: 'Your account has been deactivated', status: 403 };
+  }
+
+  const role = resolveUserRoleForEmail(normalizedEmail) as 'USER' | 'SUPER_ADMIN';
   const user = existing
     ? await prisma.user.update({
         where: { email: normalizedEmail },
@@ -150,6 +194,8 @@ export async function verifyAuthOtp(
           isVerified: true,
           verifiedAt: existing.verifiedAt ?? now,
           emailVerified: now,
+          role,
+          lastLoginAt: now,
         },
         select: {
           id: true,
@@ -158,15 +204,27 @@ export async function verifyAuthOtp(
           isVerified: true,
           subscriptionPlan: true,
           role: true,
+          profile: {
+            select: {
+              mobile: true,
+              country: true,
+              organization: true,
+              designation: true,
+            },
+          },
         },
       })
     : await prisma.user.create({
         data: {
           email: normalizedEmail,
           name: normalizedEmail.split('@')[0],
+          role,
           isVerified: true,
           verifiedAt: now,
           emailVerified: now,
+          lastLoginAt: now,
+          profile: { create: {} },
+          subscription: { create: defaultSubscriptionCreateData() },
         },
         select: {
           id: true,
@@ -175,11 +233,35 @@ export async function verifyAuthOtp(
           isVerified: true,
           subscriptionPlan: true,
           role: true,
+          profile: {
+            select: {
+              mobile: true,
+              country: true,
+              organization: true,
+              designation: true,
+            },
+          },
         },
       });
 
+  await ensureSuperAdminRole(user.id, normalizedEmail);
+  await touchUserLogin(user.id);
+  await logUserActivity(user.id, 'LOGIN', { email: normalizedEmail });
+
   console.log('[otp] auth success', { email: normalizedEmail, created: !existing });
-  return { ok: true, user };
+  return {
+    ok: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      isVerified: user.isVerified,
+      subscriptionPlan: user.subscriptionPlan,
+      role: role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : user.role,
+      signupProfileComplete: isSignupComplete(user),
+      isNewUser: !existing,
+    },
+  };
 }
 
 /** Verify OTP for an already-signed-in user (legacy account verification flow). */

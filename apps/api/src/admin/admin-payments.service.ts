@@ -15,7 +15,9 @@ export class AdminPaymentsService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        user: { select: { id: true, email: true, name: true, subscriptionPlan: true } },
+        user: {
+          select: { id: true, email: true, name: true, subscriptionPlan: true },
+        },
       },
     });
   }

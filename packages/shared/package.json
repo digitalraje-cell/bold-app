@@ -15,7 +15,8 @@
   "scripts": {
     "build": "pnpm exec tsc",
     "dev": "pnpm exec tsc --watch",
-    "lint": "pnpm exec tsc --noEmit"
+    "lint": "pnpm exec tsc --noEmit",
+    "typecheck": "pnpm exec tsc --noEmit"
   },
   "dependencies": {
     "typescript": "^5.7.0"

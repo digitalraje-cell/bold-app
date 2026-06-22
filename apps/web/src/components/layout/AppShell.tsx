@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SubscriptionPlan } from '@boldmeet/shared';
+import { BoldLogo } from '@/components/brand/BoldLogo';
 import { cn } from '@/lib/utils';
-import { appConfig } from '@/lib/app-config';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 
@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const plan = (session?.user?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
-  const isAdmin = mounted && session?.user?.role === 'ADMIN';
+  const isAdmin = mounted && session?.user?.role === 'SUPER_ADMIN';
   const isPro = plan === SubscriptionPlan.PRO;
 
   function isNavActive(item: (typeof navItems)[number]) {
@@ -66,17 +66,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center gap-2 border-b border-border px-6 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-            {appConfig.name.charAt(0).toUpperCase()}
+        <div className="border-b border-border px-5 py-5">
+          <div className="flex items-start gap-2">
+            <BoldLogo href="/dashboard" size="sm" showTagline className="min-w-0 flex-1" />
+            <button
+              className="ml-auto shrink-0 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <span className="text-lg font-semibold">{appConfig.name}</span>
-          <button
-            className="ml-auto lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
@@ -167,10 +167,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex flex-1 flex-col">
         <header className="flex items-center gap-4 border-b border-border px-6 py-4 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">{appConfig.name}</span>
+          <BoldLogo href="/dashboard" size="sm" variant="icon" />
         </header>
         <main className="flex-1 p-6">{children}</main>
         <AppFooter />

@@ -1,6 +1,7 @@
 export enum UserRole {
   USER = 'USER',
   ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum MeetingStatus {
@@ -131,6 +132,9 @@ export * from './config/app';
 export * from './subscriptions/plans';
 export * from './subscriptions/pricing';
 export * from './roadmap/features';
+export * from './profile/completion';
+export * from './users/constants';
+export * from './registration/types';
 export * from './recording/types';
 export * from './stream/types';
 export * from './webinar/types';

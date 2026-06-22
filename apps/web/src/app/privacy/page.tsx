@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPageLayout } from '@/components/marketing/LegalPageLayout';
+import { LegalSection } from '@/components/marketing/legal/LegalSection';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { createLegalMetadata } from '@/lib/legal-metadata';
 
@@ -11,11 +12,28 @@ export const metadata: Metadata = createLegalMetadata({
   path: '/privacy',
 });
 
+const PRIVACY_SECTIONS = [
+  { id: 'information-we-collect', label: 'Information We Collect' },
+  { id: 'how-we-use', label: 'How We Use Data' },
+  { id: 'third-party', label: 'Third-Party Services' },
+  { id: 'data-retention', label: 'Data Retention' },
+  { id: 'data-security', label: 'Data Security' },
+  { id: 'your-rights', label: 'Your Rights' },
+  { id: 'international-transfers', label: 'International Transfers' },
+  { id: 'children', label: 'Children' },
+  { id: 'changes', label: 'Policy Changes' },
+  { id: 'contact', label: 'Contact' },
+] as const;
+
 export default function PrivacyPolicyPage() {
   const { productName, companyName, websiteUrl, supportEmail } = LEGAL_CONFIG;
 
   return (
-    <LegalPageLayout title="Privacy Policy">
+    <LegalPageLayout
+      title="Privacy Policy"
+      subtitle="Learn how we collect, use, and protect your personal information."
+      sections={[...PRIVACY_SECTIONS]}
+    >
       <p>
         This Privacy Policy describes how {companyName} (&quot;{companyName}&quot;, &quot;we&quot;,
         &quot;us&quot;, or &quot;our&quot;) collects, uses, stores, and protects personal
@@ -28,7 +46,7 @@ export default function PrivacyPolicyPage() {
         subscription, you agree to this Privacy Policy.
       </p>
 
-      <h2>1. Information we collect</h2>
+      <LegalSection id="information-we-collect">1. Information we collect</LegalSection>
       <h3>Account and authentication</h3>
       <ul>
         <li>
@@ -94,7 +112,7 @@ export default function PrivacyPolicyPage() {
         for details.
       </p>
 
-      <h2>2. How we use your information</h2>
+      <LegalSection id="how-we-use">2. How we use your information</LegalSection>
       <ul>
         <li>Provide, operate, and maintain {productName} meetings, chat, and collaboration features.</li>
         <li>Authenticate users via email OTP and maintain secure sessions.</li>
@@ -105,7 +123,7 @@ export default function PrivacyPolicyPage() {
         <li>Comply with legal obligations and payment partner requirements.</li>
       </ul>
 
-      <h2>3. Third-party services</h2>
+      <LegalSection id="third-party">3. Third-party services</LegalSection>
       <p>
         We use trusted third-party providers to deliver {productName}. These providers process data
         only as needed to perform their services:
@@ -137,7 +155,7 @@ export default function PrivacyPolicyPage() {
         only under contractual obligations appropriate to their role.
       </p>
 
-      <h2>4. Data retention</h2>
+      <LegalSection id="data-retention">4. Data retention</LegalSection>
       <ul>
         <li>
           Account and billing records are retained while your account is active and for a reasonable
@@ -154,7 +172,7 @@ export default function PrivacyPolicyPage() {
         </li>
       </ul>
 
-      <h2>5. Data security</h2>
+      <LegalSection id="data-security">5. Data security</LegalSection>
       <p>
         We implement administrative, technical, and organisational measures to protect your
         information, including encryption in transit (HTTPS), secure session management, and access
@@ -162,7 +180,7 @@ export default function PrivacyPolicyPage() {
         security.
       </p>
 
-      <h2>6. Your rights</h2>
+      <LegalSection id="your-rights">6. Your rights</LegalSection>
       <p>Subject to applicable law (including Indian data protection requirements), you may:</p>
       <ul>
         <li>Request access to personal data we hold about you.</li>
@@ -183,27 +201,27 @@ export default function PrivacyPolicyPage() {
         .
       </p>
 
-      <h2>7. International transfers</h2>
+      <LegalSection id="international-transfers">7. International transfers</LegalSection>
       <p>
         Your data may be processed on servers located in India or other countries where our service
         providers operate. We take steps to ensure appropriate safeguards when data is transferred
         internationally.
       </p>
 
-      <h2>8. Children</h2>
+      <LegalSection id="children">8. Children</LegalSection>
       <p>
         {productName} is not intended for users under 18 years of age. We do not knowingly collect
         personal information from children. Contact us if you believe a child has provided us data.
       </p>
 
-      <h2>9. Changes to this policy</h2>
+      <LegalSection id="changes">9. Changes to this policy</LegalSection>
       <p>
         We may update this Privacy Policy from time to time. We will post the updated version on
         this page with a revised &quot;Last updated&quot; date. Continued use of {productName} after
         changes constitutes acceptance of the updated policy.
       </p>
 
-      <h2>10. Contact us</h2>
+      <LegalSection id="contact">10. Contact us</LegalSection>
       <p>
         {companyName}
         <br />

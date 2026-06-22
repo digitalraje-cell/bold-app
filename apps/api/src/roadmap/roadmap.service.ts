@@ -1,12 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  ROADMAP_VOTABLE_FEATURES,
-  RoadmapFeatureKey,
-} from '@boldmeet/shared';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { ROADMAP_VOTABLE_FEATURES, RoadmapFeatureKey } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 const VALID_KEYS = new Set<string>(ROADMAP_VOTABLE_FEATURES.map((f) => f.key));
@@ -15,7 +8,9 @@ const VALID_KEYS = new Set<string>(ROADMAP_VOTABLE_FEATURES.map((f) => f.key));
 export class RoadmapService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private assertFeatureKey(featureKey: string): asserts featureKey is RoadmapFeatureKey {
+  private assertFeatureKey(
+    featureKey: string,
+  ): asserts featureKey is RoadmapFeatureKey {
     if (!VALID_KEYS.has(featureKey)) {
       throw new BadRequestException('Invalid feature key');
     }
@@ -60,7 +55,9 @@ export class RoadmapService {
       update: {},
     });
 
-    const count = await this.prisma.roadmapVote.count({ where: { featureKey } });
+    const count = await this.prisma.roadmapVote.count({
+      where: { featureKey },
+    });
 
     return { featureKey, voteCount: count, voted: true };
   }
@@ -72,7 +69,9 @@ export class RoadmapService {
       where: { userId, featureKey },
     });
 
-    const count = await this.prisma.roadmapVote.count({ where: { featureKey } });
+    const count = await this.prisma.roadmapVote.count({
+      where: { featureKey },
+    });
 
     return { featureKey, voteCount: count, voted: false };
   }

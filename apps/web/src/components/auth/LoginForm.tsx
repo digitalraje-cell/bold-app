@@ -4,9 +4,10 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { BoldLogo } from '@/components/brand/BoldLogo';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { appConfig } from '@/lib/app-config';
 import { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from '@/lib/otp-constants';
 
 function LoginFormInner() {
@@ -92,7 +93,16 @@ function LoginFormInner() {
         return;
       }
 
-      router.push(callbackUrl);
+      try {
+        const profile = (await api.users.me()) as { signupProfileComplete?: boolean };
+        if (!profile.signupProfileComplete) {
+          router.push('/signup/complete');
+        } else {
+          router.push(callbackUrl);
+        }
+      } catch {
+        router.push(callbackUrl);
+      }
       router.refresh();
     } catch {
       setError('Sign in failed. Please try again.');
@@ -104,13 +114,13 @@ function LoginFormInner() {
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
-          {appConfig.name.charAt(0).toUpperCase()}
+        <div className="mx-auto mb-5 flex justify-center">
+          <BoldLogo size="xl" showTagline />
         </div>
-        <h1 className="text-2xl font-semibold">
-          {step === 'email' ? 'Welcome to BoldMeet' : 'Enter your code'}
+        <h1 className="text-h2">
+          {step === 'email' ? 'Welcome back' : 'Enter your code'}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-2 text-caption">
           {step === 'email'
             ? 'Sign in or create an account with a one-time code sent to your email.'
             : `We sent a 6-digit code to ${email}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`}
@@ -118,13 +128,13 @@ function LoginFormInner() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
           {error}
         </div>
       )}
 
       {message && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
           {message}
         </div>
       )}

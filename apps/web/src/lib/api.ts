@@ -1,4 +1,5 @@
 import { getApiBaseUrl, getClientApiTransport } from '@/lib/api-base';
+import type { RegistrationFormConfig } from '@boldmeet/shared';
 
 async function getAuthToken(): Promise<string | null> {
   const res = await fetch('/api/token');
@@ -157,6 +158,35 @@ export const api = {
         body: JSON.stringify(data),
       }, false),
     listRegistrants: (id: string) => apiFetch(`/meetings/${id}/registrants`),
+    registration: {
+      getForm: (meetingId: string) => apiFetch(`/meetings/${meetingId}/registration/form`),
+      saveForm: (meetingId: string, data: RegistrationFormConfig | Record<string, unknown>) =>
+        apiFetch(`/meetings/${meetingId}/registration/form`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }),
+      getPublicForm: (meetingId: string) =>
+        apiFetch(`/meetings/${meetingId}/registration/form/public`, {}, false),
+      submit: (meetingId: string, data: Record<string, unknown>) =>
+        apiFetch(`/meetings/${meetingId}/registration/submit`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }, false),
+      getStatus: (meetingId: string, email: string) =>
+        apiFetch(
+          `/meetings/${meetingId}/registration/status?email=${encodeURIComponent(email)}`,
+          {},
+          false,
+        ),
+      list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/registration/registrations`),
+      updateStatus: (meetingId: string, registrationId: string, status: string) =>
+        apiFetch(`/meetings/${meetingId}/registration/registrations/${registrationId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        }),
+      exportUrl: (meetingId: string, format: 'csv' | 'excel') =>
+        `/api/backend/meetings/${meetingId}/registration/registrations/export?format=${format}`,
+    },
     lock: (id: string, isLocked: boolean) =>
       apiFetch(`/meetings/${id}/lock`, {
         method: 'POST',
@@ -166,6 +196,14 @@ export const api = {
       apiFetch(`/meetings/${id}/settings`, {
         method: 'PATCH',
         body: JSON.stringify(settings),
+      }),
+  },
+  users: {
+    me: () => apiFetch('/users/me'),
+    updateProfile: (data: Record<string, unknown>) =>
+      apiFetch('/users/me/profile', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
       }),
   },
   subscriptions: {
@@ -183,11 +221,39 @@ export const api = {
       apiFetch(`/billing/pending/${id}/cancel`, { method: 'POST' }),
   },
   admin: {
-    listUsers: () => apiFetch('/admin/users'),
+    dashboard: () => apiFetch('/admin/dashboard'),
+    listUsers: (params?: { filter?: string; search?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.filter) query.set('filter', params.filter);
+      if (params?.search) query.set('search', params.search);
+      const qs = query.toString();
+      return apiFetch(`/admin/users${qs ? `?${qs}` : ''}`);
+    },
+    changeUserPlan: (id: string, plan: string) =>
+      apiFetch(`/admin/users/${id}/plan`, {
+        method: 'PATCH',
+        body: JSON.stringify({ plan }),
+      }),
+    deactivateUser: (id: string) =>
+      apiFetch(`/admin/users/${id}/deactivate`, { method: 'POST' }),
+    activateUser: (id: string) =>
+      apiFetch(`/admin/users/${id}/activate`, { method: 'POST' }),
     activateUserPro: (id: string) =>
       apiFetch(`/admin/users/${id}/activate-pro`, { method: 'POST' }),
     deactivateUserPro: (id: string) =>
       apiFetch(`/admin/users/${id}/deactivate-pro`, { method: 'POST' }),
+    listMeetings: (params?: { status?: string; search?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.status) query.set('status', params.status);
+      if (params?.search) query.set('search', params.search);
+      const qs = query.toString();
+      return apiFetch(`/admin/meetings${qs ? `?${qs}` : ''}`);
+    },
+    listActiveParticipants: () => apiFetch('/admin/meetings/participants/active'),
+    listRecordings: () => apiFetch('/admin/meetings/recordings'),
+    listSubscriptions: (search?: string) =>
+      apiFetch(`/admin/subscriptions${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+    registrationStats: () => apiFetch('/admin/registrations/stats'),
     listPendingPayments: () => apiFetch('/admin/payments/pending'),
     activatePayment: (id: string) =>
       apiFetch(`/admin/payments/${id}/activate`, { method: 'POST' }),

@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { HostProfileModal } from '@/components/profile/HostProfileModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
-import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
+import { DEFAULT_MEETING_SETTINGS, createDefaultRegistrationFormConfig, type RegistrationFormConfig } from '@boldmeet/shared';
+import { RegistrationFormBuilderModal } from '@/components/meeting/RegistrationFormBuilderModal';
 import {
   hostDefaultsToMeetingSettings,
   readUserSettings,
@@ -50,6 +52,23 @@ export function CreateMeetingForm() {
   const [passcodeRequired, setPasscodeRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [hostProfileComplete, setHostProfileComplete] = useState(true);
+  const [showHostProfileModal, setShowHostProfileModal] = useState(false);
+  const [showRegistrationBuilder, setShowRegistrationBuilder] = useState(false);
+  const [registrationFormConfig, setRegistrationFormConfig] = useState<RegistrationFormConfig>(
+    createDefaultRegistrationFormConfig(),
+  );
+  const [profileInitial, setProfileInitial] = useState<{
+    name?: string | null;
+    mobile?: string | null;
+    organization?: string | null;
+    designation?: string | null;
+    country?: string | null;
+    website?: string | null;
+    linkedInUrl?: string | null;
+    avatarUrl?: string | null;
+  }>({});
   const [touched, setTouched] = useState({
     title: false,
     passcode: false,
@@ -73,6 +92,44 @@ export function CreateMeetingForm() {
     const hostMeeting = hostDefaultsToMeetingSettings(host);
     setSettings((prev) => ({ ...prev, ...hostMeeting }));
     setPasscodeRequired(host.requireMeetingPasscode);
+  }, []);
+
+  useEffect(() => {
+    void api.users
+      .me()
+      .then((profile) => {
+        const p = profile as {
+          name?: string | null;
+          avatarUrl?: string | null;
+          hostProfileComplete?: boolean;
+          profile?: {
+            mobile?: string | null;
+            country?: string | null;
+            organization?: string | null;
+            designation?: string | null;
+            website?: string | null;
+            linkedInUrl?: string | null;
+          };
+        };
+        const complete = Boolean(p.hostProfileComplete);
+        setHostProfileComplete(complete);
+        setShowHostProfileModal(!complete);
+        setProfileInitial({
+          name: p.name,
+          avatarUrl: p.avatarUrl,
+          mobile: p.profile?.mobile,
+          country: p.profile?.country,
+          organization: p.profile?.organization,
+          designation: p.profile?.designation,
+          website: p.profile?.website,
+          linkedInUrl: p.profile?.linkedInUrl,
+        });
+      })
+      .catch(() => {
+        setHostProfileComplete(false);
+        setShowHostProfileModal(true);
+      })
+      .finally(() => setProfileLoading(false));
   }, []);
 
   const isFormValid = !fieldErrors.title && !fieldErrors.passcode && !fieldErrors.scheduledAt;
@@ -105,6 +162,11 @@ export function CreateMeetingForm() {
       return;
     }
 
+    if (!hostProfileComplete) {
+      setShowHostProfileModal(true);
+      return;
+    }
+
     setError('');
     setLoading(true);
     submittingRef.current = true;
@@ -119,6 +181,7 @@ export function CreateMeetingForm() {
         scheduledAt: isInstant ? undefined : scheduledAt,
         durationMinutes: resolvedDuration,
         settings,
+        registrationForm: settings.registrationRequired ? registrationFormConfig : undefined,
       })) as { id: string; meetingCode: string };
 
       if (isInstant) {
@@ -159,6 +222,23 @@ export function CreateMeetingForm() {
 
   return (
     <div className="mx-auto max-w-2xl">
+        <HostProfileModal
+          open={showHostProfileModal}
+          initial={profileInitial}
+          onComplete={() => {
+            setHostProfileComplete(true);
+            setShowHostProfileModal(false);
+          }}
+        />
+        <RegistrationFormBuilderModal
+          open={showRegistrationBuilder}
+          onClose={() => setShowRegistrationBuilder(false)}
+          onSave={(config) => {
+            setRegistrationFormConfig(config);
+            setShowRegistrationBuilder(false);
+          }}
+          initialConfig={registrationFormConfig}
+        />
         <h1 className="text-2xl font-bold">
           {isInstant ? 'Start Instant Meeting' : 'Schedule Meeting'}
         </h1>
@@ -291,8 +371,23 @@ export function CreateMeetingForm() {
                 label="Registration required"
                 description="Guests must register before joining"
                 checked={settings.registrationRequired}
-                onChange={() => toggleSetting('registrationRequired')}
+                onChange={() => {
+                  toggleSetting('registrationRequired');
+                  if (!settings.registrationRequired) {
+                    setRegistrationFormConfig(createDefaultRegistrationFormConfig());
+                  }
+                }}
               />
+              {settings.registrationRequired && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setShowRegistrationBuilder(true)}
+                >
+                  Configure Registration Form
+                </Button>
+              )}
             </div>
           </div>
 
@@ -300,7 +395,7 @@ export function CreateMeetingForm() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" loading={loading} disabled={!isFormValid || loading}>
+            <Button type="submit" loading={loading} disabled={!isFormValid || loading || profileLoading}>
               {isInstant ? 'Start Meeting' : 'Schedule Meeting'}
             </Button>
           </div>

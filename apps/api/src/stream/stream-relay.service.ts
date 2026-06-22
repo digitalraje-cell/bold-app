@@ -21,7 +21,9 @@ export class StreamRelayService {
   private readonly logger = new Logger(StreamRelayService.name);
   private relays = new Map<string, ActiveRelay>();
 
-  start(input: RelayStartInput): { ok: true; ingestToken: string } | { ok: false; error: string } {
+  start(
+    input: RelayStartInput,
+  ): { ok: true; ingestToken: string } | { ok: false; error: string } {
     if (this.relays.has(input.streamId)) {
       return { ok: false, error: 'Relay already running for this stream' };
     }
@@ -63,7 +65,8 @@ export class StreamRelayService {
         { stdio: ['pipe', 'pipe', 'pipe'] },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to spawn ffmpeg';
+      const message =
+        error instanceof Error ? error.message : 'Failed to spawn ffmpeg';
       return { ok: false, error: message };
     }
 
@@ -73,7 +76,9 @@ export class StreamRelayService {
     });
 
     ffmpeg.on('close', (code) => {
-      this.logger.log(`[ffmpeg:${input.streamId}] exited with code ${code ?? 'unknown'}`);
+      this.logger.log(
+        `[ffmpeg:${input.streamId}] exited with code ${code ?? 'unknown'}`,
+      );
       this.relays.delete(input.streamId);
     });
 

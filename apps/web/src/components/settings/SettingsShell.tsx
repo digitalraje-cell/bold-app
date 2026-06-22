@@ -11,6 +11,7 @@ import {
   LifeBuoy,
   Settings2,
 } from 'lucide-react';
+import { BoldIconMark } from '@/components/brand/BoldIconMark';
 import { cn } from '@/lib/utils';
 
 const baseNav = [
@@ -24,7 +25,7 @@ const baseNav = [
 export function SettingsNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'SUPER_ADMIN';
 
   const nav = isAdmin
     ? [...baseNav, { href: '/settings/admin', label: 'Admin', icon: Settings2 }]
@@ -65,11 +66,14 @@ export function SettingsShell({
 }) {
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your profile, preferences, and subscription.
-        </p>
+      <div className="mb-8 flex items-center gap-3">
+        <BoldIconMark size={36} className="shrink-0" />
+        <div>
+          <h1 className="text-h2">Settings</h1>
+          <p className="mt-1 text-caption">
+            Manage your profile, preferences, and subscription.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">

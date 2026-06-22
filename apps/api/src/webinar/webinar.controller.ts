@@ -9,7 +9,8 @@ export class WebinarController {
   status() {
     return {
       implemented: false,
-      message: 'Evergreen webinar mode architecture is prepared. UI and features coming soon.',
+      message:
+        'Evergreen webinar mode architecture is prepared. UI and features coming soon.',
       capabilities: [
         'Recorded video webinars (YouTube → Bold Video)',
         'Unlimited configurable attendees',

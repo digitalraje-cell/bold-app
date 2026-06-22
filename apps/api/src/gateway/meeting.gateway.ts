@@ -19,7 +19,9 @@ import { PrismaService } from '../prisma/prisma.service';
     credentials: true,
   },
 })
-export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class MeetingGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -228,7 +230,9 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   broadcastRoomModeChanged(meetingId: string, roomMode: string) {
-    this.server.to(meetingId).emit('room:mode-changed', { roomMode, meetingId });
+    this.server
+      .to(meetingId)
+      .emit('room:mode-changed', { roomMode, meetingId });
   }
 
   broadcastParticipantStage(
@@ -254,8 +258,14 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
   }
 
-  broadcastChatModeChanged(meetingId: string, chatMode: string, chatEnabled: boolean) {
-    this.server.to(meetingId).emit('chat:mode-changed', { chatMode, chatEnabled });
+  broadcastChatModeChanged(
+    meetingId: string,
+    chatMode: string,
+    chatEnabled: boolean,
+  ) {
+    this.server
+      .to(meetingId)
+      .emit('chat:mode-changed', { chatMode, chatEnabled });
   }
 
   broadcastSettingsUpdate(meetingId: string, patch: Record<string, unknown>) {
@@ -267,7 +277,9 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   broadcastParticipantLeft(meetingId: string, participantId: string) {
-    this.server.to(meetingId).emit('participant:left', { meetingId, participantId });
+    this.server
+      .to(meetingId)
+      .emit('participant:left', { meetingId, participantId });
   }
 
   broadcastParticipantJoined(
@@ -292,8 +304,14 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
   }
 
-  broadcastParticipantRoleChanged(meetingId: string, participantId: string, role: string) {
-    this.server.to(meetingId).emit('participant:role-changed', { meetingId, participantId, role });
+  broadcastParticipantRoleChanged(
+    meetingId: string,
+    participantId: string,
+    role: string,
+  ) {
+    this.server
+      .to(meetingId)
+      .emit('participant:role-changed', { meetingId, participantId, role });
   }
 
   broadcastWaitingAdmit(meetingId: string, participantId: string) {

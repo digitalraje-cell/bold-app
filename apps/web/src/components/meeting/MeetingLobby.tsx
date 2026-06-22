@@ -9,6 +9,11 @@ import { formatMeetingCode } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
+import {
+  DynamicRegistrationForm,
+  RegistrationPendingBanner,
+} from '@/components/meeting/DynamicRegistrationForm';
+import type { RegistrationFieldOption } from '@boldmeet/shared';
 import { joinMeetingAndGetPath, readGuestJoinSession } from '@/lib/meeting-join';
 import { saveJoinMediaPrefs } from '@/lib/join-media-prefs';
 import { readUserSettings } from '@/lib/user-settings';
@@ -114,15 +119,11 @@ export function MeetingLobby({
   const [displayName, setDisplayName] = useState('');
   const [passcode, setPasscode] = useState('');
   const [registrantEmail, setRegistrantEmail] = useState(session?.user?.email ?? '');
-  const [registrationDone, setRegistrationDone] = useState(false);
+  const [registrationState, setRegistrationState] = useState<
+    'loading' | 'none' | 'form' | 'pending' | 'approved'
+  >('loading');
+  const [registrationFields, setRegistrationFields] = useState<RegistrationFieldOption[]>([]);
   const [registerLoading, setRegisterLoading] = useState(false);
-  const [regForm, setRegForm] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    company: '',
-    designation: '',
-  });
   const [joinLoading, setJoinLoading] = useState(false);
   const hasServerPreview = initialPreview !== null || Boolean(initialPreviewError);
   const [previewLoading, setPreviewLoading] = useState(!hasServerPreview);
@@ -155,17 +156,65 @@ export function MeetingLobby({
   useEffect(() => {
     if (session?.user?.email) {
       setRegistrantEmail(session.user.email);
-      setRegForm((prev) => ({ ...prev, email: session.user?.email ?? prev.email }));
     }
   }, [session?.user?.email]);
+
+  useEffect(() => {
+    if (!meetingId || !meeting?.registrationRequired) {
+      setRegistrationState('none');
+      return;
+    }
+
+    if (session?.user?.id && meeting.hostId && session.user.id === meeting.hostId) {
+      setRegistrationState('approved');
+      return;
+    }
+
+    let cancelled = false;
+    const email = session?.user?.email ?? registrantEmail;
+
+    void Promise.all([
+      api.meetings.registration.getPublicForm(meetingId),
+      email
+        ? api.meetings.registration.getStatus(meetingId, email)
+        : Promise.resolve({ registered: false, canJoin: false, status: null }),
+    ])
+      .then(([form, status]) => {
+        if (cancelled) return;
+        const payload = form as { fields: RegistrationFieldOption[] };
+        setRegistrationFields(payload.fields ?? []);
+        const statusPayload = status as {
+          registered?: boolean;
+          canJoin?: boolean;
+          status?: string | null;
+          fullName?: string;
+        };
+        if (statusPayload.canJoin) {
+          setRegistrationState('approved');
+          if (statusPayload.fullName) setDisplayName(statusPayload.fullName);
+        } else if (statusPayload.registered && statusPayload.status === 'PENDING') {
+          setRegistrationState('pending');
+        } else {
+          setRegistrationState('form');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRegistrationState('form');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingId, meeting?.registrationRequired, meeting?.hostId, session?.user?.id, session?.user?.email, registrantEmail]);
 
   const showPasscodeField =
     Boolean(meeting?.hasPassword) && entryViaCode && !session?.user?.id;
 
   const needsRegistration =
     Boolean(meeting?.registrationRequired) &&
-    !registrationDone &&
-    !session?.user?.id;
+    registrationState !== 'approved' &&
+    registrationState !== 'none' &&
+    !(session?.user?.id && meeting?.hostId === session.user.id);
 
   const endTimePreview = useMemo(() => {
     if (meeting?.scheduledEndAt) {
@@ -228,22 +277,28 @@ export function MeetingLobby({
     !previewError &&
     !previewLoading;
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRegisterSubmit(answers: Record<string, string | string[]>) {
     if (!meetingId) return;
     setRegisterLoading(true);
     setJoinError('');
     try {
-      await api.meetings.register(meetingId, {
-        fullName: regForm.fullName.trim(),
-        email: regForm.email.trim(),
-        phone: regForm.phone.trim() || undefined,
-        company: regForm.company.trim() || undefined,
-        designation: regForm.designation.trim() || undefined,
-      });
-      setRegistrantEmail(regForm.email.trim());
-      setRegistrationDone(true);
-      setDisplayName(regForm.fullName.trim());
+      const result = (await api.meetings.registration.submit(meetingId, { answers })) as {
+        email: string;
+        fullName: string;
+        status: string;
+        canJoin: boolean;
+        message: string;
+      };
+      setRegistrantEmail(result.email);
+      setDisplayName(result.fullName);
+      if (result.canJoin) {
+        setRegistrationState('approved');
+      } else if (result.status === 'PENDING') {
+        setRegistrationState('pending');
+      }
+      if (!result.canJoin) {
+        setJoinError(result.message);
+      }
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -395,41 +450,18 @@ export function MeetingLobby({
           </div>
         )}
 
-        {canJoin && needsRegistration && !joined && (
-          <form onSubmit={handleRegister} className="space-y-3 rounded-xl border border-border p-4">
-            <h2 className="font-semibold">Registration required</h2>
-            <Input
-              label="Full name"
-              value={regForm.fullName}
-              onChange={(e) => setRegForm((p) => ({ ...p, fullName: e.target.value }))}
-              required
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={regForm.email}
-              onChange={(e) => setRegForm((p) => ({ ...p, email: e.target.value }))}
-              required
-            />
-            <Input
-              label="Phone (optional)"
-              value={regForm.phone}
-              onChange={(e) => setRegForm((p) => ({ ...p, phone: e.target.value }))}
-            />
-            <Input
-              label="Company (optional)"
-              value={regForm.company}
-              onChange={(e) => setRegForm((p) => ({ ...p, company: e.target.value }))}
-            />
-            <Input
-              label="Designation (optional)"
-              value={regForm.designation}
-              onChange={(e) => setRegForm((p) => ({ ...p, designation: e.target.value }))}
-            />
-            <Button type="submit" className="w-full" loading={registerLoading}>
-              Register to join
-            </Button>
-          </form>
+        {canJoin && needsRegistration && registrationState === 'form' && !joined && (
+          <DynamicRegistrationForm
+            fields={registrationFields}
+            loading={registerLoading}
+            initialEmail={session?.user?.email ?? registrantEmail}
+            initialName={session?.user?.name ?? displayName}
+            onSubmit={handleRegisterSubmit}
+          />
+        )}
+
+        {canJoin && needsRegistration && registrationState === 'pending' && !joined && (
+          <RegistrationPendingBanner />
         )}
 
         {canJoin && !needsRegistration && !joined && (

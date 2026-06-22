@@ -31,7 +31,9 @@ export class StreamIngestGateway implements OnGatewayConnection {
     const token = client.handshake.query.token as string;
 
     if (!streamId || !token || !this.relay.verifyIngestToken(streamId, token)) {
-      this.logger.warn('[stream-ingest] rejected connection', { streamId: streamId || 'missing' });
+      this.logger.warn('[stream-ingest] rejected connection', {
+        streamId: streamId || 'missing',
+      });
       client.disconnect();
       return;
     }

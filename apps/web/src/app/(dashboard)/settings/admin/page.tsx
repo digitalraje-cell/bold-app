@@ -1,6 +1,5 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { AdminSettings } from '@/components/settings/AdminSettings';
 import { redirect } from 'next/navigation';
 
 export const runtime = 'nodejs';
@@ -15,9 +14,9 @@ export default async function AdminSettingsPage() {
     select: { role: true },
   });
 
-  if (user?.role !== 'ADMIN') {
+  if (user?.role !== 'SUPER_ADMIN') {
     redirect('/settings/account');
   }
 
-  return <AdminSettings />;
+  redirect('/admin');
 }
