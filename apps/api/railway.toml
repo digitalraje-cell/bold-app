@@ -1,6 +1,7 @@
 # Railway config for @boldmeet/api
 # Set service "Root Directory" to "/" (repo root) — NOT apps/api.
 # In Railway UI: Settings → Config-as-code → path: /apps/api/railway.toml
+# Deploy: YouTube lifecycle fix (c1bf9e8) — deferred transition + idempotent workflow
 
 [build]
 builder = "NIXPACKS"
