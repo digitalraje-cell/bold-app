@@ -37,6 +37,62 @@ type StreamSession = {
   viewerCount?: number | null;
 };
 
+type StreamStartApiResponse = StreamSession & {
+  ingestToken?: string;
+  streamId?: string;
+  sessions?: Array<
+    Partial<StreamSession> & {
+      streamId?: string;
+      token?: string;
+    }
+  >;
+  data?: StreamStartApiResponse;
+};
+
+/** Map stream/start API body → relay sessions with id + ingestToken for Socket.IO. */
+function normalizeStreamStartResponse(response: StreamStartApiResponse): StreamSession[] {
+  console.log('stream start response', response);
+
+  const body =
+    response && typeof response === 'object' && response.data && typeof response.data === 'object'
+      ? response.data
+      : response;
+
+  const rootId = body.id ?? body.streamId;
+  const rootToken = body.ingestToken;
+
+  const rawSessions =
+    Array.isArray(body.sessions) && body.sessions.length > 0 ? body.sessions : [body];
+
+  return rawSessions
+    .map((item, index) => {
+      const streamId = item.id ?? item.streamId ?? rootId;
+      const ingestToken = item.ingestToken ?? item.token ?? rootToken;
+
+      if (!streamId || !ingestToken) {
+        console.error('[youtube-live] missing ingest credentials for session', {
+          index,
+          item,
+          rootId,
+          hasRootToken: Boolean(rootToken),
+        });
+      }
+
+      return {
+        id: String(streamId ?? ''),
+        ingestToken: String(ingestToken ?? ''),
+        watchUrl: item.watchUrl ?? body.watchUrl ?? null,
+        channelName: item.channelName ?? null,
+        youtubeAccountId: item.youtubeAccountId ?? null,
+        title: item.title ?? body.title ?? null,
+        startedAt: item.startedAt ?? body.startedAt ?? null,
+        status: item.status ?? body.status,
+        viewerCount: item.viewerCount ?? null,
+      };
+    })
+    .filter((session) => session.id && session.ingestToken);
+}
+
 function deriveDisplayStatus(input: {
   broadcastStatus: BroadcastStatus;
   connectionState: StreamConnectionState;
@@ -209,13 +265,21 @@ export function useYouTubeLiveStream(meetingId: string) {
         });
         logYouTubePipeline('STAGE-2-SOCKET', 'socket:connecting');
 
-        const sockets = sessions.map(
-          (session) =>
-            io(socketUrl, {
-              query: { streamId: session.id, token: session.ingestToken },
-              transports: ['websocket'],
-            }),
-        );
+        const sockets = sessions.map((session) => {
+          const streamId = session.id;
+          const ingestToken = session.ingestToken;
+
+          console.log('socket connect payload', { streamId, ingestToken });
+
+          const socket = io(socketUrl, {
+            query: { streamId, token: ingestToken },
+            auth: { streamId, token: ingestToken },
+            transports: ['websocket'],
+          });
+
+          console.log('socket query/auth', socket.io.opts);
+          return socket;
+        });
         socketsRef.current = sockets;
 
         let connectedCount = 0;
@@ -278,7 +342,9 @@ export function useYouTubeLiveStream(meetingId: string) {
 
         for (const socket of sockets) {
           const sessionStreamId =
-            (socket.io.opts.query as { streamId?: string } | undefined)?.streamId ?? null;
+            (socket.io.opts.query as { streamId?: string } | undefined)?.streamId ??
+            (socket.io.opts.auth as { streamId?: string } | undefined)?.streamId ??
+            null;
 
           socket.io.on('reconnect_attempt', (attempt) => {
             logYouTubePipeline('STAGE-2-SOCKET', 'socket:reconnect-attempt', {
@@ -418,21 +484,18 @@ export function useYouTubeLiveStream(meetingId: string) {
       try {
         pendingCapture = await requestDisplayCapture();
         logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:request', { meetingId });
-        const session = (await api.stream.start(meetingId, params)) as StreamSession & {
-          ingestToken: string;
-          sessions?: StreamSession[];
-        };
+        const session = (await api.stream.start(meetingId, params)) as StreamStartApiResponse;
         startedOnServer = true;
         serverStreamActiveRef.current = true;
+        const relaySessions = normalizeStreamStartResponse(session);
+        if (relaySessions.length === 0) {
+          throw new Error('Stream started but ingest credentials were missing from the API response.');
+        }
         logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:success', {
-          streamId: session.id,
-          sessionCount: session.sessions?.length ?? 1,
-          hasIngestToken: Boolean(session.ingestToken),
+          streamId: relaySessions[0]!.id,
+          sessionCount: relaySessions.length,
+          hasIngestToken: Boolean(relaySessions[0]!.ingestToken),
         });
-        const relaySessions =
-          session.sessions && session.sessions.length > 0
-            ? session.sessions
-            : [{ ...session, ingestToken: session.ingestToken }];
         await attachCaptureAndSockets(relaySessions, pendingCapture);
         pendingCapture = null;
         return session;
@@ -464,14 +527,11 @@ export function useYouTubeLiveStream(meetingId: string) {
     let pendingCapture: MediaStream | null = null;
     try {
       pendingCapture = await requestDisplayCapture();
-      const session = (await api.stream.resume(meetingId)) as StreamSession & {
-        ingestToken: string;
-        sessions?: StreamSession[];
-      };
-      const relaySessions =
-        session.sessions && session.sessions.length > 0
-          ? session.sessions
-          : [{ ...session, ingestToken: session.ingestToken }];
+      const session = (await api.stream.resume(meetingId)) as StreamStartApiResponse;
+      const relaySessions = normalizeStreamStartResponse(session);
+      if (relaySessions.length === 0) {
+        throw new Error('Stream resumed but ingest credentials were missing from the API response.');
+      }
       await attachCaptureAndSockets(relaySessions, pendingCapture);
       pendingCapture = null;
       serverStreamActiveRef.current = true;

@@ -45,8 +45,10 @@ export class StreamIngestGateway
   ) {}
 
   handleConnection(client: Socket) {
-    const streamId = client.handshake.query.streamId as string;
-    const token = client.handshake.query.token as string;
+    const query = client.handshake.query;
+    const auth = client.handshake.auth as { streamId?: string; token?: string } | undefined;
+    const streamId = (query.streamId as string) || auth?.streamId;
+    const token = (query.token as string) || auth?.token;
     const relayRunning = streamId ? this.relay.isRunning(streamId) : false;
 
     if (!streamId || !token || !this.relay.verifyIngestToken(streamId, token)) {
