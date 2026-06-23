@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   detectBrowser,
   getBrowserContinueLabel,
+  isAndroidUserAgent,
   isIosDevice,
+  isPwaStandalone,
   type BrowserName,
   type PwaAnalyticsEvent,
 } from '@boldmeet/shared';
@@ -15,18 +17,10 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-export function isPwaStandalone(): boolean {
-  if (typeof window === 'undefined') return false;
-  const nav = window.navigator as Navigator & { standalone?: boolean };
-  if (nav.standalone === true) return true;
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.matchMedia('(display-mode: minimal-ui)').matches
-  );
-}
+export { isPwaStandalone } from '@boldmeet/shared';
 
 export function isAndroidDevice(userAgent: string): boolean {
-  return /android/i.test(userAgent);
+  return isAndroidUserAgent(userAgent);
 }
 
 export function usePwaInstall() {
@@ -41,7 +35,7 @@ export function usePwaInstall() {
     const ua = navigator.userAgent;
     setBrowser(detectBrowser(ua));
     setIsIos(isIosDevice(ua));
-    setIsAndroid(isAndroidDevice(ua));
+    setIsAndroid(isAndroidUserAgent(ua));
     setIsInstalled(isPwaStandalone());
     setReady(true);
 
@@ -128,7 +122,7 @@ export async function trackPwaEvent(
     await api.pwa.track({
       event,
       browser: extra?.browser ?? detectBrowser(ua),
-      platform: isPwaStandalone() ? 'pwa' : isIosDevice(ua) ? 'ios' : isAndroidDevice(ua) ? 'android' : 'browser',
+      platform: isPwaStandalone() ? 'pwa' : isIosDevice(ua) ? 'ios' : isAndroidUserAgent(ua) ? 'android' : 'browser',
       meetingId: extra?.meetingId,
       meetingCode: extra?.meetingCode,
     });

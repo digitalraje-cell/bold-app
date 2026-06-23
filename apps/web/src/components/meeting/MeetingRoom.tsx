@@ -17,10 +17,12 @@ import {
 import { useMeetingFullscreen } from '@/contexts/MeetingFullscreenContext';
 import { useMeetingControlsAutoHide } from '@/hooks/useMeetingControlsAutoHide';
 import { useMeetingPageLifecycle } from '@/hooks/useMeetingPageLifecycle';
-import { mergeJitsiRoster, useMeetingLayout } from '@/hooks/useMeetingLayout';
+import { mergeJitsiRoster, useAttendeeLayout } from '@/hooks/useAttendeeLayout';
+import { useDockRoster } from '@/hooks/useDockRoster';
+import { AttendeeDock } from '@/components/meeting/attendee-dock/AttendeeDock';
+import { SelfViewOverlay } from '@/components/meeting/attendee-dock/SelfViewOverlay';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
-import { ParticipantDock } from '@/components/meeting/ParticipantDock';
 import { MeetingLayoutSettings } from '@/components/meeting/MeetingLayoutSettings';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
@@ -43,11 +45,7 @@ import { readGuestJoinSession } from '@/lib/meeting-join';
 import { readJoinMediaPrefs } from '@/lib/join-media-prefs';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { YouTubeLiveModal } from '@/components/meeting/YouTubeLiveModal';
-import { YouTubeLiveResumeBanner } from '@/components/meeting/YouTubeLiveResumeBanner';
-import { StreamStatusPanel } from '@/components/meeting/StreamStatusPanel';
-import { StreamLivePill } from '@/components/meeting/StreamLivePill';
-import { YouTubeLiveOpenToast } from '@/components/meeting/YouTubeLiveOpenToast';
-import { LiveBadge } from '@/components/meeting/LiveBadge';
+import { YouTubeLiveStatusStack } from '@/components/meeting/YouTubeLiveStatusStack';
 import {
   openYoutubeWatchTab,
   shouldAutoOpenYoutubeWatchTab,
@@ -227,6 +225,7 @@ function MeetingRoomInner({
     resumeLive,
     stopLive,
     loadModeratorState,
+    setError: setStreamError,
   } = useYouTubeLiveStream(meetingId);
 
   const canStreamYoutube = can('canStreamToYoutube');
@@ -348,12 +347,14 @@ function MeetingRoomInner({
     isReconnecting,
     setTileView,
     setFilmstripVisible,
+    setSelfViewHidden,
     pinParticipant,
     unpinParticipant,
     togglePinParticipant,
     jitsiParticipants,
     dominantSpeakerId,
     pinnedParticipantId,
+    localParticipantId,
   } = useJitsi({
     roomName: mediaSession.embedRoomName ?? jitsiRoom,
     jitsiDomain: mediaSession.embedDomain ?? undefined,
@@ -383,6 +384,7 @@ function MeetingRoomInner({
     () => ({
       setTileView,
       setFilmstripVisible,
+      setSelfViewHidden,
       pinParticipant,
       unpinParticipant,
       pinnedParticipantId,
@@ -391,6 +393,7 @@ function MeetingRoomInner({
     [
       setTileView,
       setFilmstripVisible,
+      setSelfViewHidden,
       pinParticipant,
       unpinParticipant,
       pinnedParticipantId,
@@ -398,26 +401,50 @@ function MeetingRoomInner({
     ],
   );
 
-  const { prefs: layoutPrefs, updatePrefs: updateLayoutPrefs, setLayoutMode, shellClassName } =
-    useMeetingLayout(jitsiLayoutApi);
-
-  const dockParticipants = useMemo(
-    () =>
-      mergeJitsiRoster(
-        jitsiParticipants,
-        participants.map((p) => ({ id: p.id, displayName: p.displayName })),
-      ),
-    [jitsiParticipants, participants],
+  const layoutContext = useMemo(
+    () => ({
+      isScreenSharing,
+      isPresenterLayout,
+      roomMode,
+    }),
+    [isScreenSharing, isPresenterLayout, roomMode],
   );
+
+  const {
+    prefs: layoutPrefs,
+    effectivePrefs,
+    updatePrefs: updateLayoutPrefs,
+    setStageLayout,
+    setDockPosition,
+    toggleDockCollapsed,
+    setDockViewMode,
+    patchSelfViewFloating,
+    shellClassName,
+    isWebinar,
+    isScreenShareContext,
+  } = useAttendeeLayout(jitsiLayoutApi, layoutContext);
+
+  const dockParticipants = useDockRoster({
+    jitsiParticipants: mergeJitsiRoster(
+      jitsiParticipants,
+      participants.map((p) => ({ id: p.id, displayName: p.displayName })),
+    ),
+    roomParticipants: participants,
+    roomMode,
+    dockViewMode: effectivePrefs.dockViewMode,
+    dominantSpeakerId,
+    pinnedParticipantId,
+    localParticipantId,
+  });
 
   const handlePinToggle = useCallback(
     (participantId: string) => {
       togglePinParticipant(participantId);
       if (pinnedParticipantId !== participantId) {
-        updateLayoutPrefs({ layoutMode: 'pinned' });
+        setStageLayout('speaker');
       }
     },
-    [pinnedParticipantId, togglePinParticipant, updateLayoutPrefs],
+    [pinnedParticipantId, togglePinParticipant, setStageLayout],
   );
 
   const controlsPinned =
@@ -426,7 +453,6 @@ function MeetingRoomInner({
     hostLeaveOpen ||
     youtubeModalOpen ||
     upgradeOpen ||
-    streamPendingResume ||
     layoutSettingsOpen;
 
   const { controlsVisible, revealControls, toggleControlsMobile } = useMeetingControlsAutoHide(
@@ -655,6 +681,23 @@ function MeetingRoomInner({
     setYoutubeModalOpen(true);
   };
 
+  const handleRetryStream = useCallback(() => {
+    setStreamError(null);
+    void resumeLive();
+  }, [resumeLive, setStreamError]);
+
+  const handleStartLiveAgain = useCallback(async () => {
+    setStreamError(null);
+    if (
+      streamBroadcastStatus === 'LIVE' ||
+      streamBroadcastStatus === 'ERROR' ||
+      streamPendingResume
+    ) {
+      await stopLive();
+    }
+    setYoutubeModalOpen(true);
+  }, [setStreamError, stopLive, streamBroadcastStatus, streamPendingResume]);
+
   const handleCopyWatchUrl = useCallback(async () => {
     if (!liveWatchUrl) throw new Error('No watch URL');
     try {
@@ -678,19 +721,7 @@ function MeetingRoomInner({
     sessionStorage.removeItem(streamPanelStorageKey(meetingId));
   }, [meetingId]);
 
-  useEffect(() => {
-    if (!isModerator || streamBroadcastStatus !== 'LIVE') return;
-    if (!liveWatchUrl && streamDestinations.length === 0) return;
-    if (sessionStorage.getItem(streamPanelStorageKey(meetingId)) === 'closed') return;
-    queueMicrotask(() => handleShowStreamPanel());
-  }, [
-    isModerator,
-    streamBroadcastStatus,
-    liveWatchUrl,
-    streamDestinations.length,
-    meetingId,
-    handleShowStreamPanel,
-  ]);
+  const hasYoutubeOverlayOffset = isScreenSharing || isPresenterLayout;
 
   const hasYoutubeLiveViewerSignal =
     streamViewerCount != null ||
@@ -865,18 +896,28 @@ function MeetingRoomInner({
         />
       ) : null}
 
-      {mediaReady && layoutPrefs.thumbnailPanelMode !== 'hidden' ? (
-        <ParticipantDock
+      {mediaReady ? (
+        <AttendeeDock
+          effectivePrefs={effectivePrefs}
           participants={dockParticipants}
           dominantSpeakerId={dominantSpeakerId}
           pinnedParticipantId={pinnedParticipantId}
-          prefs={layoutPrefs}
+          isWebinar={isWebinar}
+          isScreenShareContext={isScreenShareContext}
           onPinToggle={handlePinToggle}
-          onFloatingDockChange={(patch) =>
-            updateLayoutPrefs({
-              floatingDock: { ...layoutPrefs.floatingDock, ...patch },
-            })
-          }
+          onToggleCollapsed={toggleDockCollapsed}
+          onSetStageLayout={setStageLayout}
+          onSetDockPosition={setDockPosition}
+          onSetDockViewMode={setDockViewMode}
+        />
+      ) : null}
+
+      {mediaReady && layoutPrefs.selfViewMode === 'floating' ? (
+        <SelfViewOverlay
+          mode={layoutPrefs.selfViewMode}
+          displayName={displayName}
+          floating={layoutPrefs.selfViewFloating}
+          onFloatingChange={patchSelfViewFloating}
         />
       ) : null}
 
@@ -888,14 +929,7 @@ function MeetingRoomInner({
       />
 
       <ReactionsOverlay reactions={reactions} />
-      <WebinarModeBanner roomMode={roomMode} />
-
-      {isModerator && youtubeLiveToast && liveWatchUrl ? (
-        <YouTubeLiveOpenToast
-          onOpen={handleYoutubeLiveToastOpen}
-          onDismiss={() => setYoutubeLiveToast(false)}
-        />
-      ) : null}
+      {!isLiveStream && <WebinarModeBanner roomMode={roomMode} />}
 
       <UpgradeModal
         open={upgradeOpen}
@@ -909,21 +943,41 @@ function MeetingRoomInner({
         onClose={() => setYoutubeModalOpen(false)}
         loading={streamStarting}
         onStart={startLive}
+        offsetBelowHeader={hasYoutubeOverlayOffset}
       />
 
-      {isModerator && streamPendingResume && !youtubeModalOpen && (
-        <YouTubeLiveResumeBanner
-          loading={streamResuming}
-          onResume={() => void resumeLive()}
-          onStop={() => void stopLive()}
-        />
-      )}
-
-      {shareError && (
-        <div className="absolute left-1/2 top-20 z-40 -translate-x-1/2 rounded-lg bg-amber-600/95 px-4 py-2 text-sm text-white shadow-lg">
-          {shareError}
-        </div>
-      )}
+      <YouTubeLiveStatusStack
+        offsetBelowHeader={hasYoutubeOverlayOffset}
+        noticeMessage={shareError}
+        isModerator={isModerator}
+        isLiveStream={isLiveStream}
+        streamDisplayStatus={streamDisplayStatus}
+        streamPanelOpen={streamPanelOpen}
+        streamPendingResume={streamPendingResume}
+        youtubeModalOpen={youtubeModalOpen}
+        streamResuming={streamResuming}
+        streamError={streamError}
+        streamConnectionState={streamConnectionState}
+        streamHealth={streamHealth}
+        streamElapsedSeconds={streamElapsedSeconds}
+        streamViewerCount={streamViewerCount}
+        streamVisibility={streamVisibility}
+        streamTitle={streamTitle}
+        liveWatchUrl={liveWatchUrl}
+        streamDestinations={streamDestinations}
+        streamStopping={streamStopping}
+        youtubeLiveToast={youtubeLiveToast}
+        onResume={() => void resumeLive()}
+        onStopLive={() => void stopLive()}
+        onShowStreamPanel={handleShowStreamPanel}
+        onHideStreamPanel={handleHideStreamPanel}
+        onCopyWatchUrl={() => handleCopyWatchUrl()}
+        onOpenYouTube={handleOpenYouTube}
+        onRetryStream={handleRetryStream}
+        onStartLiveAgain={() => void handleStartLiveAgain()}
+        onYoutubeLiveToastOpen={handleYoutubeLiveToastOpen}
+        onDismissYoutubeLiveToast={() => setYoutubeLiveToast(false)}
+      />
 
       {isReconnecting && mediaReady && (
         <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
@@ -973,50 +1027,9 @@ function MeetingRoomInner({
       )}
 
       <div className="pointer-events-none absolute left-2 top-2 z-30 flex max-w-[calc(100%-1rem)] flex-col gap-2 sm:left-4 sm:top-4">
-        <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-          <div className="max-w-[min(100%,16rem)] truncate rounded-lg bg-black/50 px-2 py-1 text-xs text-white backdrop-blur sm:max-w-none sm:px-3 sm:py-1.5 sm:text-sm">
+        {!isLiveStream && (
+          <div className="pointer-events-auto max-w-[min(100%,16rem)] truncate rounded-lg bg-black/50 px-2 py-1 text-xs text-white backdrop-blur sm:max-w-none sm:px-3 sm:py-1.5 sm:text-sm">
             {title}
-          </div>
-          {isLiveStream && !isModerator && <LiveBadge />}
-        </div>
-        {isModerator && streamDisplayStatus !== 'OFFLINE' && (
-          <>
-            {streamPanelOpen ? (
-              <StreamStatusPanel
-                className="pointer-events-auto max-w-[min(100vw-1rem,20rem)] sm:max-w-xs"
-                displayStatus={streamDisplayStatus}
-                connectionState={streamConnectionState}
-                streamHealth={streamHealth}
-                elapsedSeconds={streamElapsedSeconds}
-                viewerCount={streamViewerCount}
-                visibility={streamVisibility}
-                title={streamTitle}
-                watchUrl={liveWatchUrl}
-                destinations={streamDestinations}
-                error={streamError}
-                stopping={streamStopping}
-                onClose={handleHideStreamPanel}
-                onCopyWatchUrl={() => handleCopyWatchUrl()}
-                onOpenYouTube={handleOpenYouTube}
-                onStopLive={() => void stopLive()}
-              />
-            ) : (
-              <StreamLivePill
-                className="pointer-events-auto"
-                displayStatus={streamDisplayStatus}
-                elapsedSeconds={streamElapsedSeconds}
-                viewerCount={streamViewerCount}
-                onClick={handleShowStreamPanel}
-              />
-            )}
-          </>
-        )}
-        <div className="pointer-events-auto rounded-lg bg-black/50 px-2 py-1 text-[10px] text-white/70 backdrop-blur sm:px-3 sm:text-xs">
-          {participants.length} participant{participants.length !== 1 ? 's' : ''}
-        </div>
-        {isModerator && (
-          <div className="pointer-events-auto rounded-lg bg-black/50 px-2 py-1 text-[10px] capitalize text-white/70 backdrop-blur sm:px-3 sm:text-xs">
-            {roomMode.toLowerCase()} mode
           </div>
         )}
       </div>
@@ -1074,9 +1087,13 @@ function MeetingRoomInner({
         canManageBroadcast={isModerator}
         controlsVisible={controlsVisible}
         onRevealControls={revealControls}
-        layoutMode={layoutPrefs.layoutMode}
-        onSelectLayout={setLayoutMode}
+        layoutMode={layoutPrefs.stageLayout}
+        onSelectLayout={setStageLayout}
         onOpenLayoutSettings={() => setLayoutSettingsOpen(true)}
+        participantCount={participants.length}
+        meetingTitle={title}
+        streamElapsedSeconds={streamElapsedSeconds}
+        streamViewerCount={streamViewerCount}
       />
 
       <MeetingDurationModal

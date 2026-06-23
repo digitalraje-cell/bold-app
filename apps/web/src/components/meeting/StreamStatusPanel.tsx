@@ -29,6 +29,9 @@ interface StreamStatusPanelProps {
   onCopyWatchUrl?: () => void | Promise<void>;
   onOpenYouTube?: () => void;
   onStopLive?: () => void;
+  onRetry?: () => void;
+  onStartLiveAgain?: () => void;
+  retryLoading?: boolean;
   className?: string;
 }
 
@@ -56,6 +59,9 @@ export function StreamStatusPanel({
   onCopyWatchUrl,
   onOpenYouTube,
   onStopLive,
+  onRetry,
+  onStartLiveAgain,
+  retryLoading,
   className,
 }: StreamStatusPanelProps) {
   const [copyToast, setCopyToast] = useState<string | null>(null);
@@ -88,7 +94,7 @@ export function StreamStatusPanel({
   const statusParts: string[] = [];
   if (isLive) statusParts.push('LIVE');
   if (isConnecting) statusParts.push('Connecting…');
-  if (displayStatus === 'ERROR') statusParts.push('Stream error');
+  if (displayStatus === 'ERROR') statusParts.push('Disconnected');
   if (isLive || isConnecting) statusParts.push(formatElapsed(elapsedSeconds));
   if (isLive && viewerCount != null) {
     statusParts.push(`${viewerCount.toLocaleString()} watching`);
@@ -150,8 +156,30 @@ export function StreamStatusPanel({
         <p className="mt-1 truncate text-xs text-muted-foreground">{title}</p>
       )}
 
-      {error && displayStatus === 'ERROR' && (
-        <p className="mt-2 text-xs text-destructive">{error}</p>
+      {error && (
+        <div className="mt-3 space-y-3">
+          <p className="text-xs leading-relaxed text-destructive">{error}</p>
+          {(onRetry || onStartLiveAgain) && (
+            <div className="flex flex-wrap gap-2">
+              {onRetry && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  loading={retryLoading}
+                  onClick={onRetry}
+                >
+                  Retry
+                </Button>
+              )}
+              {onStartLiveAgain && (
+                <Button type="button" size="sm" onClick={onStartLiveAgain}>
+                  Start Live Again
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {copyToast && (

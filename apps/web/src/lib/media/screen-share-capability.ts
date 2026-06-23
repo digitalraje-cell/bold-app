@@ -1,3 +1,10 @@
+import {
+  isAndroidUserAgent,
+  isIosDevice,
+  isMobileEnvironment,
+  isPwaStandalone,
+} from '@boldmeet/shared';
+
 export type ScreenShareCapability = {
   supported: boolean;
   reason: string | null;
@@ -12,19 +19,10 @@ export type ScreenShareCapability = {
 
 export function detectScreenShareCapability(): ScreenShareCapability {
   const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  const isAndroid = /Android/i.test(userAgent);
-  const isIos = /iPhone|iPad|iPod/i.test(userAgent);
-  const isMobile =
-    isAndroid ||
-    isIos ||
-    (typeof window !== 'undefined' &&
-      window.matchMedia('(pointer: coarse) and (max-width: 768px)').matches);
-  const isPwa =
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: fullscreen)').matches ||
-      // Legacy iOS standalone PWA
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+  const isAndroid = isAndroidUserAgent(userAgent);
+  const isIos = isIosDevice(userAgent);
+  const isMobile = isMobileEnvironment(userAgent);
+  const isPwa = isPwaStandalone();
 
   const hasMediaDevices = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices);
   const hasGetDisplayMedia =

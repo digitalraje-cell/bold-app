@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { X } from 'lucide-react';
 import {
   MeetingBroadcastProviderType,
   YOUTUBE_LIVE_ACTIVATION_MESSAGE,
@@ -14,8 +15,36 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { api } from '@/lib/api';
 import { formatYouTubeLiveUserError } from '@/lib/youtube-live-errors';
+import { youtubeOverlayStackTopClass } from '@/lib/meeting-youtube-overlay-layout';
 import { cn } from '@/lib/utils';
-import type { StartLiveStreamParams } from '@/hooks/useYouTubeLiveStream';
+import type { StartLiveStreamParams, YouTubeCaptureMode } from '@/hooks/useYouTubeLiveStream';
+
+const CAPTURE_OPTIONS: {
+  value: YouTubeCaptureMode;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: 'camera',
+    label: 'Camera & microphone',
+    hint: 'Stream your webcam and mic directly to YouTube (recommended).',
+  },
+  {
+    value: 'screen',
+    label: 'Share screen',
+    hint: 'Share your entire display — your browser will ask what to share.',
+  },
+  {
+    value: 'window',
+    label: 'Share window',
+    hint: 'Share a specific application window.',
+  },
+  {
+    value: 'tab',
+    label: 'Share tab',
+    hint: 'Share a browser tab — useful for slides or demos.',
+  },
+];
 
 interface YouTubeLiveModalProps {
   open: boolean;
@@ -23,6 +52,7 @@ interface YouTubeLiveModalProps {
   loading?: boolean;
   onClose: () => void;
   onStart: (params: StartLiveStreamParams) => Promise<unknown>;
+  offsetBelowHeader?: boolean;
 }
 
 export function YouTubeLiveModal({
@@ -30,11 +60,13 @@ export function YouTubeLiveModal({
   loading,
   onClose,
   onStart,
+  offsetBelowHeader = false,
 }: YouTubeLiveModalProps) {
   const [connection, setConnection] = useState<YouTubeConnectionStatus | null>(null);
   const [connectionLoading, setConnectionLoading] = useState(true);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<YouTubePrivacyStatus>('unlisted');
+  const [captureMode, setCaptureMode] = useState<YouTubeCaptureMode>('camera');
   const [error, setError] = useState('');
 
   const isBusy = Boolean(loading);
@@ -65,6 +97,7 @@ export function YouTubeLiveModal({
   useEffect(() => {
     if (!open) return;
     setError('');
+    setCaptureMode('camera');
     void loadConnection();
   }, [open, loadConnection]);
 
@@ -103,6 +136,7 @@ export function YouTubeLiveModal({
         provider: MeetingBroadcastProviderType.YOUTUBE_RTMP,
         youtubeAccountIds: selectedAccountIds,
         visibility,
+        captureMode,
       });
       onClose();
     } catch (err) {
@@ -156,21 +190,39 @@ export function YouTubeLiveModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div
+      className={cn(
+        'pointer-events-none fixed right-3 z-[75] flex w-[min(calc(100vw-1.5rem),22rem)] flex-col sm:right-4',
+        youtubeOverlayStackTopClass(offsetBelowHeader),
+        'bottom-[calc(var(--meeting-controls-offset,5.5rem)+env(safe-area-inset-bottom,0px)+0.75rem)]',
+      )}
+    >
       <div
         className={cn(
-          'flex w-full max-w-sm flex-col rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-elevated)]',
-          accounts.length > 0 ? 'min-h-[22rem] max-h-[min(26rem,90vh)] p-5 sm:max-w-md sm:p-6' : 'p-5 sm:p-6',
+          'pointer-events-auto flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/60 bg-surface/95 shadow-[var(--shadow-elevated)] backdrop-blur',
+          accounts.length > 0 ? 'p-4 sm:p-5' : 'p-4 sm:p-5',
         )}
       >
-        <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-          Go Live on YouTube
-        </h2>
+        <div className="flex shrink-0 items-start justify-between gap-3">
+          <h2 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            Go Live on YouTube
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isBusy}
+            className="rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
         {connectionLoading ? (
-          <p className="mt-4 text-sm text-muted-foreground">Loading your channels…</p>
+          <p className="text-sm text-muted-foreground">Loading your channels…</p>
         ) : accounts.length === 0 ? (
-          <div className="mt-4 flex flex-1 flex-col gap-4">
+          <div className="flex flex-col gap-4">
             {allAccounts.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-sm leading-relaxed text-muted-foreground">
@@ -205,9 +257,9 @@ export function YouTubeLiveModal({
         ) : (
           <form
             onSubmit={(e) => void handleGoLive(e)}
-            className="mt-4 flex min-h-0 flex-1 flex-col gap-3"
+            className="flex flex-col gap-3"
           >
-            <div className="min-h-0 flex-1 space-y-3">
+            <div className="space-y-3">
               <div>
                 <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {multiSelect ? 'YouTube channels' : 'YouTube channel'}
@@ -242,38 +294,84 @@ export function YouTubeLiveModal({
                 </select>
               </div>
 
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Stream source
+                </p>
+                <div className="space-y-1.5">
+                  {CAPTURE_OPTIONS.map((option) => {
+                    const selected = captureMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => setCaptureMode(option.value)}
+                        className={cn(
+                          'flex w-full items-start gap-3 rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition',
+                          selected
+                            ? 'border-foreground bg-background'
+                            : 'border-border bg-surface hover:bg-muted/50',
+                          isBusy && 'cursor-not-allowed opacity-60',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                            selected ? 'border-foreground' : 'border-muted-foreground',
+                          )}
+                        >
+                          {selected && <span className="h-2 w-2 rounded-full bg-foreground" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium text-foreground">
+                            {option.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                            {option.hint}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Title and description are set from this meeting automatically. When you click Go Live,
-                your browser will ask you to share this meeting tab or screen once.
+                {captureMode === 'camera'
+                  ? 'When you click Go Live, your browser will ask for camera and microphone access. No screen or tab sharing is required.'
+                  : 'When you click Go Live, your browser will ask you to choose what to share.'}
+                {' '}
+                Title and description are set from this meeting automatically.
               </p>
             </div>
 
-            <div className="min-h-[3.25rem] shrink-0">
+            <div className="shrink-0 space-y-3 border-t border-border/60 pt-3">
               {error ? <Alert>{error}</Alert> : null}
-            </div>
-
-            <div className="flex shrink-0 gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                disabled={isBusy}
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                loading={isBusy}
-                disabled={selectedAccounts.length === 0 || isBusy}
-              >
-                {isBusy ? 'Starting Live Stream…' : 'Go Live'}
-                {!isBusy && selectedAccounts.length > 1 ? ` (${selectedAccounts.length})` : ''}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  disabled={isBusy}
+                  onClick={onClose}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  loading={isBusy}
+                  disabled={selectedAccounts.length === 0 || isBusy}
+                >
+                  {isBusy ? 'Starting Live Stream…' : 'Go Live'}
+                  {!isBusy && selectedAccounts.length > 1 ? ` (${selectedAccounts.length})` : ''}
+                </Button>
+              </div>
             </div>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

@@ -2,38 +2,22 @@
 
 import { LayoutGrid, X } from 'lucide-react';
 import type {
-  MeetingLayoutMode,
-  MeetingLayoutPrefs,
-  ParticipantDockPosition,
-  ThumbnailPanelMode,
-  ThumbnailSize,
-} from '@/lib/meeting-layout-prefs';
+  AttendeeLayoutPrefs,
+  DockPosition,
+  DockViewMode,
+  SelfViewCorner,
+  SelfViewMode,
+  StageLayout,
+} from '@/lib/attendee-layout-prefs';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { cn } from '@/lib/utils';
 
-const LAYOUT_MODES: { id: MeetingLayoutMode; label: string; description: string }[] = [
-  { id: 'filmstrip', label: 'Filmstrip', description: 'Large stage with a scrollable strip' },
-  { id: 'gallery', label: 'Gallery', description: 'Equal grid of all participants' },
-  { id: 'speaker', label: 'Speaker view', description: 'Active speaker large, others small' },
-  { id: 'pinned', label: 'Pinned view', description: 'Keep your pinned participant large' },
-  { id: 'compact', label: 'Compact', description: 'Minimized tiles and more stage space' },
-];
-
-const DOCK_POSITIONS: ParticipantDockPosition[] = ['RIGHT', 'TOP', 'BOTTOM', 'LEFT', 'FLOATING'];
-const THUMBNAIL_MODES: { id: ThumbnailPanelMode; label: string }[] = [
-  { id: 'open_all', label: 'Open all' },
-  { id: 'minimized', label: 'Minimized' },
-  { id: 'single', label: 'Single visible' },
-  { id: 'hidden', label: 'Hidden' },
-];
-const THUMBNAIL_SIZES: ThumbnailSize[] = ['small', 'medium', 'large'];
-
 interface MeetingLayoutSettingsProps {
   open: boolean;
-  prefs: MeetingLayoutPrefs;
+  prefs: AttendeeLayoutPrefs;
   onClose: () => void;
-  onChange: (patch: Partial<MeetingLayoutPrefs>) => void;
+  onChange: (patch: Partial<AttendeeLayoutPrefs>) => void;
 }
 
 export function MeetingLayoutSettings({
@@ -43,6 +27,36 @@ export function MeetingLayoutSettings({
   onChange,
 }: MeetingLayoutSettingsProps) {
   if (!open) return null;
+
+  const stageLayouts: { id: StageLayout; label: string; description: string }[] = [
+    { id: 'speaker', label: 'Speaker view', description: 'Large active speaker on stage' },
+    { id: 'grid', label: 'Grid view', description: 'Equal tiles for all participants' },
+  ];
+
+  const dockPositions: { id: DockPosition; label: string }[] = [
+    { id: 'right', label: 'Right dock' },
+    { id: 'top', label: 'Top dock' },
+    { id: 'hidden', label: 'Hidden' },
+  ];
+
+  const dockViewModes: { id: DockViewMode; label: string }[] = [
+    { id: 'speaker', label: 'Active speaker' },
+    { id: 'participants', label: 'All participants' },
+  ];
+
+  const selfViewModes: { id: SelfViewMode; label: string }[] = [
+    { id: 'hidden', label: 'Hide self view' },
+    { id: 'small', label: 'Small thumbnail' },
+    { id: 'large', label: 'Large thumbnail' },
+    { id: 'floating', label: 'Floating window' },
+  ];
+
+  const corners: { id: SelfViewCorner; label: string }[] = [
+    { id: 'top-left', label: 'Top left' },
+    { id: 'top-right', label: 'Top right' },
+    { id: 'bottom-left', label: 'Bottom left' },
+    { id: 'bottom-right', label: 'Bottom right' },
+  ];
 
   return (
     <div className="pointer-events-auto absolute inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -54,7 +68,7 @@ export function MeetingLayoutSettings({
         <div className="mb-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Meeting layout</h2>
+            <h2 className="text-lg font-semibold">Layout & dock</h2>
           </div>
           <button
             type="button"
@@ -67,16 +81,16 @@ export function MeetingLayoutSettings({
         </div>
 
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Layout mode</h3>
+          <h3 className="text-sm font-semibold text-foreground">Stage layout</h3>
           <div className="grid gap-2 sm:grid-cols-2">
-            {LAYOUT_MODES.map((mode) => (
+            {stageLayouts.map((mode) => (
               <button
                 key={mode.id}
                 type="button"
-                onClick={() => onChange({ layoutMode: mode.id })}
+                onClick={() => onChange({ stageLayout: mode.id })}
                 className={cn(
                   'rounded-[var(--radius-md)] border px-3 py-2 text-left transition',
-                  prefs.layoutMode === mode.id
+                  prefs.stageLayout === mode.id
                     ? 'border-foreground bg-muted'
                     : 'border-border hover:bg-muted/60',
                 )}
@@ -89,32 +103,28 @@ export function MeetingLayoutSettings({
         </section>
 
         <section className="mt-6 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Dock position</h3>
+          <h3 className="text-sm font-semibold text-foreground">Attendee dock</h3>
           <div className="flex flex-wrap gap-2">
-            {DOCK_POSITIONS.map((position) => (
+            {dockPositions.map((position) => (
               <Button
-                key={position}
+                key={position.id}
                 type="button"
                 size="sm"
-                variant={prefs.dockPosition === position ? 'primary' : 'secondary'}
-                onClick={() => onChange({ dockPosition: position })}
+                variant={prefs.dockPosition === position.id ? 'primary' : 'secondary'}
+                onClick={() => onChange({ dockPosition: position.id, dockCollapsed: false })}
               >
-                {position}
+                {position.label}
               </Button>
             ))}
           </div>
-        </section>
-
-        <section className="mt-6 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Thumbnail panel</h3>
           <div className="flex flex-wrap gap-2">
-            {THUMBNAIL_MODES.map((mode) => (
+            {dockViewModes.map((mode) => (
               <Button
                 key={mode.id}
                 type="button"
                 size="sm"
-                variant={prefs.thumbnailPanelMode === mode.id ? 'primary' : 'secondary'}
-                onClick={() => onChange({ thumbnailPanelMode: mode.id })}
+                variant={prefs.dockViewMode === mode.id ? 'primary' : 'secondary'}
+                onClick={() => onChange({ dockViewMode: mode.id })}
               >
                 {mode.label}
               </Button>
@@ -123,20 +133,52 @@ export function MeetingLayoutSettings({
         </section>
 
         <section className="mt-6 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Thumbnail size</h3>
+          <h3 className="text-sm font-semibold text-foreground">Self view</h3>
           <div className="flex flex-wrap gap-2">
-            {THUMBNAIL_SIZES.map((size) => (
+            {selfViewModes.map((mode) => (
               <Button
-                key={size}
+                key={mode.id}
                 type="button"
                 size="sm"
-                variant={prefs.thumbnailSize === size ? 'primary' : 'secondary'}
-                onClick={() => onChange({ thumbnailSize: size })}
+                variant={prefs.selfViewMode === mode.id ? 'primary' : 'secondary'}
+                onClick={() => onChange({ selfViewMode: mode.id })}
               >
-                {size}
+                {mode.label}
               </Button>
             ))}
           </div>
+          {prefs.selfViewMode === 'floating' && (
+            <div className="flex flex-wrap gap-2">
+              {corners.map((corner) => (
+                <Button
+                  key={corner.id}
+                  type="button"
+                  size="sm"
+                  variant={prefs.selfViewCorner === corner.id ? 'primary' : 'secondary'}
+                  onClick={() =>
+                    onChange({
+                      selfViewCorner: corner.id,
+                      selfViewFloating: {
+                        ...prefs.selfViewFloating,
+                        ...(corner.id === 'top-left'
+                          ? { x: 16, y: 72 }
+                          : corner.id === 'top-right'
+                            ? { x: typeof window !== 'undefined' ? window.innerWidth - 156 : 16, y: 72 }
+                            : corner.id === 'bottom-left'
+                              ? { x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 200 : 72 }
+                              : {
+                                  x: typeof window !== 'undefined' ? window.innerWidth - 156 : 16,
+                                  y: typeof window !== 'undefined' ? window.innerHeight - 200 : 72,
+                                }),
+                      },
+                    })
+                  }
+                >
+                  {corner.label}
+                </Button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-6 space-y-3">
@@ -148,18 +190,18 @@ export function MeetingLayoutSettings({
           <Toggle
             checked={prefs.showParticipantNames}
             onChange={(checked) => onChange({ showParticipantNames: checked })}
-            label="Show participant names"
+            label="Show participant names in dock"
           />
           <Toggle
             checked={prefs.showActiveSpeakerIndicator}
             onChange={(checked) => onChange({ showActiveSpeakerIndicator: checked })}
-            label="Show active speaker indicator"
+            label="Highlight active speaker in dock"
           />
         </section>
 
         <p className="mt-5 text-xs text-muted-foreground">
-          Double-tap a participant thumbnail to pin or unpin. Layout preferences are saved on this
-          device.
+          Use the dock toolbar in-meeting for quick layout changes. Double-tap a thumbnail to pin.
+          Preferences are saved on this device.
         </p>
       </div>
     </div>

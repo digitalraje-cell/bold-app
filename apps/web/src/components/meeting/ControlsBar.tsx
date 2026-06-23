@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
 import { MeetingLayoutMenu } from '@/components/meeting/MeetingLayoutMenu';
+import { formatStreamElapsed } from '@/lib/stream-live-ui';
 import { logMeetingControlsEvent } from '@/lib/media/meeting-controls-diagnostics';
 import { computeMoreMenuPosition } from '@/lib/media/compute-more-menu-position';
 import { cn } from '@/lib/utils';
@@ -75,9 +76,13 @@ interface ControlsBarProps {
   canManageBroadcast?: boolean;
   controlsVisible?: boolean;
   onRevealControls?: () => void;
-  layoutMode?: import('@/lib/meeting-layout-prefs').MeetingLayoutMode;
-  onSelectLayout?: (mode: import('@/lib/meeting-layout-prefs').MeetingLayoutMode) => void;
+  layoutMode?: import('@/lib/attendee-layout-prefs').StageLayout;
+  onSelectLayout?: (mode: import('@/lib/attendee-layout-prefs').StageLayout) => void;
   onOpenLayoutSettings?: () => void;
+  participantCount?: number;
+  meetingTitle?: string | null;
+  streamElapsedSeconds?: number;
+  streamViewerCount?: number | null;
 }
 
 function ControlButton({
@@ -283,23 +288,16 @@ export function ControlsBar({
   layoutMode = 'speaker',
   onSelectLayout,
   onOpenLayoutSettings,
+  participantCount = 0,
+  meetingTitle,
+  streamElapsedSeconds = 0,
+  streamViewerCount,
 }: ControlsBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  const hasMoreItems =
-    reactionsEnabled ||
-    raiseHandEnabled ||
-    Boolean(onInvite) ||
-    Boolean(onSwitchRoomMode) ||
-    Boolean(onToggleFullscreen) ||
-    Boolean(onToggleLock) ||
-    Boolean(onToggleWaitingRoom) ||
-    Boolean(onToggleParticipantScreenShare) ||
-    Boolean(onMuteAll) ||
-    Boolean(canManageBroadcast && onGoLive) ||
-    Boolean(isHost && onEndMeeting);
+  const hasMoreItems = true;
 
   const closeMoreMenu = useCallback(() => {
     setMoreOpen(false);
@@ -386,8 +384,8 @@ export function ControlsBar({
 
         {onSelectLayout && onOpenLayoutSettings ? (
           <MeetingLayoutMenu
-            layoutMode={layoutMode}
-            onSelectLayout={onSelectLayout}
+            stageLayout={layoutMode}
+            onSelectStageLayout={onSelectLayout}
             onOpenSettings={onOpenLayoutSettings}
           />
         ) : null}
@@ -401,6 +399,14 @@ export function ControlsBar({
               onClick={toggleMoreMenu}
             />
             <MoreOptionsDropdown open={moreOpen} anchorRef={moreRef} onClose={closeMoreMenu}>
+              <MeetingInfoMenuSection
+                meetingTitle={meetingTitle}
+                participantCount={participantCount}
+                roomMode={roomMode}
+                isLiveStream={isLiveStream}
+                streamElapsedSeconds={streamElapsedSeconds}
+                streamViewerCount={streamViewerCount}
+              />
               {reactionsEnabled && (
                 <div className="border-b border-white/10 px-3 py-2">
                   <button
@@ -510,6 +516,67 @@ export function ControlsBar({
 
         <ControlButton icon={LogOut} label="Leave meeting" danger onClick={onLeave} />
       </div>
+    </div>
+  );
+}
+
+function MeetingInfoMenuSection({
+  meetingTitle,
+  participantCount,
+  roomMode,
+  isLiveStream,
+  streamElapsedSeconds,
+  streamViewerCount,
+}: {
+  meetingTitle?: string | null;
+  participantCount: number;
+  roomMode?: RoomMode;
+  isLiveStream?: boolean;
+  streamElapsedSeconds: number;
+  streamViewerCount?: number | null;
+}) {
+  const modeLabel =
+    roomMode === RoomMode.WEBINAR
+      ? 'Webinar'
+      : roomMode === RoomMode.MEETING
+        ? 'Meeting'
+        : null;
+
+  return (
+    <div className="border-b border-white/10 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/50">Meeting Info</p>
+      <dl className="mt-2 space-y-1.5 text-sm text-white/90">
+        {meetingTitle ? (
+          <div className="flex items-start justify-between gap-3">
+            <dt className="shrink-0 text-white/50">Title</dt>
+            <dd className="min-w-0 text-right font-medium">{meetingTitle}</dd>
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-white/50">Participants</dt>
+          <dd className="font-medium tabular-nums">{participantCount}</dd>
+        </div>
+        {modeLabel ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-white/50">Mode</dt>
+            <dd className="font-medium">{modeLabel}</dd>
+          </div>
+        ) : null}
+        {isLiveStream ? (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-white/50">Live duration</dt>
+              <dd className="font-medium tabular-nums">{formatStreamElapsed(streamElapsedSeconds)}</dd>
+            </div>
+            {streamViewerCount != null ? (
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-white/50">Viewers</dt>
+                <dd className="font-medium tabular-nums">{streamViewerCount.toLocaleString()}</dd>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </dl>
     </div>
   );
 }

@@ -14,14 +14,12 @@ import { cn } from '@/lib/utils';
 export function LandingPageContent() {
   return (
     <div className="flex min-h-full min-w-0 flex-col bg-background">
-      <MarketingHeader theme="hero" />
-
       <main className="flex flex-1 flex-col overflow-x-clip">
         <section className="marketing-hero relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 marketing-hero-glow opacity-80" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <MarketingHeader theme="hero" />
 
-          <div className="relative mx-auto w-full max-w-6xl px-5 pb-10 pt-6 sm:px-8 sm:pb-14 sm:pt-10 lg:pb-16">
+          <div className="pointer-events-none absolute inset-0 marketing-hero-glow opacity-80" />
+          <div className="relative mx-auto w-full max-w-6xl px-5 pb-10 pt-4 sm:px-8 sm:pb-14 sm:pt-8 lg:pb-16">
             <div className="mx-auto max-w-4xl text-center">
               <p className="animate-v3-fade-up text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent-purple-light)]/90 sm:text-sm">
                 Meeting + Webinar + Streaming

@@ -1,5 +1,5 @@
 import type { StreamDisplayStatus } from '@boldmeet/shared';
-import { isPwaStandalone } from '@/hooks/usePwaInstall';
+import { isPwaStandalone } from '@boldmeet/shared';
 
 export function formatStreamElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -11,23 +11,11 @@ export function formatStreamElapsed(seconds: number): string {
 
 export function buildStreamLiveSummaryLabel(input: {
   displayStatus: StreamDisplayStatus;
-  elapsedSeconds: number;
-  viewerCount?: number | null;
 }): string {
-  const parts: string[] = [];
-  if (input.displayStatus === 'LIVE') parts.push('LIVE');
-  else if (input.displayStatus === 'CONNECTING') parts.push('Connecting…');
-  else if (input.displayStatus === 'ERROR') parts.push('Error');
-
-  if (input.displayStatus === 'LIVE' || input.displayStatus === 'CONNECTING') {
-    parts.push(formatStreamElapsed(input.elapsedSeconds));
-  }
-
-  if (input.displayStatus === 'LIVE' && input.viewerCount != null) {
-    parts.push(`${input.viewerCount.toLocaleString()} watching`);
-  }
-
-  return parts.join(' • ');
+  if (input.displayStatus === 'LIVE') return 'LIVE';
+  if (input.displayStatus === 'CONNECTING') return 'Connecting…';
+  if (input.displayStatus === 'ERROR') return 'Disconnected';
+  return 'LIVE';
 }
 
 /** Desktop browser only — skip mobile UA and installed PWA standalone. */

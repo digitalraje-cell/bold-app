@@ -3,7 +3,13 @@ import {
   detectScreenShareCapability,
   type ScreenShareCapability,
 } from '@/lib/media/screen-share-capability';
-import type { RoomMode } from '@boldmeet/shared';
+import {
+  isAndroidUserAgent,
+  isCoarsePointerMobileViewport,
+  isIosDevice,
+  isPwaStandalone,
+  type RoomMode,
+} from '@boldmeet/shared';
 
 export type MoreMenuVisibility = {
   reactions: boolean;
@@ -61,21 +67,15 @@ export function detectBrowserCapabilities(): BrowserCapabilities {
   }
 
   const userAgent = navigator.userAgent;
-  const isAndroid = /Android/i.test(userAgent);
-  const isIos = /iPhone|iPad|iPod/i.test(userAgent);
+  const isAndroid = isAndroidUserAgent(userAgent);
+  const isIos = isIosDevice(userAgent);
 
   return {
     userAgent,
-    isMobile:
-      isAndroid ||
-      isIos ||
-      window.matchMedia('(pointer: coarse) and (max-width: 768px)').matches,
+    isMobile: isAndroid || isIos || isCoarsePointerMobileViewport(),
     isAndroid,
     isIos,
-    isPwa:
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: fullscreen)').matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
+    isPwa: isPwaStandalone(),
     hasTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
     viewport: {
       width: window.innerWidth,

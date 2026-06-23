@@ -27,6 +27,21 @@ const AUTH_NAV_ITEMS = [
   { href: '/billing', label: 'Billing' },
 ] as const;
 
+function heroNavLinkClass(active: boolean, mobile = false) {
+  return cn(
+    'rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
+    active ? 'marketing-header-hero-nav--active' : 'marketing-header-hero-nav',
+    mobile ? 'block w-full text-left' : 'hidden sm:inline-block',
+  );
+}
+
+function heroTextButtonClass(mobile = false) {
+  return cn(
+    'rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 marketing-header-hero-nav',
+    mobile && 'mt-2 block w-full text-left',
+  );
+}
+
 function AuthActions({
   mobile = false,
   onNavigate,
@@ -47,9 +62,9 @@ function AuthActions({
             key={item.href}
             href={item.href}
             className={cn(
-              navLinkClass(false),
-              isHero && 'text-white/65 hover:bg-white/10 hover:text-white',
-              mobile ? 'block w-full text-left' : 'hidden sm:inline-block',
+              isHero ? heroTextButtonClass(mobile) : navLinkClass(false),
+              !isHero && (mobile ? 'block w-full text-left' : 'hidden sm:inline-block'),
+              isHero && mobile && 'block w-full text-left',
             )}
             onClick={onNavigate}
           >
@@ -65,9 +80,10 @@ function AuthActions({
           className={cn(
             'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition',
             isHero
-              ? 'text-white/65 hover:text-white'
+              ? heroTextButtonClass(mobile)
               : 'text-muted-foreground hover:text-foreground',
-            mobile && 'mt-2 w-full justify-start',
+            mobile && !isHero && 'mt-2 w-full justify-start',
+            mobile && isHero && 'inline-flex w-full justify-start',
           )}
         >
           <LogOut className="h-4 w-4" />
@@ -82,10 +98,9 @@ function AuthActions({
       <AuthAwareLink
         href="/login"
         className={cn(
-          'rounded-full px-4 py-2 text-sm font-medium transition',
           isHero
-            ? 'text-white/65 hover:bg-white/10 hover:text-white'
-            : 'text-muted-foreground hover:text-foreground',
+            ? heroTextButtonClass(mobile)
+            : 'rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground',
           mobile && 'mt-2 block',
         )}
         onClick={onNavigate}
@@ -94,8 +109,11 @@ function AuthActions({
       </AuthAwareLink>
       <StartMeetingLink
         className={cn(
-          'rounded-full bg-[var(--primary-gradient)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-soft)] transition-all duration-200 hover:shadow-[var(--primary-glow)]',
-          mobile && 'mt-1 block text-center',
+          'inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold',
+          isHero
+            ? 'marketing-header-hero-cta'
+            : 'btn-primary-gradient text-white shadow-[var(--shadow-soft)]',
+          mobile && 'mt-1 block w-full text-center',
         )}
         onClick={onNavigate}
       >
@@ -116,28 +134,32 @@ export function MarketingHeader({
   const isHero = theme === 'hero';
 
   const linkClass = (key: NavKey, mobile = false) =>
-    cn(
-      navLinkClass(active === key),
-      isHero && 'text-white/65 hover:bg-white/10 hover:text-white',
-      mobile ? 'block w-full text-left' : 'hidden sm:inline-block',
-    );
+    isHero
+      ? heroNavLinkClass(active === key, mobile)
+      : cn(navLinkClass(active === key), mobile ? 'block w-full text-left' : 'hidden sm:inline-block');
 
   const closeMobile = () => setMobileOpen(false);
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 backdrop-blur-xl',
+        'sticky top-0 z-40',
         isHero
-          ? 'border-b border-white/[0.08] bg-[#050508]/75'
-          : 'border-b border-border/40 bg-background/85',
+          ? 'marketing-header-hero'
+          : 'border-b border-border/40 bg-background/85 backdrop-blur-xl',
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8 sm:py-4">
         <HomeLogoLink
           variant="marketing"
-          wordmarkClassName="text-xl sm:text-2xl"
-          className="min-w-0 shrink-0 overflow-visible"
+          wordmarkClassName={cn(
+            'text-xl sm:text-2xl',
+            isHero && 'drop-shadow-[0_0_28px_rgba(124,58,237,0.35)]',
+          )}
+          className={cn(
+            'min-w-0 shrink-0 overflow-visible',
+            isHero && 'pl-1.5 sm:pl-2.5',
+          )}
         />
 
         <nav className="hidden items-center gap-1 sm:flex sm:gap-2">
@@ -154,7 +176,7 @@ export function MarketingHeader({
           className={cn(
             'inline-flex rounded-xl border p-2 sm:hidden',
             isHero
-              ? 'border-white/15 text-white'
+              ? 'border-white/12 text-white/90 hover:border-white/20 hover:bg-white/[0.06] hover:text-white'
               : 'border-border text-foreground',
           )}
           onClick={() => setMobileOpen((open) => !open)}
@@ -170,7 +192,7 @@ export function MarketingHeader({
           className={cn(
             'border-t px-5 py-4 sm:hidden sm:px-8',
             isHero
-              ? 'border-white/10 bg-[#0a0a10]/95'
+              ? 'border-white/[0.06] bg-[#030308]/92 backdrop-blur-xl'
               : 'border-border bg-surface',
           )}
         >
@@ -198,7 +220,7 @@ export function MarketingFooter() {
     <footer className="border-t border-border py-12">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-8 flex justify-center overflow-visible sm:justify-start">
-          <HomeLogoLink variant="marketing" className="overflow-visible" />
+          <HomeLogoLink variant="marketing" className="overflow-visible pl-1 sm:pl-2" />
         </div>
         <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
           <p>

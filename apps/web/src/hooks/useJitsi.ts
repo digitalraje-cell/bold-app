@@ -632,6 +632,17 @@ export function useJitsi({
     runJitsiCommand('setFilmstripEnabled', visible);
   }, [runJitsiCommand]);
 
+  const selfViewHiddenRef = useRef(false);
+
+  const setSelfViewHidden = useCallback(
+    (hidden: boolean) => {
+      if (selfViewHiddenRef.current === hidden) return;
+      runJitsiCommand('toggleSelfView');
+      selfViewHiddenRef.current = hidden;
+    },
+    [runJitsiCommand],
+  );
+
   const pinParticipant = useCallback((participantId: string) => {
     runJitsiCommand('pinParticipant', participantId);
     setPinnedParticipantId(participantId);
@@ -663,6 +674,7 @@ export function useJitsi({
     setTileView,
     toggleTileView,
     setFilmstripVisible,
+    setSelfViewHidden,
     pinParticipant,
     unpinParticipant,
     togglePinParticipant,

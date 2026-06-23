@@ -2,26 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LayoutGrid } from 'lucide-react';
-import type { MeetingLayoutMode } from '@/lib/meeting-layout-prefs';
+import type { StageLayout } from '@/lib/attendee-layout-prefs';
 import { cn } from '@/lib/utils';
 
-const QUICK_LAYOUTS: { id: MeetingLayoutMode; label: string }[] = [
-  { id: 'speaker', label: 'Speaker' },
-  { id: 'gallery', label: 'Gallery' },
-  { id: 'filmstrip', label: 'Filmstrip' },
-  { id: 'pinned', label: 'Pinned' },
-  { id: 'compact', label: 'Compact' },
-];
-
 interface MeetingLayoutMenuProps {
-  layoutMode: MeetingLayoutMode;
-  onSelectLayout: (mode: MeetingLayoutMode) => void;
+  stageLayout: StageLayout;
+  onSelectStageLayout: (layout: StageLayout) => void;
   onOpenSettings: () => void;
 }
 
 export function MeetingLayoutMenu({
-  layoutMode,
-  onSelectLayout,
+  stageLayout,
+  onSelectStageLayout,
   onOpenSettings,
 }: MeetingLayoutMenuProps) {
   const [open, setOpen] = useState(false);
@@ -55,22 +47,32 @@ export function MeetingLayoutMenu({
 
       {open ? (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-44 -translate-x-1/2 rounded-[var(--radius-md)] border border-white/10 bg-black/90 p-1 shadow-[var(--shadow-elevated)] backdrop-blur">
-          {QUICK_LAYOUTS.map((layout) => (
-            <button
-              key={layout.id}
-              type="button"
-              onClick={() => {
-                onSelectLayout(layout.id);
-                setOpen(false);
-              }}
-              className={cn(
-                'block w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10',
-                layoutMode === layout.id && 'bg-white/15 font-semibold',
-              )}
-            >
-              {layout.label}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectStageLayout('speaker');
+              setOpen(false);
+            }}
+            className={cn(
+              'block w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10',
+              stageLayout === 'speaker' && 'bg-white/15 font-semibold',
+            )}
+          >
+            Speaker view
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSelectStageLayout('grid');
+              setOpen(false);
+            }}
+            className={cn(
+              'block w-full rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10',
+              stageLayout === 'grid' && 'bg-white/15 font-semibold',
+            )}
+          >
+            Grid view
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -79,7 +81,7 @@ export function MeetingLayoutMenu({
             }}
             className="mt-1 block w-full rounded border-t border-white/10 px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10"
           >
-            Layout settings…
+            Dock & layout settings…
           </button>
         </div>
       ) : null}

@@ -1,6 +1,32 @@
 const DEFAULT_START_ERROR =
   'We could not start your YouTube livestream. Please try again in a moment.';
 
+/** Shown when the browser ↔ server stream connection drops (never show "relay" to users). */
+export const YOUTUBE_STREAM_DISCONNECTED_MESSAGE =
+  'Your YouTube stream disconnected unexpectedly. Check your internet connection and click Start Live again.';
+
+const TECHNICAL_TERMS =
+  /\b(relay|ingest|ffmpeg|socket\.io|ingest-chunk|rtmp|media relay)\b/i;
+
+function looksLikeTechnicalStreamError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    TECHNICAL_TERMS.test(message) ||
+    lower.includes('youtube live session ended due to') ||
+    lower.includes('ingest credentials') ||
+    lower.includes('could not connect media')
+  );
+}
+
+/** Strip internal pipeline wording before showing errors in the meeting UI. */
+export function sanitizeYouTubeLiveUserMessage(message: string | null | undefined): string | null {
+  if (!message?.trim()) return null;
+  if (looksLikeTechnicalStreamError(message)) {
+    return YOUTUBE_STREAM_DISCONNECTED_MESSAGE;
+  }
+  return message.trim();
+}
+
 function looksLikeRawApiPayload(message: string): boolean {
   const trimmed = message.trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) return true;
@@ -23,6 +49,10 @@ export function formatYouTubeLiveUserError(
   const raw =
     error instanceof Error ? error.message : typeof error === 'string' ? error : DEFAULT_START_ERROR;
   const lower = raw.toLowerCase();
+
+  if (looksLikeTechnicalStreamError(raw)) {
+    return YOUTUBE_STREAM_DISCONNECTED_MESSAGE;
+  }
 
   if (
     lower.includes('invalid_grant') ||
@@ -57,12 +87,16 @@ export function formatYouTubeLiveUserError(
     return 'YouTube live streaming is not enabled for this channel. Enable it in YouTube Studio, then refresh in Settings → Integrations.';
   }
 
+  if (lower.includes('notallowederror') || lower.includes('permission denied')) {
+    return 'Camera or microphone access was denied. Allow permissions in your browser and try again.';
+  }
+
   if (lower.includes('invalid state') || lower.includes('already in progress')) {
-    return 'Screen capture failed to start. Stop the stream, refresh the page, and try Go Live again.';
+    return 'Media capture failed to start. Stop the stream, refresh the page, and try Go Live again.';
   }
 
   if (lower.includes('already active for this meeting')) {
-    return 'A YouTube Live session is still open for this meeting. Use Resume Stream to reconnect screen sharing, or Stop Stream to end it before starting again.';
+    return 'A YouTube Live session is still open for this meeting. Use Resume Live to continue, or End Live before starting again.';
   }
 
   if (lower.includes('network error') || lower.includes('failed to fetch')) {
@@ -82,7 +116,7 @@ export function formatYouTubeLiveUserError(
   }
 
   if (raw.length <= 180 && !raw.includes('Network error calling')) {
-    return raw;
+    return sanitizeYouTubeLiveUserMessage(raw) ?? DEFAULT_START_ERROR;
   }
 
   return DEFAULT_START_ERROR;
