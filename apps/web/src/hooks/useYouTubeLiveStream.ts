@@ -98,6 +98,7 @@ function deriveDisplayStatus(input: {
   broadcastStatus: BroadcastStatus;
   connectionState: StreamConnectionState;
   captureActive: boolean;
+  relayActive: boolean;
   starting: boolean;
   resuming: boolean;
 }): StreamDisplayStatus {
@@ -112,6 +113,9 @@ function deriveDisplayStatus(input: {
   ) {
     return 'LIVE';
   }
+  if (input.broadcastStatus === 'LIVE' && input.relayActive) {
+    return 'LIVE';
+  }
   if (input.broadcastStatus === 'LIVE' && !input.captureActive) {
     return 'CONNECTING';
   }
@@ -121,8 +125,10 @@ function deriveDisplayStatus(input: {
 function deriveStreamHealth(
   connectionState: StreamConnectionState,
   captureActive: boolean,
+  relayActive: boolean,
 ): 'healthy' | 'degraded' | 'offline' {
   if (connectionState === 'connected' && captureActive) return 'healthy';
+  if (relayActive && !captureActive) return 'degraded';
   if (connectionState === 'connecting') return 'degraded';
   if (connectionState === 'error') return 'degraded';
   return 'offline';
@@ -170,6 +176,7 @@ export function useYouTubeLiveStream(meetingId: string) {
   const [stopping, setStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<StreamConnectionState>('disconnected');
+  const [relayActive, setRelayActive] = useState(false);
   const [captureActive, setCaptureActive] = useState(false);
   const [pendingResume, setPendingResume] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -205,6 +212,7 @@ export function useYouTubeLiveStream(meetingId: string) {
       title?: string | null;
       startedAt?: string | null;
       canResume?: boolean;
+      relayActive?: boolean;
       viewerCount?: number | null;
       visibility?: YouTubePrivacyStatus | null;
       destinations?: LiveStreamDestinationView[];
@@ -215,6 +223,7 @@ export function useYouTubeLiveStream(meetingId: string) {
       if (state.title !== undefined) setStreamTitle(state.title);
       if (state.startedAt !== undefined) setStartedAt(state.startedAt);
       if (state.canResume !== undefined) setPendingResume(state.canResume);
+      if (state.relayActive !== undefined) setRelayActive(state.relayActive);
       if (state.viewerCount !== undefined) setViewerCount(state.viewerCount);
       if (state.visibility !== undefined) setStreamVisibility(state.visibility);
     },
@@ -311,6 +320,12 @@ export function useYouTubeLiveStream(meetingId: string) {
 
         recorder.ondataavailable = async (event) => {
           if (event.data.size === 0) return;
+          const chunk = event.data;
+          console.log('[chunk emit]', {
+            size: chunk?.size,
+            type: chunk?.type,
+            constructor: chunk?.constructor?.name,
+          });
           chunksEmitted += 1;
           const bytes = new Uint8Array(await event.data.arrayBuffer());
           if (chunksEmitted === 1) {
@@ -329,6 +344,12 @@ export function useYouTubeLiveStream(meetingId: string) {
           for (const socket of socketsRef.current) {
             if (socket.connected) {
               socketsConnected += 1;
+              console.log('[chunk emit] socket payload', {
+                event: 'ingest-chunk',
+                payload: bytes,
+                byteLength: bytes.byteLength,
+                constructor: bytes.constructor?.name,
+              });
               socket.emit('ingest-chunk', bytes);
             }
           }
@@ -417,6 +438,7 @@ export function useYouTubeLiveStream(meetingId: string) {
           destinations: dests,
         });
         setBroadcastStatus('LIVE');
+        setRelayActive(true);
         setPendingResume(false);
       } finally {
         attachingRef.current = false;
@@ -447,6 +469,7 @@ export function useYouTubeLiveStream(meetingId: string) {
             canResume: false,
             viewerCount: null,
             destinations: [],
+            relayActive: false,
           });
         } else {
           setBroadcastStatus('ENDED');
@@ -515,40 +538,6 @@ export function useYouTubeLiveStream(meetingId: string) {
     [meetingId, cleanupCapture, attachCaptureAndSockets],
   );
 
-  const resumeLive = useCallback(async () => {
-    if (!isYouTubeLiveEnabled()) return;
-    setError(null);
-    setResuming(true);
-    resumingRef.current = true;
-    let pendingCapture: MediaStream | null = null;
-    try {
-      pendingCapture = await requestDisplayCapture();
-      const session = (await api.stream.resume(meetingId)) as StreamStartApiResponse;
-      const relaySessions = normalizeStreamStartResponse(session);
-      if (relaySessions.length === 0) {
-        throw new Error('Stream resumed but ingest credentials were missing from the API response.');
-      }
-      await attachCaptureAndSockets(relaySessions, pendingCapture);
-      pendingCapture = null;
-      serverStreamActiveRef.current = true;
-      return session;
-    } catch (err) {
-      pendingCapture?.getTracks().forEach((track) => track.stop());
-      cleanupCapture();
-      const message = formatYouTubeLiveUserError(
-        err,
-        'youtube-live:resume',
-      );
-      setError(message);
-      setBroadcastStatus('ERROR');
-      setPendingResume(false);
-      throw new Error(message);
-    } finally {
-      resumingRef.current = false;
-      setResuming(false);
-    }
-  }, [meetingId, cleanupCapture, attachCaptureAndSockets]);
-
   const loadModeratorState = useCallback(async () => {
     if (!isYouTubeLiveEnabled()) return;
     try {
@@ -565,7 +554,7 @@ export function useYouTubeLiveStream(meetingId: string) {
       } | null;
 
       if (!session) {
-        applyStreamState({ status: 'IDLE', canResume: false });
+        applyStreamState({ status: 'IDLE', canResume: false, relayActive: false });
         return;
       }
 
@@ -587,9 +576,17 @@ export function useYouTubeLiveStream(meetingId: string) {
         viewerCount: session.viewerCount,
         visibility: session.visibility,
         destinations: session.destinations,
+        relayActive: session.relayActive,
         canResume: needsResume,
       });
       setPendingResume(needsResume);
+
+      if (session.status === 'LIVE') {
+        serverStreamActiveRef.current = true;
+        if (session.relayActive) {
+          setRelayActive(true);
+        }
+      }
 
       if (session.status === 'ERROR') {
         setError('YouTube Live session ended due to a relay error.');
@@ -598,6 +595,44 @@ export function useYouTubeLiveStream(meetingId: string) {
       // Guests and non-moderators cannot load moderator stream state
     }
   }, [meetingId, applyStreamState, captureActive]);
+
+  const resumeLive = useCallback(async () => {
+    if (!isYouTubeLiveEnabled()) return;
+    setError(null);
+    setResuming(true);
+    resumingRef.current = true;
+    let pendingCapture: MediaStream | null = null;
+    try {
+      pendingCapture = await requestDisplayCapture();
+      const session = (await api.stream.resume(meetingId)) as StreamStartApiResponse;
+      const relaySessions = normalizeStreamStartResponse(session);
+      if (relaySessions.length === 0) {
+        throw new Error('Stream resumed but ingest credentials were missing from the API response.');
+      }
+      await attachCaptureAndSockets(relaySessions, pendingCapture);
+      pendingCapture = null;
+      serverStreamActiveRef.current = true;
+      return session;
+    } catch (err) {
+      pendingCapture?.getTracks().forEach((track) => track.stop());
+      cleanupCapture();
+      const raw = err instanceof Error ? err.message : '';
+      if (/no active youtube live session to resume/i.test(raw)) {
+        setPendingResume(false);
+        setError(null);
+        await loadModeratorState();
+        return;
+      }
+      const message = formatYouTubeLiveUserError(err, 'youtube-live:resume');
+      setError(message);
+      setBroadcastStatus('ERROR');
+      setPendingResume(false);
+      throw new Error(message);
+    } finally {
+      resumingRef.current = false;
+      setResuming(false);
+    }
+  }, [meetingId, cleanupCapture, attachCaptureAndSockets, loadModeratorState]);
 
   useEffect(() => {
     if (!startedAt || broadcastStatus !== 'LIVE') {
@@ -624,11 +659,13 @@ export function useYouTubeLiveStream(meetingId: string) {
             watchUrl?: string | null;
             visibility?: YouTubePrivacyStatus | null;
             destinations?: LiveStreamDestinationView[];
+            relayActive?: boolean;
           };
           if (data.viewerCount !== undefined) setViewerCount(data.viewerCount);
           if (data.watchUrl) setWatchUrl(data.watchUrl);
           if (data.visibility) setStreamVisibility(data.visibility);
           if (data.destinations) setDestinations(data.destinations);
+          if (data.relayActive !== undefined) setRelayActive(data.relayActive);
         })
         .catch(() => undefined);
     };
@@ -658,15 +695,16 @@ export function useYouTubeLiveStream(meetingId: string) {
         broadcastStatus,
         connectionState,
         captureActive,
+        relayActive,
         starting,
         resuming,
       }),
-    [broadcastStatus, connectionState, captureActive, starting, resuming],
+    [broadcastStatus, connectionState, captureActive, relayActive, starting, resuming],
   );
 
   const streamHealth = useMemo(
-    () => deriveStreamHealth(connectionState, captureActive),
-    [connectionState, captureActive],
+    () => deriveStreamHealth(connectionState, captureActive, relayActive),
+    [connectionState, captureActive, relayActive],
   );
 
   const isLive = displayStatus === 'LIVE';

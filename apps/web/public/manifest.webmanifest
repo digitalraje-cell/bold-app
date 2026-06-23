@@ -1,9 +1,9 @@
 {
-  "id": "/",
+  "id": "/home",
   "name": "Bold",
   "short_name": "Bold",
   "description": "Professional browser-based video meetings — install Bold for faster joins.",
-  "start_url": "/dashboard",
+  "start_url": "/home",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
@@ -29,7 +29,7 @@
       "name": "Join meeting",
       "short_name": "Join",
       "description": "Join a Bold video meeting",
-      "url": "/dashboard",
+      "url": "/home",
       "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
     }
   ]

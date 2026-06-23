@@ -73,6 +73,10 @@ export function formatYouTubeLiveUserError(
     return 'Could not load your connected YouTube channels. Please try again.';
   }
 
+  if (lower.includes('no active youtube live session to resume')) {
+    return 'This YouTube Live session has already ended. Stop and start a new stream if needed.';
+  }
+
   if (looksLikeRawApiPayload(raw)) {
     return DEFAULT_START_ERROR;
   }

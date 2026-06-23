@@ -41,7 +41,27 @@ import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { YouTubeLiveModal } from '@/components/meeting/YouTubeLiveModal';
 import { YouTubeLiveResumeBanner } from '@/components/meeting/YouTubeLiveResumeBanner';
 import { StreamStatusPanel } from '@/components/meeting/StreamStatusPanel';
+import { StreamLivePill } from '@/components/meeting/StreamLivePill';
+import { YouTubeLiveOpenToast } from '@/components/meeting/YouTubeLiveOpenToast';
 import { LiveBadge } from '@/components/meeting/LiveBadge';
+import {
+  openYoutubeWatchTab,
+  shouldAutoOpenYoutubeWatchTab,
+} from '@/lib/stream-live-ui';
+
+function streamPanelStorageKey(meetingId: string) {
+  return `bold:stream-panel-open:${meetingId}`;
+}
+
+function readStreamPanelOpen(meetingId: string): boolean {
+  if (typeof window === 'undefined') return true;
+  return sessionStorage.getItem(streamPanelStorageKey(meetingId)) !== 'closed';
+}
+
+function clearStreamPanelStorage(meetingId: string) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(streamPanelStorageKey(meetingId));
+}
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -89,6 +109,8 @@ function MeetingRoomInner({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>();
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
+  const [streamPanelOpen, setStreamPanelOpen] = useState(() => readStreamPanelOpen(meetingId));
+  const [youtubeLiveToast, setYoutubeLiveToast] = useState(false);
   const [mediaSession, setMediaSession] = useState<{
     loading: boolean;
     jwtEnabled: boolean;
@@ -116,6 +138,7 @@ function MeetingRoomInner({
   const displayName = displayNameProp || session?.user?.name || session?.user?.email || 'Guest';
   const hangupRef = useRef<(() => void) | null>(null);
   const meetingEndedRef = useRef(false);
+  const youtubeTabOpenedRef = useRef(false);
   const notifyHostMediaReadyRef = useRef<() => void>(() => undefined);
   const notifyHostMediaLeftRef = useRef<() => void>(() => undefined);
 
@@ -150,6 +173,8 @@ function MeetingRoomInner({
 
   const myRole = myParticipant?.role ?? (isHost ? 'HOST' : 'PARTICIPANT');
   const isModerator = myRole === 'HOST' || myRole === 'CO_HOST';
+  const canAutoOpenYoutubeWatch =
+    myRole === 'HOST' || myRole === 'CO_HOST' || myRole === 'PANELIST';
 
   const canMic = canUseMicInRoom(myParticipant, roomMode);
   const canCamera = canUseCameraInRoom(myParticipant, roomMode);
@@ -159,6 +184,7 @@ function MeetingRoomInner({
     (isHost && myRole === 'HOST' && !myParticipant);
 
   const {
+    broadcastStatus: streamBroadcastStatus,
     isLive: isLiveStream,
     displayStatus: streamDisplayStatus,
     connectionState: streamConnectionState,
@@ -174,6 +200,7 @@ function MeetingRoomInner({
     stopping: streamStopping,
     error: streamError,
     pendingResume: streamPendingResume,
+    captureActive: streamCaptureActive,
     startLive,
     resumeLive,
     stopLive,
@@ -555,17 +582,104 @@ function MeetingRoomInner({
   };
 
   const handleCopyWatchUrl = useCallback(async () => {
-    if (!liveWatchUrl) return;
+    if (!liveWatchUrl) throw new Error('No watch URL');
     try {
       await navigator.clipboard.writeText(liveWatchUrl);
     } catch {
-      setShareError('Could not copy watch URL');
+      throw new Error('Could not copy watch URL');
     }
   }, [liveWatchUrl]);
 
   const handleOpenYouTube = useCallback(() => {
     if (liveWatchUrl) window.open(liveWatchUrl, '_blank', 'noopener,noreferrer');
   }, [liveWatchUrl]);
+
+  const handleHideStreamPanel = useCallback(() => {
+    setStreamPanelOpen(false);
+    sessionStorage.setItem(streamPanelStorageKey(meetingId), 'closed');
+  }, [meetingId]);
+
+  const handleShowStreamPanel = useCallback(() => {
+    setStreamPanelOpen(true);
+    sessionStorage.removeItem(streamPanelStorageKey(meetingId));
+  }, [meetingId]);
+
+  useEffect(() => {
+    if (!isModerator || streamBroadcastStatus !== 'LIVE') return;
+    if (!liveWatchUrl && streamDestinations.length === 0) return;
+    handleShowStreamPanel();
+  }, [
+    isModerator,
+    streamBroadcastStatus,
+    liveWatchUrl,
+    streamDestinations.length,
+    handleShowStreamPanel,
+  ]);
+
+  const hasYoutubeLiveViewerSignal =
+    streamViewerCount != null ||
+    streamDestinations.some((destination) => destination.viewerCount != null);
+
+  const promptYoutubeWatchOpen = useCallback(() => {
+    if (!liveWatchUrl || youtubeTabOpenedRef.current) return;
+    youtubeTabOpenedRef.current = true;
+
+    if (shouldAutoOpenYoutubeWatchTab()) {
+      const opened = openYoutubeWatchTab(liveWatchUrl);
+      if (!opened) {
+        setYoutubeLiveToast(true);
+      }
+      return;
+    }
+
+    setYoutubeLiveToast(true);
+  }, [liveWatchUrl]);
+
+  const handleYoutubeLiveToastOpen = useCallback(() => {
+    if (!liveWatchUrl) return;
+    openYoutubeWatchTab(liveWatchUrl);
+    setYoutubeLiveToast(false);
+  }, [liveWatchUrl]);
+
+  useEffect(() => {
+    if (!canAutoOpenYoutubeWatch || !liveWatchUrl || youtubeTabOpenedRef.current || !isLiveStream) return;
+
+    if (hasYoutubeLiveViewerSignal) {
+      promptYoutubeWatchOpen();
+      return;
+    }
+
+    if (!streamCaptureActive || streamConnectionState !== 'connected') return;
+
+    const timer = window.setTimeout(() => {
+      promptYoutubeWatchOpen();
+    }, 15_000);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    canAutoOpenYoutubeWatch,
+    liveWatchUrl,
+    isLiveStream,
+    hasYoutubeLiveViewerSignal,
+    streamCaptureActive,
+    streamConnectionState,
+    promptYoutubeWatchOpen,
+  ]);
+
+  useEffect(() => {
+    if (isLiveStream) return;
+    youtubeTabOpenedRef.current = false;
+    setYoutubeLiveToast(false);
+    setStreamPanelOpen(true);
+    clearStreamPanelStorage(meetingId);
+  }, [isLiveStream, meetingId]);
+
+  useEffect(() => {
+    if (streamDisplayStatus !== 'OFFLINE') return;
+    setYoutubeLiveToast(false);
+    setStreamPanelOpen(true);
+    clearStreamPanelStorage(meetingId);
+  }, [streamDisplayStatus, meetingId]);
 
   const handleToggleLock = async () => {
     const next = !isLocked;
@@ -625,6 +739,13 @@ function MeetingRoomInner({
 
       <ReactionsOverlay reactions={reactions} />
       <WebinarModeBanner roomMode={roomMode} />
+
+      {isModerator && youtubeLiveToast && liveWatchUrl ? (
+        <YouTubeLiveOpenToast
+          onOpen={handleYoutubeLiveToastOpen}
+          onDismiss={() => setYoutubeLiveToast(false)}
+        />
+      ) : null}
 
       <UpgradeModal
         open={upgradeOpen}
@@ -701,36 +822,50 @@ function MeetingRoomInner({
         />
       )}
 
-      <div className="absolute left-2 top-2 z-30 flex max-w-[calc(100%-1rem)] flex-col gap-2 sm:left-4 sm:top-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="pointer-events-none absolute left-2 top-2 z-30 flex max-w-[calc(100%-1rem)] flex-col gap-2 sm:left-4 sm:top-4">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-2">
           <div className="max-w-[min(100%,16rem)] truncate rounded-lg bg-black/50 px-2 py-1 text-xs text-white backdrop-blur sm:max-w-none sm:px-3 sm:py-1.5 sm:text-sm">
             {title}
           </div>
-          {isLiveStream && <LiveBadge />}
+          {isLiveStream && !isModerator && <LiveBadge />}
         </div>
         {isModerator && streamDisplayStatus !== 'OFFLINE' && (
-          <StreamStatusPanel
-            displayStatus={streamDisplayStatus}
-            connectionState={streamConnectionState}
-            streamHealth={streamHealth}
-            elapsedSeconds={streamElapsedSeconds}
-            viewerCount={streamViewerCount}
-            visibility={streamVisibility}
-            title={streamTitle}
-            watchUrl={liveWatchUrl}
-            destinations={streamDestinations}
-            error={streamError}
-            stopping={streamStopping}
-            onCopyWatchUrl={() => void handleCopyWatchUrl()}
-            onOpenYouTube={handleOpenYouTube}
-            onStopLive={() => void stopLive()}
-          />
+          <>
+            {streamPanelOpen ? (
+              <StreamStatusPanel
+                className="pointer-events-auto max-w-[min(100vw-1rem,20rem)] sm:max-w-xs"
+                displayStatus={streamDisplayStatus}
+                connectionState={streamConnectionState}
+                streamHealth={streamHealth}
+                elapsedSeconds={streamElapsedSeconds}
+                viewerCount={streamViewerCount}
+                visibility={streamVisibility}
+                title={streamTitle}
+                watchUrl={liveWatchUrl}
+                destinations={streamDestinations}
+                error={streamError}
+                stopping={streamStopping}
+                onClose={handleHideStreamPanel}
+                onCopyWatchUrl={() => handleCopyWatchUrl()}
+                onOpenYouTube={handleOpenYouTube}
+                onStopLive={() => void stopLive()}
+              />
+            ) : (
+              <StreamLivePill
+                className="pointer-events-auto"
+                displayStatus={streamDisplayStatus}
+                elapsedSeconds={streamElapsedSeconds}
+                viewerCount={streamViewerCount}
+                onClick={handleShowStreamPanel}
+              />
+            )}
+          </>
         )}
-        <div className="rounded-lg bg-black/50 px-2 py-1 text-[10px] text-white/70 backdrop-blur sm:px-3 sm:text-xs">
+        <div className="pointer-events-auto rounded-lg bg-black/50 px-2 py-1 text-[10px] text-white/70 backdrop-blur sm:px-3 sm:text-xs">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </div>
         {isModerator && (
-          <div className="rounded-lg bg-black/50 px-2 py-1 text-[10px] capitalize text-white/70 backdrop-blur sm:px-3 sm:text-xs">
+          <div className="pointer-events-auto rounded-lg bg-black/50 px-2 py-1 text-[10px] capitalize text-white/70 backdrop-blur sm:px-3 sm:text-xs">
             {roomMode.toLowerCase()} mode
           </div>
         )}
