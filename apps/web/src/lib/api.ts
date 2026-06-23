@@ -1,4 +1,5 @@
 import { getApiBaseUrl, getClientApiTransport } from '@/lib/api-base';
+import type { StartYouTubeLiveInput } from '@boldmeet/shared';
 
 async function getAuthToken(): Promise<string | null> {
   const res = await fetch('/api/token');
@@ -291,16 +292,7 @@ export const api = {
     get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/stream`),
     getPublic: (meetingId: string) =>
       apiFetch(`/meetings/${meetingId}/stream/public`, {}, false),
-    start: (
-      meetingId: string,
-      data: {
-        provider: string;
-        youtubeAccountIds?: string[];
-        /** @deprecated use youtubeAccountIds */
-        youtubeAccountId?: string;
-        visibility?: 'public' | 'unlisted' | 'private';
-      },
-    ) =>
+    start: (meetingId: string, data: StartYouTubeLiveInput) =>
       apiFetch(`/meetings/${meetingId}/stream/start`, {
         method: 'POST',
         body: JSON.stringify(data),

@@ -45,6 +45,21 @@ export interface StartYouTubeLiveInput {
   visibility?: YouTubePrivacyStatus;
 }
 
+/** Browser-only capture source — never send to POST /meetings/:id/stream/start */
+export type YouTubeCaptureMode = 'camera' | 'screen' | 'window' | 'tab';
+
+export interface StartYouTubeLiveClientParams extends StartYouTubeLiveInput {
+  captureMode?: YouTubeCaptureMode;
+}
+
+/** Strip client-only fields before stream/start API validation. */
+export function toStartYouTubeLiveApiBody(
+  params: StartYouTubeLiveClientParams,
+): StartYouTubeLiveInput {
+  const { captureMode: _captureMode, ...apiBody } = params;
+  return apiBody;
+}
+
 export interface MeetingLiveStreamView {
   isLive: boolean;
   destinations: import('./types').LiveStreamDestinationView[];

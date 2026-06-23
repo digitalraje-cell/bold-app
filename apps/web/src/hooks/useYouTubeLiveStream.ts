@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type {
-  BroadcastStatus,
-  LiveStreamDestinationView,
-  StreamConnectionState,
-  StreamDisplayStatus,
-  YouTubePrivacyStatus,
+import {
+  MeetingBroadcastProviderType,
+  toStartYouTubeLiveApiBody,
+  type BroadcastStatus,
+  type LiveStreamDestinationView,
+  type StreamConnectionState,
+  type StreamDisplayStatus,
+  type YouTubeCaptureMode,
+  type YouTubePrivacyStatus,
 } from '@boldmeet/shared';
-import { MeetingBroadcastProviderType } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { getSocketOrigin } from '@/lib/api-base';
 import { isYouTubeLiveEnabled } from '@/lib/features';
@@ -23,15 +25,9 @@ import {
   logYouTubePipelineError,
 } from '@/lib/youtube-live-pipeline-log';
 
-export type YouTubeCaptureMode = 'camera' | 'screen' | 'window' | 'tab';
+export type { YouTubeCaptureMode } from '@boldmeet/shared';
 
-export type StartLiveStreamParams = {
-  provider: MeetingBroadcastProviderType;
-  youtubeAccountIds: string[];
-  visibility?: YouTubePrivacyStatus;
-  /** Defaults to camera + microphone. Display capture only when explicitly selected. */
-  captureMode?: YouTubeCaptureMode;
-};
+export type StartLiveStreamParams = import('@boldmeet/shared').StartYouTubeLiveClientParams;
 
 type StreamSession = {
   id: string;
@@ -540,7 +536,8 @@ export function useYouTubeLiveStream(meetingId: string) {
       let pendingCapture: MediaStream | null = null;
       try {
         logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:request', { meetingId, captureMode });
-        const session = (await api.stream.start(meetingId, params)) as StreamStartApiResponse;
+        const apiBody = toStartYouTubeLiveApiBody(params);
+        const session = (await api.stream.start(meetingId, apiBody)) as StreamStartApiResponse;
         startedOnServer = true;
         serverStreamActiveRef.current = true;
         const relaySessions = normalizeStreamStartResponse(session);
