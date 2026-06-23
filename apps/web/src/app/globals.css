@@ -195,6 +195,84 @@ html {
   padding-bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
 }
 
+.meeting-jitsi-shell--dock-right {
+  padding-right: clamp(5.5rem, 14vw, 8.5rem);
+}
+
+.meeting-jitsi-shell--dock-left {
+  padding-left: clamp(5.5rem, 14vw, 8.5rem);
+}
+
+.meeting-jitsi-shell--dock-top {
+  padding-top: clamp(4.5rem, 12vh, 6.5rem);
+}
+
+.meeting-jitsi-shell--dock-bottom {
+  padding-bottom: calc(
+    var(--meeting-controls-offset, 5.5rem) + clamp(4.5rem, 12vh, 6.5rem) +
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+
+.meeting-jitsi-shell--dock-floating,
+.meeting-jitsi-shell--dock-hidden {
+  padding-bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
+}
+
+.meeting-participant-dock {
+  position: absolute;
+  z-index: 25;
+  transition: all 0.28s ease;
+}
+
+.meeting-participant-dock--right {
+  top: 4.5rem;
+  right: 0.75rem;
+  bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
+  width: clamp(5rem, 12vw, 7.5rem);
+}
+
+.meeting-participant-dock--left {
+  top: 4.5rem;
+  left: 0.75rem;
+  bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
+  width: clamp(5rem, 12vw, 7.5rem);
+}
+
+.meeting-participant-dock--top {
+  top: 4.5rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: clamp(4.5rem, 12vh, 6.5rem);
+}
+
+.meeting-participant-dock--bottom {
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  height: clamp(4.5rem, 12vh, 6.5rem);
+}
+
+.meeting-participant-dock--minimized {
+  opacity: 0.92;
+}
+
+@media (max-width: 767px) {
+  .meeting-participant-dock--right,
+  .meeting-participant-dock--left {
+    width: 4.75rem;
+    top: 3.5rem;
+  }
+
+  .meeting-jitsi-shell--dock-right {
+    padding-right: 5.25rem;
+  }
+
+  .meeting-jitsi-shell--dock-left {
+    padding-left: 5.25rem;
+  }
+}
+
 @keyframes v3-fade-up {
   from {
     opacity: 0;

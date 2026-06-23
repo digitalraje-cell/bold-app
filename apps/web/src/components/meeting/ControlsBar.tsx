@@ -25,6 +25,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
+import { MeetingLayoutMenu } from '@/components/meeting/MeetingLayoutMenu';
 import { cn } from '@/lib/utils';
 
 interface ControlsBarProps {
@@ -68,6 +69,9 @@ interface ControlsBarProps {
   canManageBroadcast?: boolean;
   controlsVisible?: boolean;
   onRevealControls?: () => void;
+  layoutMode?: import('@/lib/meeting-layout-prefs').MeetingLayoutMode;
+  onSelectLayout?: (mode: import('@/lib/meeting-layout-prefs').MeetingLayoutMode) => void;
+  onOpenLayoutSettings?: () => void;
 }
 
 function ControlButton({
@@ -150,6 +154,9 @@ export function ControlsBar({
   canManageBroadcast,
   controlsVisible = true,
   onRevealControls,
+  layoutMode = 'speaker',
+  onSelectLayout,
+  onOpenLayoutSettings,
 }: ControlsBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -184,7 +191,6 @@ export function ControlsBar({
       className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
       style={{ ['--meeting-controls-offset' as string]: '5.5rem' }}
       onMouseMove={onRevealControls}
-      onTouchStart={onRevealControls}
     >
       <div
         className={cn(
@@ -228,6 +234,14 @@ export function ControlsBar({
           active={activePanel === 'participants'}
           onClick={onToggleParticipants}
         />
+
+        {onSelectLayout && onOpenLayoutSettings ? (
+          <MeetingLayoutMenu
+            layoutMode={layoutMode}
+            onSelectLayout={onSelectLayout}
+            onOpenSettings={onOpenLayoutSettings}
+          />
+        ) : null}
 
         {hasMoreItems && (
           <div className="relative" ref={moreRef}>

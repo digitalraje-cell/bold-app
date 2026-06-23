@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { RoomMode } from '@boldmeet/shared';
@@ -16,8 +16,11 @@ import {
 } from '@/stores/roomStore';
 import { useMeetingFullscreen } from '@/contexts/MeetingFullscreenContext';
 import { useMeetingControlsAutoHide } from '@/hooks/useMeetingControlsAutoHide';
+import { mergeJitsiRoster, useMeetingLayout } from '@/hooks/useMeetingLayout';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
+import { ParticipantDock } from '@/components/meeting/ParticipantDock';
+import { MeetingLayoutSettings } from '@/components/meeting/MeetingLayoutSettings';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
@@ -111,6 +114,7 @@ function MeetingRoomInner({
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
   const [streamPanelOpen, setStreamPanelOpen] = useState(() => readStreamPanelOpen(meetingId));
   const [youtubeLiveToast, setYoutubeLiveToast] = useState(false);
+  const [layoutSettingsOpen, setLayoutSettingsOpen] = useState(false);
   const [mediaSession, setMediaSession] = useState<{
     loading: boolean;
     jwtEnabled: boolean;
@@ -323,6 +327,14 @@ function MeetingRoomInner({
     isAudioMuted,
     isVideoMuted,
     isReconnecting,
+    setTileView,
+    setFilmstripVisible,
+    pinParticipant,
+    unpinParticipant,
+    togglePinParticipant,
+    jitsiParticipants,
+    dominantSpeakerId,
+    pinnedParticipantId,
   } = useJitsi({
     roomName: mediaSession.embedRoomName ?? jitsiRoom,
     jitsiDomain: mediaSession.embedDomain ?? undefined,
@@ -346,15 +358,60 @@ function MeetingRoomInner({
 
   hangupRef.current = hangup;
 
+  const jitsiLayoutApi = useMemo(
+    () => ({
+      setTileView,
+      setFilmstripVisible,
+      pinParticipant,
+      unpinParticipant,
+      pinnedParticipantId,
+      mediaReady,
+    }),
+    [
+      setTileView,
+      setFilmstripVisible,
+      pinParticipant,
+      unpinParticipant,
+      pinnedParticipantId,
+      mediaReady,
+    ],
+  );
+
+  const { prefs: layoutPrefs, updatePrefs: updateLayoutPrefs, setLayoutMode, shellClassName } =
+    useMeetingLayout(jitsiLayoutApi);
+
+  const dockParticipants = useMemo(
+    () =>
+      mergeJitsiRoster(
+        jitsiParticipants,
+        participants.map((p) => ({ id: p.id, displayName: p.displayName })),
+      ),
+    [jitsiParticipants, participants],
+  );
+
+  const handlePinToggle = useCallback(
+    (participantId: string) => {
+      togglePinParticipant(participantId);
+      if (pinnedParticipantId !== participantId) {
+        updateLayoutPrefs({ layoutMode: 'pinned' });
+      }
+    },
+    [pinnedParticipantId, togglePinParticipant, updateLayoutPrefs],
+  );
+
   const controlsPinned =
     activePanel !== null ||
     inviteOpen ||
     hostLeaveOpen ||
     youtubeModalOpen ||
     upgradeOpen ||
-    streamPendingResume;
+    streamPendingResume ||
+    layoutSettingsOpen;
 
-  const { controlsVisible, revealControls } = useMeetingControlsAutoHide(controlsPinned);
+  const { controlsVisible, revealControls, toggleControlsMobile } = useMeetingControlsAutoHide(
+    controlsPinned,
+    layoutPrefs.autoHideControls,
+  );
 
   const handleDurationExpired = useCallback(() => {
     hangupRef.current?.();
@@ -732,9 +789,40 @@ function MeetingRoomInner({
 
       <div
         ref={containerRef}
-        className={`meeting-jitsi-shell absolute inset-0 min-h-[200px] bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
+        className={`meeting-jitsi-shell ${shellClassName} absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
           !mediaReady ? 'invisible pointer-events-none' : ''
         }`}
+      />
+
+      {!controlsVisible && !controlsPinned && mediaReady ? (
+        <button
+          type="button"
+          className="absolute inset-0 z-20 bg-transparent md:hidden"
+          aria-label="Show meeting controls"
+          onClick={toggleControlsMobile}
+        />
+      ) : null}
+
+      {mediaReady && layoutPrefs.thumbnailPanelMode !== 'hidden' ? (
+        <ParticipantDock
+          participants={dockParticipants}
+          dominantSpeakerId={dominantSpeakerId}
+          pinnedParticipantId={pinnedParticipantId}
+          prefs={layoutPrefs}
+          onPinToggle={handlePinToggle}
+          onFloatingDockChange={(patch) =>
+            updateLayoutPrefs({
+              floatingDock: { ...layoutPrefs.floatingDock, ...patch },
+            })
+          }
+        />
+      ) : null}
+
+      <MeetingLayoutSettings
+        open={layoutSettingsOpen}
+        prefs={layoutPrefs}
+        onClose={() => setLayoutSettingsOpen(false)}
+        onChange={updateLayoutPrefs}
       />
 
       <ReactionsOverlay reactions={reactions} />
@@ -928,6 +1016,9 @@ function MeetingRoomInner({
         canManageBroadcast={isModerator}
         controlsVisible={controlsVisible}
         onRevealControls={revealControls}
+        layoutMode={layoutPrefs.layoutMode}
+        onSelectLayout={setLayoutMode}
+        onOpenLayoutSettings={() => setLayoutSettingsOpen(true)}
       />
 
       <MeetingDurationModal

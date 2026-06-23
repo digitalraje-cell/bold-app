@@ -17,7 +17,13 @@ interface JitsiExternalAPI {
   executeCommand: (command: string, ...args: unknown[]) => void;
   addListener: (event: string, listener: (...args: unknown[]) => void) => void;
   removeListener: (event: string, listener: (...args: unknown[]) => void) => void;
+  getParticipantsInfo?: () => Array<{ participantId: string; displayName?: string }>;
 }
+
+export type JitsiRosterParticipant = {
+  id: string;
+  displayName: string;
+};
 
 interface UseJitsiOptions {
   roomName: string;
@@ -219,6 +225,10 @@ export function useJitsi({
   const [isVideoMuted, setIsVideoMuted] = useState(startVideoMuted);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectNonce, setReconnectNonce] = useState(0);
+  const [jitsiParticipants, setJitsiParticipants] = useState<JitsiRosterParticipant[]>([]);
+  const [dominantSpeakerId, setDominantSpeakerId] = useState<string | null>(null);
+  const [pinnedParticipantId, setPinnedParticipantId] = useState<string | null>(null);
+  const [localParticipantId, setLocalParticipantId] = useState<string | null>(null);
 
   const disposeSession = useCallback(() => {
     iframeObserverRef.current?.disconnect();
@@ -356,10 +366,22 @@ export function useJitsi({
 
       const api = new window.JitsiMeetExternalAPI(mediaDomain, apiOptions);
 
-      api.addListener('videoConferenceJoined', () => {
+      api.addListener('videoConferenceJoined', (payload: unknown) => {
         joinedRef.current = true;
         reconnectAttemptsRef.current = 0;
         setIsReconnecting(false);
+        const joined = payload as { id?: string; displayName?: string };
+        if (joined.id) {
+          setLocalParticipantId(joined.id);
+          setJitsiParticipants((prev) => {
+            const existing = prev.find((p) => p.id === joined.id);
+            if (existing) return prev;
+            return [
+              ...prev,
+              { id: joined.id!, displayName: joined.displayName?.trim() || 'You' },
+            ];
+          });
+        }
         claimJitsiModerator(api, {
           isHost: opts.isHost,
           isModerator: opts.isModerator,
@@ -443,6 +465,46 @@ export function useJitsi({
         callbacksRef.current.onPresenterLayoutChange?.(presenter);
       });
 
+      api.addListener('participantJoined', (payload: unknown) => {
+        const joined = payload as { id?: string; displayName?: string };
+        if (!joined.id) return;
+        setJitsiParticipants((prev) => {
+          if (prev.some((p) => p.id === joined.id)) return prev;
+          return [
+            ...prev,
+            { id: joined.id!, displayName: joined.displayName?.trim() || 'Participant' },
+          ];
+        });
+      });
+
+      api.addListener('participantLeft', (payload: unknown) => {
+        const left = payload as { id?: string };
+        if (!left.id) return;
+        setJitsiParticipants((prev) => prev.filter((p) => p.id !== left.id));
+        setDominantSpeakerId((current) => (current === left.id ? null : current));
+        setPinnedParticipantId((current) => (current === left.id ? null : current));
+      });
+
+      api.addListener('displayNameChanged', (payload: unknown) => {
+        const changed = payload as { id?: string; displayname?: string; displayName?: string };
+        if (!changed.id) return;
+        const name = (changed.displayname ?? changed.displayName)?.trim();
+        if (!name) return;
+        setJitsiParticipants((prev) =>
+          prev.map((p) => (p.id === changed.id ? { ...p, displayName: name } : p)),
+        );
+      });
+
+      api.addListener('dominantSpeakerChanged', (payload: unknown) => {
+        const speaker = payload as { id?: string };
+        setDominantSpeakerId(speaker.id ?? null);
+      });
+
+      api.addListener('pinParticipantChanged', (payload: unknown) => {
+        const pin = payload as { participantId?: string | null };
+        setPinnedParticipantId(pin.participantId ?? null);
+      });
+
       apiRef.current = api;
       sessionKeyRef.current = sessionKey;
     };
@@ -493,6 +555,10 @@ export function useJitsi({
     setIsAudioMuted(true);
     setIsVideoMuted(true);
     setIsReconnecting(false);
+    setJitsiParticipants([]);
+    setDominantSpeakerId(null);
+    setPinnedParticipantId(null);
+    setLocalParticipantId(null);
   }, [enabled, disposeSession]);
 
   useEffect(() => {
@@ -527,6 +593,47 @@ export function useJitsi({
     apiRef.current?.executeCommand('muteEveryone');
   }, []);
 
+  const runJitsiCommand = useCallback((command: string, ...args: unknown[]) => {
+    try {
+      apiRef.current?.executeCommand(command, ...args);
+    } catch {
+      // Jitsi builds differ — ignore unsupported commands.
+    }
+  }, []);
+
+  const setTileView = useCallback((enabled: boolean) => {
+    runJitsiCommand('setTileView', enabled);
+  }, [runJitsiCommand]);
+
+  const toggleTileView = useCallback(() => {
+    runJitsiCommand('toggleTileView');
+  }, [runJitsiCommand]);
+
+  const setFilmstripVisible = useCallback((visible: boolean) => {
+    runJitsiCommand('setFilmstripEnabled', visible);
+  }, [runJitsiCommand]);
+
+  const pinParticipant = useCallback((participantId: string) => {
+    runJitsiCommand('pinParticipant', participantId);
+    setPinnedParticipantId(participantId);
+  }, [runJitsiCommand]);
+
+  const unpinParticipant = useCallback(() => {
+    runJitsiCommand('pinParticipant', null);
+    setPinnedParticipantId(null);
+  }, [runJitsiCommand]);
+
+  const togglePinParticipant = useCallback(
+    (participantId: string) => {
+      if (pinnedParticipantId === participantId) {
+        unpinParticipant();
+        return;
+      }
+      pinParticipant(participantId);
+    },
+    [pinParticipant, pinnedParticipantId, unpinParticipant],
+  );
+
   return {
     toggleAudio,
     toggleVideo,
@@ -534,10 +641,20 @@ export function useJitsi({
     stopShareScreen,
     hangup,
     muteAll,
+    setTileView,
+    toggleTileView,
+    setFilmstripVisible,
+    pinParticipant,
+    unpinParticipant,
+    togglePinParticipant,
     isScreenSharing,
     isPresenterLayout,
     isAudioMuted,
     isVideoMuted,
     isReconnecting,
+    jitsiParticipants,
+    dominantSpeakerId,
+    pinnedParticipantId,
+    localParticipantId,
   };
 }
