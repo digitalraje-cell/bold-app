@@ -30,43 +30,49 @@ export function useMobileScreenShareLayout(
 ) {
   const isMobile = useIsMobileMeetingViewport();
   const appliedRef = useRef(false);
+  const prevShouldApplyRef = useRef(false);
   const apiRef = useRef(api);
+  const contextRef = useRef(context);
 
   useEffect(() => {
     apiRef.current = api;
   }, [api]);
 
+  useEffect(() => {
+    contextRef.current = context;
+  }, [context]);
+
   const sharingActive = isMobileScreenShareStageActive(context);
   const shouldApply = isMobile && sharingActive && api.mediaReady;
 
+  // Transition-based layout: apply once on OFF→ON, restore once on ON→OFF.
   useEffect(() => {
-    const currentApi = apiRef.current;
+    const wasActive = prevShouldApplyRef.current;
+    const isActive = shouldApply;
+    prevShouldApplyRef.current = isActive;
 
-    if (!shouldApply) {
-      if (appliedRef.current) {
-        restoreMobileScreenShareLayout(currentApi);
-        appliedRef.current = false;
-      }
+    if (!wasActive && isActive) {
+      applyMobileScreenShareLayout(apiRef.current, contextRef.current);
+      appliedRef.current = true;
       return;
     }
 
-    applyMobileScreenShareLayout(currentApi, context);
-    appliedRef.current = true;
+    if (wasActive && !isActive && appliedRef.current) {
+      restoreMobileScreenShareLayout(apiRef.current);
+      appliedRef.current = false;
+    }
+  }, [shouldApply]);
 
+  // Unmount / leave meeting — ensure Jitsi config is restored.
+  useEffect(() => {
     return () => {
       if (appliedRef.current) {
         restoreMobileScreenShareLayout(apiRef.current);
         appliedRef.current = false;
+        prevShouldApplyRef.current = false;
       }
     };
-  }, [
-    shouldApply,
-    context.isScreenSharing,
-    context.isPresenterLayout,
-    context.contentSharingParticipantIds.join(','),
-    context.roomMode,
-    api.mediaReady,
-  ]);
+  }, []);
 
   const shellClassName = useMemo(
     () => (isMobile && sharingActive ? mobileScreenShareShellClass(true) : ''),

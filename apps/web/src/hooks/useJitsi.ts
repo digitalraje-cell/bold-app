@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getMeetingMediaProvider } from '@/lib/media';
+import { shouldLogMobileScreenShareLayout } from '@/lib/media/mobile-screen-share-layout';
 
 declare global {
   interface Window {
@@ -470,6 +471,9 @@ export function useJitsi({
       api.addListener('screenSharingStatusChanged', (payload: unknown) => {
         const { on: sharing } = payload as { on?: boolean };
         const active = Boolean(sharing);
+        if (shouldLogMobileScreenShareLayout()) {
+          console.log('[mobile-ss-layout] screenSharingStatusChanged', { active });
+        }
         setIsScreenSharing(active);
         callbacksRef.current.onScreenShareChange?.(active);
       });
@@ -480,12 +484,30 @@ export function useJitsi({
           : (payload as { data?: string[]; participants?: string[] })?.data ??
             (payload as { participants?: string[] })?.participants ??
             [];
-        setContentSharingParticipantIds(ids.filter((id): id is string => typeof id === 'string'));
+        const nextIds = ids.filter((id): id is string => typeof id === 'string');
+        if (shouldLogMobileScreenShareLayout()) {
+          console.log('[mobile-ss-layout] contentSharingParticipantsChanged', {
+            count: nextIds.length,
+            ids: nextIds,
+          });
+        }
+        setContentSharingParticipantIds((prev) => {
+          if (
+            prev.length === nextIds.length &&
+            prev.every((id, index) => id === nextIds[index])
+          ) {
+            return prev;
+          }
+          return nextIds;
+        });
       });
 
       api.addListener('tileViewChanged', (payload: unknown) => {
         const { enabled: tileView } = payload as { enabled?: boolean };
         const presenter = !tileView;
+        if (shouldLogMobileScreenShareLayout()) {
+          console.log('[mobile-ss-layout] tileViewChanged', { tileView, isPresenterLayout: presenter });
+        }
         setIsPresenterLayout(presenter);
         callbacksRef.current.onPresenterLayoutChange?.(presenter);
       });
@@ -634,6 +656,9 @@ export function useJitsi({
   }, []);
 
   const setTileView = useCallback((enabled: boolean) => {
+    if (shouldLogMobileScreenShareLayout()) {
+      console.log('[mobile-ss-layout] setTileView', { enabled });
+    }
     runJitsiCommand('setTileView', enabled);
   }, [runJitsiCommand]);
 
@@ -642,10 +667,16 @@ export function useJitsi({
   }, [runJitsiCommand]);
 
   const setFilmstripVisible = useCallback((visible: boolean) => {
+    if (shouldLogMobileScreenShareLayout()) {
+      console.log('[mobile-ss-layout] setFilmstripVisible', { visible });
+    }
     runJitsiCommand('setFilmstripEnabled', visible);
   }, [runJitsiCommand]);
 
   const overwriteConfig = useCallback((config: Record<string, unknown>) => {
+    if (shouldLogMobileScreenShareLayout()) {
+      console.log('[mobile-ss-layout] overwriteConfig', config);
+    }
     runJitsiCommand('overwriteConfig', config);
   }, [runJitsiCommand]);
 

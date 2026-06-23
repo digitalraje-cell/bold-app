@@ -1,5 +1,26 @@
 import { RoomMode } from '@boldmeet/shared';
 
+const LOG_PREFIX = '[mobile-ss-layout]';
+
+export function shouldLogMobileScreenShareLayout(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (process.env.NODE_ENV === 'development') return true;
+  try {
+    return window.localStorage.getItem('bold-debug-mobile-ss') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function logMobileScreenShareLayout(event: string, detail?: Record<string, unknown>) {
+  if (!shouldLogMobileScreenShareLayout()) return;
+  if (detail) {
+    console.log(LOG_PREFIX, event, detail);
+  } else {
+    console.log(LOG_PREFIX, event);
+  }
+}
+
 export type MobileScreenShareJitsiApi = {
   mediaReady: boolean;
   setTileView: (enabled: boolean) => void;
@@ -39,6 +60,13 @@ export function applyMobileScreenShareLayout(
 
   const localSharing = context.isScreenSharing;
 
+  logMobileScreenShareLayout('apply', {
+    localSharing,
+    isPresenterLayout: context.isPresenterLayout,
+    contentSharingCount: context.contentSharingParticipantIds.length,
+    roomMode: context.roomMode,
+  });
+
   api.overwriteConfig({
     disableStageFilmstrip: true,
     disableTileEnlargement: true,
@@ -49,17 +77,22 @@ export function applyMobileScreenShareLayout(
   });
 
   api.setTileView(false);
+  logMobileScreenShareLayout('setTileView', { enabled: false });
   // Visual-only: hide filmstrip tiles; keep full stream subscriptions (no setLastN).
   api.setFilmstripVisible(false);
+  logMobileScreenShareLayout('setFilmstripVisible', { visible: false });
 
   if (localSharing) {
     // Ensure sharer PiP stays visible — never hide the presenter's self-view.
     api.setSelfViewHidden(false);
+    logMobileScreenShareLayout('setSelfViewHidden', { hidden: false });
   }
 }
 
 export function restoreMobileScreenShareLayout(api: MobileScreenShareJitsiApi) {
   if (!api.mediaReady) return;
+
+  logMobileScreenShareLayout('restore');
 
   api.overwriteConfig({
     disableStageFilmstrip: false,
@@ -70,8 +103,11 @@ export function restoreMobileScreenShareLayout(api: MobileScreenShareJitsiApi) {
   });
 
   api.setTileView(true);
+  logMobileScreenShareLayout('setTileView', { enabled: true });
   api.setFilmstripVisible(true);
+  logMobileScreenShareLayout('setFilmstripVisible', { visible: true });
   api.setSelfViewHidden(true);
+  logMobileScreenShareLayout('setSelfViewHidden', { hidden: true });
 }
 
 export function mobileScreenShareShellClass(active: boolean): string {
