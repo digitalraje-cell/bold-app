@@ -1,6 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
+import { createPortal } from 'react-dom';
 import {
   Mic,
   MicOff,
@@ -10,23 +19,18 @@ import {
   MonitorOff,
   MessageSquare,
   Users,
-  Hand,
   Smile,
-  Maximize,
   PhoneOff,
-  UserPlus,
   LogOut,
-  VolumeX,
-  Lock,
-  Unlock,
-  DoorOpen,
-  Radio,
-  Square,
   MoreHorizontal,
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
 import { MeetingLayoutMenu } from '@/components/meeting/MeetingLayoutMenu';
+import { logMeetingControlsEvent } from '@/lib/media/meeting-controls-diagnostics';
+import { computeMoreMenuPosition } from '@/lib/media/compute-more-menu-position';
 import { cn } from '@/lib/utils';
+
+const OUTSIDE_CLICK_GRACE_MS = 250;
 
 interface ControlsBarProps {
   isMuted: boolean;
@@ -40,6 +44,8 @@ interface ControlsBarProps {
   micDisabled?: boolean;
   cameraDisabled?: boolean;
   shareDisabled?: boolean;
+  shareUnavailable?: boolean;
+  shareUnavailableHint?: string;
   onToggleChat: () => void;
   onToggleParticipants: () => void;
   onReaction: (reaction: string) => void;
@@ -80,6 +86,7 @@ function ControlButton({
   active,
   danger,
   disabled,
+  blocked,
   onClick,
 }: {
   icon: typeof Mic;
@@ -87,6 +94,7 @@ function ControlButton({
   active?: boolean;
   danger?: boolean;
   disabled?: boolean;
+  blocked?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -96,9 +104,10 @@ function ControlButton({
       disabled={disabled}
       aria-label={label}
       title={label}
+      aria-expanded={active}
       className={cn(
         'flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 sm:h-12 sm:w-12',
-        disabled && 'cursor-not-allowed opacity-40',
+        (disabled || blocked) && 'cursor-not-allowed opacity-40',
         danger
           ? 'bg-destructive hover:opacity-90'
           : active
@@ -113,6 +122,121 @@ function ControlButton({
 
 const MEETING_REACTIONS = ['👍', '❤️', '👏', '🎉', '😂', '🙌'] as const;
 
+function readSafeAreaTop(): number {
+  if (typeof window === 'undefined') return 0;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue('--safe-area-inset-top')
+    .trim();
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function MoreOptionsDropdown({
+  open,
+  anchorRef,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  anchorRef: RefObject<HTMLDivElement | null>;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const openedAtRef = useRef(0);
+  const [position, setPosition] = useState({
+    left: 8,
+    bottom: 80,
+    maxHeight: 320,
+    width: 192,
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    setPosition(
+      computeMoreMenuPosition(rect, {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }, { safeAreaTop: readSafeAreaTop() }),
+    );
+  }, [anchorRef]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    openedAtRef.current = Date.now();
+    updatePosition();
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onViewportChange = () => updatePosition();
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('orientationchange', onViewportChange);
+
+    return () => {
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('scroll', onViewportChange, true);
+      window.removeEventListener('orientationchange', onViewportChange);
+    };
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (Date.now() - openedAtRef.current < OUTSIDE_CLICK_GRACE_MS) return;
+
+      const target = event.target as Node;
+      if (anchorRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+
+      logMeetingControlsEvent('more-menu-outside-click', { pointerType: event.pointerType });
+      onClose();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+      document.addEventListener('keydown', onKeyDown);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [anchorRef, onClose, open]);
+
+  if (!open || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      data-more-options-menu
+      role="menu"
+      className="fixed z-[60] overflow-y-auto overflow-x-hidden rounded-[var(--radius-meeting)] meeting-glass-panel py-1 shadow-[var(--shadow-float)]"
+      style={{
+        left: position.left,
+        bottom: position.bottom,
+        maxHeight: position.maxHeight,
+        width: position.width,
+        minWidth: position.width,
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
 export function ControlsBar({
   isMuted,
   isVideoOff,
@@ -125,6 +249,8 @@ export function ControlsBar({
   micDisabled,
   cameraDisabled,
   shareDisabled,
+  shareUnavailable = false,
+  shareUnavailableHint,
   onToggleChat,
   onToggleParticipants,
   onReaction,
@@ -162,17 +288,6 @@ export function ControlsBar({
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [moreOpen]);
-
   const hasMoreItems =
     reactionsEnabled ||
     raiseHandEnabled ||
@@ -185,6 +300,39 @@ export function ControlsBar({
     Boolean(onMuteAll) ||
     Boolean(canManageBroadcast && onGoLive) ||
     Boolean(isHost && onEndMeeting);
+
+  const closeMoreMenu = useCallback(() => {
+    setMoreOpen(false);
+    setReactionsOpen(false);
+    logMeetingControlsEvent('more-menu-close', {});
+  }, []);
+
+  const toggleMoreMenu = useCallback(() => {
+    setMoreOpen((current) => {
+      const next = !current;
+      logMeetingControlsEvent('more-menu-toggle', { moreOpen: next, handlerFired: true });
+      if (!next) setReactionsOpen(false);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    logMeetingControlsEvent('more-menu-open', { moreOpen: true });
+  }, [moreOpen]);
+
+  useEffect(() => {
+    if (controlsVisible || !moreOpen) return;
+    closeMoreMenu();
+  }, [closeMoreMenu, controlsVisible, moreOpen]);
+
+  const showShareButton = !shareDisabled || shareUnavailable;
+  const shareBlocked = shareUnavailable && !isScreenSharing;
+  const shareLabel = shareBlocked
+    ? 'Screen sharing unavailable on this device'
+    : isScreenSharing
+      ? 'Stop sharing'
+      : 'Share screen';
 
   return (
     <div
@@ -214,11 +362,12 @@ export function ControlsBar({
           disabled={cameraDisabled}
           onClick={onToggleVideo}
         />
-        {!shareDisabled && (
+        {showShareButton && (
           <ControlButton
             icon={isScreenSharing ? MonitorOff : MonitorUp}
-            label={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+            label={shareBlocked && shareUnavailableHint ? shareUnavailableHint : shareLabel}
             active={isScreenSharing}
+            blocked={shareBlocked}
             onClick={onToggleShare}
           />
         )}
@@ -244,118 +393,116 @@ export function ControlsBar({
         ) : null}
 
         {hasMoreItems && (
-          <div className="relative" ref={moreRef}>
+          <div className="relative shrink-0" ref={moreRef}>
             <ControlButton
               icon={MoreHorizontal}
               label="More options"
               active={moreOpen}
-              onClick={() => setMoreOpen((v) => !v)}
+              onClick={toggleMoreMenu}
             />
-            {moreOpen && (
-              <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[12rem] overflow-hidden rounded-[var(--radius-meeting)] meeting-glass-panel py-1 shadow-[var(--shadow-float)]">
-                {reactionsEnabled && (
-                  <div className="border-b border-white/10 px-3 py-2">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between text-left text-sm text-white hover:text-white/90"
-                      onClick={() => setReactionsOpen((open) => !open)}
-                    >
-                      <span>Reactions</span>
-                      <Smile className="h-4 w-4 text-white/60" />
-                    </button>
-                    {reactionsOpen && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {MEETING_REACTIONS.map((reaction) => (
-                          <button
-                            key={reaction}
-                            type="button"
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg hover:bg-white/20"
-                            aria-label={`Send ${reaction} reaction`}
-                            onClick={() => {
-                              setReactionsOpen(false);
-                              setMoreOpen(false);
-                              onReaction(reaction);
-                            }}
-                          >
-                            {reaction}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {raiseHandEnabled && (
-                  <MenuItem
-                    label={handRaised ? 'Lower hand' : 'Raise hand'}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onRaiseHand();
-                    }}
-                  />
-                )}
-                {onInvite && (
-                  <MenuItem label="Invite" onClick={() => { setMoreOpen(false); onInvite(); }} />
-                )}
-                {onSwitchRoomMode && roomMode && (
-                  <>
-                    <MenuItem
-                      label={roomMode === RoomMode.MEETING ? 'Switch to webinar' : 'Switch to meeting'}
-                      onClick={() => {
-                        setMoreOpen(false);
-                        onSwitchRoomMode(
-                          roomMode === RoomMode.MEETING ? RoomMode.WEBINAR : RoomMode.MEETING,
-                        );
-                      }}
-                    />
-                  </>
-                )}
+            <MoreOptionsDropdown open={moreOpen} anchorRef={moreRef} onClose={closeMoreMenu}>
+              {reactionsEnabled && (
+                <div className="border-b border-white/10 px-3 py-2">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center justify-between text-left text-sm text-white hover:text-white/90"
+                    onClick={() => setReactionsOpen((open) => !open)}
+                  >
+                    <span>Reactions</span>
+                    <Smile className="h-4 w-4 text-white/60" />
+                  </button>
+                  {reactionsOpen && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {MEETING_REACTIONS.map((reaction) => (
+                        <button
+                          key={reaction}
+                          type="button"
+                          role="menuitem"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-lg hover:bg-white/20"
+                          aria-label={`Send ${reaction} reaction`}
+                          onClick={() => {
+                            setReactionsOpen(false);
+                            closeMoreMenu();
+                            onReaction(reaction);
+                          }}
+                        >
+                          {reaction}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {raiseHandEnabled && (
                 <MenuItem
-                  label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                  onClick={() => { setMoreOpen(false); onToggleFullscreen(); }}
+                  label={handRaised ? 'Lower hand' : 'Raise hand'}
+                  onClick={() => {
+                    closeMoreMenu();
+                    onRaiseHand();
+                  }}
                 />
-                {isModerator && onMuteAll && (
-                  <MenuItem label="Mute all" onClick={() => { setMoreOpen(false); onMuteAll(); }} />
-                )}
-                {isHost && onToggleLock && (
-                  <MenuItem
-                    label={isLocked ? 'Unlock meeting' : 'Lock meeting'}
-                    onClick={() => { setMoreOpen(false); onToggleLock(); }}
-                  />
-                )}
-                {isHost && onToggleWaitingRoom && (
-                  <MenuItem
-                    label={waitingRoomEnabled ? 'Waiting room on' : 'Waiting room off'}
-                    onClick={() => { setMoreOpen(false); onToggleWaitingRoom(); }}
-                  />
-                )}
-                {isHost && onToggleParticipantScreenShare && (
-                  <MenuItem
-                    label={
-                      participantScreenShareEnabled
-                        ? 'Participant sharing on'
-                        : 'Participant sharing off'
-                    }
-                    onClick={() => { setMoreOpen(false); onToggleParticipantScreenShare(); }}
-                  />
-                )}
-                {canManageBroadcast && !isLiveStream && onGoLive && (
-                  <MenuItem label="Go Live on YouTube" onClick={() => { setMoreOpen(false); onGoLive(); }} />
-                )}
-                {canManageBroadcast && isLiveStream && onStopLive && (
-                  <MenuItem
-                    label={streamStopping ? 'Stopping…' : 'Stop YouTube Live'}
-                    onClick={() => { setMoreOpen(false); onStopLive(); }}
-                  />
-                )}
-                {isHost && onEndMeeting && (
-                  <MenuItem
-                    label="End meeting for all"
-                    danger
-                    onClick={() => { setMoreOpen(false); onEndMeeting(); }}
-                  />
-                )}
-              </div>
-            )}
+              )}
+              {onInvite && (
+                <MenuItem label="Invite" onClick={() => { closeMoreMenu(); onInvite(); }} />
+              )}
+              {onSwitchRoomMode && roomMode && (
+                <MenuItem
+                  label={roomMode === RoomMode.MEETING ? 'Switch to webinar' : 'Switch to meeting'}
+                  onClick={() => {
+                    closeMoreMenu();
+                    onSwitchRoomMode(
+                      roomMode === RoomMode.MEETING ? RoomMode.WEBINAR : RoomMode.MEETING,
+                    );
+                  }}
+                />
+              )}
+              <MenuItem
+                label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                onClick={() => { closeMoreMenu(); onToggleFullscreen(); }}
+              />
+              {isModerator && onMuteAll && (
+                <MenuItem label="Mute all" onClick={() => { closeMoreMenu(); onMuteAll(); }} />
+              )}
+              {isHost && onToggleLock && (
+                <MenuItem
+                  label={isLocked ? 'Unlock meeting' : 'Lock meeting'}
+                  onClick={() => { closeMoreMenu(); onToggleLock(); }}
+                />
+              )}
+              {isHost && onToggleWaitingRoom && (
+                <MenuItem
+                  label={waitingRoomEnabled ? 'Waiting room on' : 'Waiting room off'}
+                  onClick={() => { closeMoreMenu(); onToggleWaitingRoom(); }}
+                />
+              )}
+              {isHost && onToggleParticipantScreenShare && (
+                <MenuItem
+                  label={
+                    participantScreenShareEnabled
+                      ? 'Participant sharing on'
+                      : 'Participant sharing off'
+                  }
+                  onClick={() => { closeMoreMenu(); onToggleParticipantScreenShare(); }}
+                />
+              )}
+              {canManageBroadcast && !isLiveStream && onGoLive && (
+                <MenuItem label="Go Live on YouTube" onClick={() => { closeMoreMenu(); onGoLive(); }} />
+              )}
+              {canManageBroadcast && isLiveStream && onStopLive && (
+                <MenuItem
+                  label={streamStopping ? 'Stopping…' : 'Stop YouTube Live'}
+                  onClick={() => { closeMoreMenu(); onStopLive(); }}
+                />
+              )}
+              {isHost && onEndMeeting && (
+                <MenuItem
+                  label="End meeting for all"
+                  danger
+                  onClick={() => { closeMoreMenu(); onEndMeeting(); }}
+                />
+              )}
+            </MoreOptionsDropdown>
           </div>
         )}
 
@@ -379,6 +526,7 @@ function MenuItem({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       className={cn(
         'flex w-full px-3 py-2.5 text-left text-sm hover:bg-white/10',
