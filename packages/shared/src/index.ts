@@ -130,6 +130,7 @@ export * from './types/meeting';
 export * from './types/meeting-type';
 export * from './types/user';
 export * from './config/app';
+export * from './constants/support';
 export * from './subscriptions/plans';
 export * from './subscriptions/pricing';
 export * from './subscriptions/max-plan';

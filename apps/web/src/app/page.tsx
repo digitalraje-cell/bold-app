@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { LandingPageContent } from '@/components/marketing/LandingPageContent';
+import { MARKETING_COPY } from '@/lib/marketing-copy';
 import { getServerAppOrigin } from '@/lib/urls';
 
-const TITLE = 'Bold — Browser-based video meetings';
-const DESCRIPTION =
-  'Host HD video calls, stream to YouTube, and collaborate in your browser — no download required.';
+const TITLE = 'Bold — Meet, Present & Stream';
+const DESCRIPTION = MARKETING_COPY.metaDescription;
 
 export const metadata: Metadata = {
   title: TITLE,

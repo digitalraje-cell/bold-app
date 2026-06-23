@@ -194,7 +194,7 @@ export function AboutContent({
             ))}
           </div>
           <p className="mt-8 text-base font-medium text-foreground">
-            That frustration — fragmented tools, surprise bills, downloads that never work on
+            That frustration — fragmented tools, surprise bills, and clunky software that fails on
             guest devices — is exactly what we set out to eliminate.
           </p>
         </div>

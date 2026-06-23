@@ -3,6 +3,7 @@
  * Update env vars to rebrand without code changes.
  */
 import { formatMeetingCode } from '../types/meeting';
+import { SUPPORT_EMAIL } from '../constants/support';
 export interface AppConfig {
   name: string;
   domain: string;
@@ -16,7 +17,7 @@ export const APP_CONFIG: AppConfig = {
   description:
     process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
     'Browser-based meeting platform with YouTube recording',
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bold.robozant.com',
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || SUPPORT_EMAIL,
 };
 
 function normalizeConfiguredOrigin(value: string): string {

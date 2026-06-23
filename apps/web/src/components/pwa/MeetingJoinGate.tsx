@@ -110,7 +110,7 @@ export function MeetingJoinGate({
             onClick={() => void handleDownload()}
           >
             <Download className="h-5 w-5" />
-            Download Bold App
+            Install Bold App
           </Button>
           <Button
             size="lg"

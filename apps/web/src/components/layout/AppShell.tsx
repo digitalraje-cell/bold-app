@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex items-center gap-3 px-6 py-6">
-          <HomeLogoLink className="min-w-0 flex-1" onClick={() => setSidebarOpen(false)} />
+          <HomeLogoLink variant="app" className="min-w-0 flex-1" onClick={() => setSidebarOpen(false)} />
           <button
             type="button"
             className="ml-auto shrink-0 rounded-[var(--radius-sm)] p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
@@ -148,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-[var(--radius-sm)] p-1">
             <Menu className="h-5 w-5" />
           </button>
-          <HomeLogoLink variant="wordmark" onClick={() => setSidebarOpen(false)} />
+          <HomeLogoLink variant="marketing" onClick={() => setSidebarOpen(false)} />
         </header>
         <main className="min-w-0 flex-1 overflow-x-clip p-6 sm:p-8 lg:p-10">{children}</main>
         <AppFooter />

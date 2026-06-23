@@ -119,7 +119,7 @@ export function PwaJoinHome() {
       <PwaInstallBanner />
       <header className="border-b border-border/80 bg-surface px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <HomeLogoLink wordmarkClassName="text-lg" />
+          <HomeLogoLink variant="marketing" wordmarkClassName="text-lg" />
           {session?.user ? (
             <Link
               href="/dashboard"
@@ -148,7 +148,8 @@ export function PwaJoinHome() {
             Join or start a meeting
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Paste a meeting code, link, or any message that contains one.
+            Paste a meeting code, link, or any message that contains one. Join in your browser or
+            use your installed Bold app.
           </p>
         </div>
 

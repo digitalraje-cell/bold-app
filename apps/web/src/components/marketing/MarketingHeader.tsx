@@ -101,7 +101,7 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <HomeLogoLink wordmarkClassName="text-xl" />
+        <HomeLogoLink variant="marketing" wordmarkClassName="text-xl" />
 
         <nav className="hidden items-center gap-1 sm:flex sm:gap-2">
           {NAV_ITEMS.map((item) => (
@@ -146,8 +146,11 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border py-10">
+    <footer className="border-t border-border py-12">
       <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-8 flex justify-center sm:justify-start">
+          <HomeLogoLink variant="marketing" />
+        </div>
         <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
           <p>
             © {new Date().getFullYear()} {LEGAL_CONFIG.companyName} · {LEGAL_CONFIG.productName}
@@ -181,7 +184,7 @@ export function MarketingFooter() {
               Contact
             </Link>
             <AuthAwareLink href="/login" className={ui.link}>
-              Start free
+              Start a Meeting
             </AuthAwareLink>
           </div>
         </div>

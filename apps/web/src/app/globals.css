@@ -311,6 +311,7 @@ html {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ─── Legal documents (no typography plugin — custom Apple-style prose) ─── */

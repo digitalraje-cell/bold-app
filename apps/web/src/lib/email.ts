@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { APP_CONFIG } from '@boldmeet/shared';
+import { SUPPORT_EMAIL } from '@/lib/constants/support';
 
 const DEV_OTP_EMAIL_FROM = 'onboarding@resend.dev';
 const OTP_EMAIL_SUBJECT = `Your ${APP_CONFIG.name} login code`;
@@ -148,7 +149,8 @@ export async function sendContactEmail(input: {
   message: string;
 }): Promise<void> {
   const apiKey = runtimeEnv('RESEND_API_KEY');
-  const supportTo = runtimeEnv('CONTACT_INBOX_EMAIL') || runtimeEnv('NEXT_PUBLIC_SUPPORT_EMAIL') || 'support@boldmeet.com';
+  const supportTo =
+    runtimeEnv('CONTACT_INBOX_EMAIL') || runtimeEnv('NEXT_PUBLIC_SUPPORT_EMAIL') || SUPPORT_EMAIL;
 
   const bodyText = [
     `New contact form submission for ${APP_CONFIG.name}`,

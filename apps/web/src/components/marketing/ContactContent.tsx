@@ -20,14 +20,14 @@ const CONTACT_CHANNELS = [
     icon: Mail,
     title: 'Sales',
     description: 'Pro plans, team rollout, and product questions.',
-    email: LEGAL_CONFIG.businessEmail,
+    email: LEGAL_CONFIG.supportEmail,
     cta: 'Email sales',
   },
   {
     icon: Handshake,
     title: 'Partnerships',
     description: 'Enterprise, education, integrations, and strategic collaborations.',
-    email: LEGAL_CONFIG.businessEmail,
+    email: LEGAL_CONFIG.supportEmail,
     cta: 'Discuss partnership',
   },
 ] as const;
@@ -52,7 +52,7 @@ const FAQ = [
 ] as const;
 
 export function ContactContent() {
-  const { companyName, productName, supportEmail, businessEmail, responseTime } = LEGAL_CONFIG;
+  const { companyName, productName, supportEmail, responseTime } = LEGAL_CONFIG;
 
   return (
     <div className="flex min-h-full min-w-0 flex-col overflow-x-clip">
@@ -130,18 +130,10 @@ export function ContactContent() {
                   <dd className="mt-1 font-semibold">{getPublicDisplayDomain()}</dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-muted-foreground">Support email</dt>
+                  <dt className="font-medium text-muted-foreground">Contact email</dt>
                   <dd className="mt-1">
                     <a href={`mailto:${supportEmail}`} className={ui.link}>
                       {supportEmail}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-muted-foreground">Business email</dt>
-                  <dd className="mt-1">
-                    <a href={`mailto:${businessEmail}`} className={ui.link}>
-                      {businessEmail}
                     </a>
                   </dd>
                 </div>

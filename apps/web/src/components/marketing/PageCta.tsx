@@ -4,11 +4,12 @@ import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
+import { MARKETING_COPY } from '@/lib/marketing-copy';
 import { cn } from '@/lib/utils';
 
 export function PageCta({
   title = 'Start your first meeting',
-  subtitle = 'Free to start. No download required. Join from any modern browser.',
+  subtitle = MARKETING_COPY.pageCtaSubtitle,
   primaryLabel = 'Start a Meeting',
   secondaryHref = '/pricing',
   secondaryLabel = 'View pricing',

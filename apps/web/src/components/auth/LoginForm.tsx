@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { BoldLogo } from '@/components/brand/BoldLogo';
+import { BoldWordmark } from '@/components/brand/BoldWordmark';
 import { appConfig } from '@/lib/app-config';
 import { sanitizeCallbackUrl } from '@/lib/auth-routes';
 import { ui } from '@/lib/ui';
@@ -108,7 +108,7 @@ function LoginFormInner() {
     <div className="w-full space-y-8">
       <div className="text-center">
         <div className="mx-auto mb-6 flex justify-center">
-          <BoldLogo size={56} priority />
+          <BoldWordmark size="xl" />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           {step === 'email' ? `Welcome to ${appConfig.name}` : 'Enter your code'}

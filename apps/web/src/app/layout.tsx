@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: '%s | Bold',
   },
   description:
-    'Bold by Lifetop Academy — host HD video meetings, webinars, and collaborations. Free plan available. Pro from ₹299/month.',
+    'Bold by Lifetop Academy — host HD video meetings, webinars, and collaborations in your browser or as an installable app. Free plan available. Pro from ₹299/month.',
   metadataBase: new URL(getServerAppOrigin()),
   openGraph: {
     siteName: 'Bold',

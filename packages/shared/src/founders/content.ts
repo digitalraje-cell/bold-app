@@ -158,17 +158,18 @@ export const BOLD_ABOUT_CONTENT = {
     },
   ],
   browserFirst: {
-    title: 'Why Browser First',
-    subtitle: 'No downloads. No friction. Just open a link and meet.',
+    title: 'Browser-first, install when you want',
+    subtitle: 'Works instantly in your browser. Optional app installation for a native-like experience.',
     paragraphs: [
-      'Bold runs entirely in your browser — the same way the best modern products should. No installers, no IT tickets, no device-specific apps that break on update day.',
-      'Guests join with a link. Hosts sign in with email. Everyone gets HD video, chat, and controls without leaving the tab they already trust.',
+      'Bold starts in your browser — open a link and meet in seconds. When you want a faster, more app-like workflow, install Bold on desktop or mobile in one click.',
+      'Guests join with a link. Hosts sign in with email. Everyone gets HD video, chat, and controls — in the browser or from your home screen.',
     ],
     points: [
       'Instant join for guests — no account required',
-      'Works on Mac, Windows, Chromebook, and mobile browsers',
-      'Always on the latest version — no manual updates',
-      'Lighter than native apps, faster to start',
+      'Browser-first on Mac, Windows, Chromebook, and mobile',
+      'Optional PWA install for one-click launch',
+      'Automatic updates — always on the latest version',
+      'Native-like experience across desktop and mobile',
     ],
   },
   futureVision: {

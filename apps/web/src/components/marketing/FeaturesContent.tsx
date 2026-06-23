@@ -1,17 +1,19 @@
 import Link from 'next/link';
-import { Video, Radio, Shield, Users, Sparkles, LayoutGrid } from 'lucide-react';
+import { Video, Radio, Shield, Users, Sparkles, LayoutGrid, Smartphone } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { PageCta } from '@/components/marketing/PageCta';
 import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { Button } from '@/components/ui/Button';
+import { MARKETING_COPY } from '@/lib/marketing-copy';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 const FEATURES = [
   {
     icon: Video,
-    title: 'Browser-native meetings',
-    description: 'Join from Chrome, Safari, or Edge with no downloads. HD video, audio, and screen share.',
+    title: 'Browser-first meetings',
+    description:
+      'Start instantly in Chrome, Safari, or Edge. HD video, audio, and screen share — install optional for one-click launch.',
   },
   {
     icon: Radio,
@@ -38,6 +40,11 @@ const FEATURES = [
     title: 'Reactions & engagement',
     description: 'Raise hand, chat, and live reactions to keep remote sessions energetic.',
   },
+  {
+    icon: Smartphone,
+    title: 'Optional app install',
+    description: MARKETING_COPY.pwaFeature,
+  },
 ] as const;
 
 export function FeaturesContent() {
@@ -52,7 +59,7 @@ export function FeaturesContent() {
             <h1 className={cn('mt-6', ui.pageTitle)}>Everything you need to meet online</h1>
             <p className={cn('mt-4', ui.pageSubtitle)}>
               Bold combines professional video conferencing with streaming tools built for creators,
-              educators, and teams.
+              educators, and teams. {MARKETING_COPY.browserFirstLine}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <StartMeetingLink>

@@ -33,7 +33,7 @@ export function PricingSection() {
         </div>
 
         <div className="mt-20 grid gap-8 lg:grid-cols-3 lg:gap-6">
-          <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/login" ctaLabel="Start free" />
+          <PlanCard plan={SubscriptionPlan.FREE} ctaHref="/login" ctaLabel="Start a Meeting" />
           <PlanCard
             plan={SubscriptionPlan.PRO}
             ctaHref="/login"

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ThumbsUp, Loader2, Check, Clock, Sparkles } from 'lucide-react';
@@ -177,7 +178,7 @@ export function RoadmapContent() {
               <PhaseHeader
                 label="Now"
                 title="Available today"
-                description="Core meeting features you can use right now — no install, no waiting."
+                description="Core meeting features you can use right now — start in the browser or install for faster access."
                 icon={Check}
               />
               <ul className="grid gap-3 sm:grid-cols-2">
@@ -309,11 +310,11 @@ export function RoadmapContent() {
               <Link href="/billing/upgrade">
                 <Button size="lg">Upgrade — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
               </Link>
-              <AuthAwareLink href="/login">
+              <StartMeetingLink>
                 <Button size="lg" variant="secondary">
-                  Start free
+                  Start a Meeting
                 </Button>
-              </AuthAwareLink>
+              </StartMeetingLink>
             </div>
           </div>
         </section>

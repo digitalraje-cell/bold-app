@@ -2,7 +2,7 @@
   "id": "/join",
   "name": "Bold",
   "short_name": "Bold",
-  "description": "Professional browser-based video meetings — install Bold for faster joins.",
+  "description": "Professional browser-based video meetings — start instantly or install Bold for one-click launch and automatic updates.",
   "start_url": "/join",
   "scope": "/",
   "display": "standalone",

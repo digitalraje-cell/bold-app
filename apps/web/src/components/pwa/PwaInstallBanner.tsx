@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { MARKETING_COPY } from '@/lib/marketing-copy';
 import { IosInstallGuide } from '@/components/pwa/IosInstallGuide';
 import { AndroidInstallGuide } from '@/components/pwa/AndroidInstallGuide';
 
@@ -53,10 +54,8 @@ export function PwaInstallBanner() {
       <div className="flex items-start gap-3">
         <BoldLogo size={40} />
         <div>
-          <p className="font-semibold">Install Bold App for faster meetings</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Launch meetings instantly from your home screen — no browser tabs required.
-          </p>
+          <p className="font-semibold">{MARKETING_COPY.pwaBannerTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{MARKETING_COPY.pwaBannerBody}</p>
           {showInstallHelp && isIos && <IosInstallGuide />}
           {showInstallHelp && isAndroid && (
             <AndroidInstallGuide hasNativePrompt={canNativeInstall} />
