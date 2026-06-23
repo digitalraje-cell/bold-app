@@ -3,25 +3,19 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { BoldLogo } from '@/components/brand/BoldLogo';
 import { appConfig } from '@/lib/app-config';
-import { AUTHENTICATED_HOME } from '@/lib/auth-routes';
+import { sanitizeCallbackUrl } from '@/lib/auth-routes';
 import { ui } from '@/lib/ui';
 import { OTP_EXPIRY_MINUTES, RESEND_COOLDOWN_SECONDS } from '@/lib/otp-constants';
 
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
-  const callbackUrl = searchParams.get('callbackUrl') || AUTHENTICATED_HOME;
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace(AUTHENTICATED_HOME);
-    }
-  }, [status, router]);
+  const callbackUrl = sanitizeCallbackUrl(searchParams.get('callbackUrl'));
 
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -113,8 +107,8 @@ function LoginFormInner() {
   return (
     <div className="w-full space-y-8">
       <div className="text-center">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
-          {appConfig.name.charAt(0).toUpperCase()}
+        <div className="mx-auto mb-6 flex justify-center">
+          <BoldLogo size={56} priority />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           {step === 'email' ? `Welcome to ${appConfig.name}` : 'Enter your code'}

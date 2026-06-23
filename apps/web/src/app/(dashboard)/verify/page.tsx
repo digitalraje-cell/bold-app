@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function VerifyPage() {
   const session = await auth();
-  if (!session?.user) redirect('/login');
+  if (!session?.user) redirect('/login?callbackUrl=%2Fverify');
   if (session.user.isVerified) redirect('/dashboard');
 
   return (

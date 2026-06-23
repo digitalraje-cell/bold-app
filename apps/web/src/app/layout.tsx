@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ClientProviders } from '@/components/providers/ClientProviders';
-import { APP_CONFIG, getServerAppOrigin } from '@/lib/app-config';
+import { getServerAppOrigin } from '@/lib/app-config';
 import './globals.css';
 
 const inter = Inter({
@@ -23,6 +23,16 @@ export const metadata: Metadata = {
     locale: 'en_IN',
   },
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/icons/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     title: 'Bold',
@@ -34,6 +44,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#7c3aed',
 };
 
 export const dynamic = 'force-dynamic';

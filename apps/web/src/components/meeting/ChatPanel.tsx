@@ -66,7 +66,12 @@ export function ChatPanel({
             {chatEnabled ? CHAT_MODE_LABELS[chatMode] : 'Disabled'}
           </p>
         </div>
-        <button onClick={onClose} className="text-white/60 hover:text-white">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close chat"
+          className="text-white/60 hover:text-white"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { SettingsCard, SettingsShell } from '@/components/settings/SettingsShell';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
+import { appVersion, buildTimestamp } from '@/lib/version';
 
 const supportLinks = [
   { href: '/contact', label: 'Contact Support' },
@@ -30,6 +31,19 @@ export function SupportSettings() {
             </li>
           ))}
         </ul>
+      </SettingsCard>
+
+      <SettingsCard title="App version">
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Version</dt>
+            <dd className="font-medium text-foreground">{appVersion}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Build date</dt>
+            <dd className="font-medium text-foreground">{buildTimestamp}</dd>
+          </div>
+        </dl>
       </SettingsCard>
 
       <SettingsCard title="Contact" description={`Response time: ${LEGAL_CONFIG.responseTime}`}>

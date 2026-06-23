@@ -4,6 +4,7 @@ export function logYouTubePipeline(
   step: string,
   detail?: Record<string, unknown>,
 ): void {
+  if (process.env.NODE_ENV !== 'development') return;
   const payload = detail ? ` ${JSON.stringify(detail)}` : '';
   console.log(`[youtube-live-pipeline] ${stage} ${step}${payload}`);
 }

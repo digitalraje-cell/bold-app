@@ -29,8 +29,8 @@ export function TrustStrip({ className }: { className?: string }) {
           key={label}
           className={cn(cardClass({ bordered: true }), 'flex items-start gap-3 p-4')}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--badge-bg)]">
-            <Icon className="h-4 w-4 text-foreground" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--badge-bg)] text-[var(--accent-purple)]">
+            <Icon className="h-4 w-4" />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

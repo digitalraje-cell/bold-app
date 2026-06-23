@@ -8,7 +8,7 @@ import { START_MEETING_AUTH_HREF, START_MEETING_LOGIN_HREF } from '@/lib/auth-ro
 type StartMeetingLinkProps = Omit<ComponentProps<typeof Link>, 'href'>;
 
 /**
- * Meeting-first CTA: guests sign in (return to dashboard), hosts start instantly.
+ * Meeting-first CTA: guests sign in (return to instant create), hosts start instantly.
  */
 export function StartMeetingLink(props: StartMeetingLinkProps) {
   const { status } = useSession();

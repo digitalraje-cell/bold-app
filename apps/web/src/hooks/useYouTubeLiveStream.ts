@@ -51,8 +51,6 @@ type StreamStartApiResponse = StreamSession & {
 
 /** Map stream/start API body → relay sessions with id + ingestToken for Socket.IO. */
 function normalizeStreamStartResponse(response: StreamStartApiResponse): StreamSession[] {
-  console.log('stream start response', response);
-
   const body =
     response && typeof response === 'object' && response.data && typeof response.data === 'object'
       ? response.data
@@ -279,15 +277,12 @@ export function useYouTubeLiveStream(meetingId: string) {
           const streamId = session.id;
           const ingestToken = session.ingestToken;
 
-          console.log('socket connect payload', { streamId, ingestToken });
-
           const socket = io(socketUrl, {
             query: { streamId, token: ingestToken },
             auth: { streamId, token: ingestToken },
             transports: ['websocket'],
           });
 
-          console.log('socket query/auth', socket.io.opts);
           return { socket, streamId };
         });
         socketsRef.current = sockets.map((entry) => entry.socket);
@@ -320,12 +315,6 @@ export function useYouTubeLiveStream(meetingId: string) {
 
         recorder.ondataavailable = async (event) => {
           if (event.data.size === 0) return;
-          const chunk = event.data;
-          console.log('[chunk emit]', {
-            size: chunk?.size,
-            type: chunk?.type,
-            constructor: chunk?.constructor?.name,
-          });
           chunksEmitted += 1;
           const bytes = new Uint8Array(await event.data.arrayBuffer());
           if (chunksEmitted === 1) {
@@ -344,12 +333,6 @@ export function useYouTubeLiveStream(meetingId: string) {
           for (const socket of socketsRef.current) {
             if (socket.connected) {
               socketsConnected += 1;
-              console.log('[chunk emit] socket payload', {
-                event: 'ingest-chunk',
-                payload: bytes,
-                byteLength: bytes.byteLength,
-                constructor: bytes.constructor?.name,
-              });
               socket.emit('ingest-chunk', bytes);
             }
           }
@@ -399,6 +382,9 @@ export function useYouTubeLiveStream(meetingId: string) {
               reason,
               streamId: sessionStreamId,
             });
+            if (reason !== 'io client disconnect') {
+              setPendingResume(true);
+            }
             setConnectionState('disconnected');
             setCaptureActive(false);
           });

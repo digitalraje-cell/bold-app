@@ -225,9 +225,10 @@ function MeetingRoomInner({
       if (meetingEndedRef.current) return;
       meetingEndedRef.current = true;
       hangupRef.current?.();
-      router.push(message ? `/dashboard?message=${encodeURIComponent(message)}` : '/dashboard');
+      const destination = session?.user ? '/dashboard' : '/join';
+      router.push(message ? `${destination}?message=${encodeURIComponent(message)}` : destination);
     },
-    [router],
+    [router, session?.user],
   );
 
   const handleJitsiReady = useCallback(() => {
@@ -282,14 +283,10 @@ function MeetingRoomInner({
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Unable to connect to meeting audio and video. Please try again.';
         setMediaSession((prev) => ({
           ...prev,
           loading: false,
-          error: message,
+          error: 'Unable to connect to meeting audio and video. Please try again.',
         }));
       });
 
@@ -650,12 +647,14 @@ function MeetingRoomInner({
   useEffect(() => {
     if (!isModerator || streamBroadcastStatus !== 'LIVE') return;
     if (!liveWatchUrl && streamDestinations.length === 0) return;
+    if (sessionStorage.getItem(streamPanelStorageKey(meetingId)) === 'closed') return;
     queueMicrotask(() => handleShowStreamPanel());
   }, [
     isModerator,
     streamBroadcastStatus,
     liveWatchUrl,
     streamDestinations.length,
+    meetingId,
     handleShowStreamPanel,
   ]);
 
@@ -979,13 +978,7 @@ function MeetingRoomInner({
         }}
         isHost={myRole === 'HOST'}
         isModerator={isModerator}
-        onEndMeeting={
-          myRole === 'HOST'
-            ? () => {
-                void handleEndMeetingForAll();
-              }
-            : undefined
-        }
+        onEndMeeting={myRole === 'HOST' ? () => setHostLeaveOpen(true) : undefined}
         onMuteAll={isModerator ? muteAll : undefined}
         isLocked={isLocked}
         onToggleLock={myRole === 'HOST' ? handleToggleLock : undefined}

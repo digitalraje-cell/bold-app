@@ -1,11 +1,11 @@
 /** Default destination for authenticated users hitting guest-only auth entry points. */
 export const AUTHENTICATED_HOME = '/dashboard';
 
-/** Guest login entry for “Start a Meeting” CTAs. */
-export const START_MEETING_LOGIN_HREF = '/login?callbackUrl=%2Fdashboard';
-
 /** Logged-in destination for instant meeting creation. */
 export const START_MEETING_AUTH_HREF = '/meetings/create?type=instant';
+
+/** Guest login entry for “Start a Meeting” CTAs. */
+export const START_MEETING_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent(START_MEETING_AUTH_HREF)}`;
 
 const EXACT_AUTH_GUEST_ROUTES = new Set([
   '/login',
@@ -40,4 +40,26 @@ export function resolveAuthAwareHref(
 ): string {
   if (isAuthenticated && isAuthCtaHref(href)) return authHref;
   return href;
+}
+
+/** Reject open redirects; only same-origin relative paths are allowed. */
+export function sanitizeCallbackUrl(
+  raw: string | null | undefined,
+  fallback = AUTHENTICATED_HOME,
+): string {
+  if (!raw?.trim()) return fallback;
+
+  const url = raw.trim();
+  if (!url.startsWith('/') || url.startsWith('//')) return fallback;
+  if (url.includes('://') || url.includes('\\')) return fallback;
+
+  try {
+    const decoded = decodeURIComponent(url);
+    if (!decoded.startsWith('/') || decoded.startsWith('//') || decoded.includes('://')) {
+      return fallback;
+    }
+    return decoded;
+  } catch {
+    return fallback;
+  }
 }

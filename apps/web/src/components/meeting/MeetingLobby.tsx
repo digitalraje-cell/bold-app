@@ -258,6 +258,12 @@ export function MeetingLobby({
     }
 
     if (!canJoin) {
+      setJoinError('This meeting is not open for joining right now.');
+      return;
+    }
+
+    if (showPasscodeField && !passcode.trim()) {
+      setJoinError('Meeting passcode required');
       return;
     }
 
@@ -287,19 +293,22 @@ export function MeetingLobby({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to join meeting';
       console.error('[meeting-lobby] join failed', { meetingId, error: message });
-      setJoinError(message);
+      setJoinError(normalizePreviewError(message));
       setJoinLoading(false);
     }
   }
+
+  const homeHref = session?.user ? '/dashboard' : '/join';
+  const homeLabel = session?.user ? 'Back to dashboard' : 'Back to join';
 
   if (!meetingId) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          Invalid meeting link. Check the URL or return to your dashboard.
+          Invalid meeting link. Check the URL or return to the join page.
         </div>
-        <Link href="/dashboard" className="mt-4 text-sm text-foreground underline-offset-4 hover:underline">
-          Back to dashboard
+        <Link href={homeHref} className="mt-4 text-sm text-foreground underline-offset-4 hover:underline">
+          {homeLabel}
         </Link>
       </div>
     );
@@ -498,8 +507,8 @@ export function MeetingLobby({
         )}
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/dashboard" className="text-foreground underline-offset-4 hover:underline">
-            Back to dashboard
+          <Link href={homeHref} className="text-foreground underline-offset-4 hover:underline">
+            {homeLabel}
           </Link>
         </p>
       </div>

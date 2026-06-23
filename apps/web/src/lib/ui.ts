@@ -20,11 +20,11 @@ export const ui = {
   /* Nav — pill active state */
   navItem:
     'flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200',
-  navItemActive: 'bg-foreground text-background shadow-[var(--shadow-soft)]',
+  navItemActive: 'bg-[var(--accent-purple)] text-white shadow-[var(--primary-glow)]',
   navItemInactive: 'text-muted-foreground hover:bg-muted hover:text-foreground',
 
   iconWell:
-    'flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--badge-bg)] text-foreground',
+    'flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--badge-bg)] text-[var(--accent-purple)]',
 
   badge:
     'inline-flex items-center rounded-full border border-[var(--badge-border)] bg-[var(--badge-bg)] px-3 py-1 text-xs font-semibold text-[var(--badge-text)]',

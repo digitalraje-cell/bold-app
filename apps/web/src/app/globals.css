@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
-/* ─── Bold V3 — Nixtio-inspired soft UI ─────────────────────────────── */
+/* ─── Bold — premium purple brand ───────────────────────────────────── */
 :root {
-  /* Warm cream surfaces (Nixtio-style) */
-  --background: #faf8f5;
+  /* Clean white surfaces */
+  --background: #ffffff;
   --foreground: #111111;
   --surface: #ffffff;
-  --surface-secondary: #f4f3f0;
-  --muted: #f4f3f0;
+  --surface-secondary: #f8f7fc;
+  --muted: #f4f3f8;
   --muted-foreground: #6b7280;
   --border: #eceae6;
 
-  /* Primary = black pill CTA */
-  --primary: #111111;
+  /* Bold purple brand */
+  --accent-purple-light: #9e7aff;
+  --accent-purple: #7c3aed;
+  --accent-purple-dark: #5b21b6;
+  --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --primary-hover: #2a2a2a;
+  --primary-hover: #6d28d9;
+  --primary-gradient: linear-gradient(135deg, #9e7aff 0%, #7c3aed 52%, #5b21b6 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 52%, #6d28d9 100%);
+  --primary-glow: 0 4px 24px rgba(124, 58, 237, 0.28);
 
   /* Badges */
-  --badge-bg: #f4f3f0;
-  --badge-text: #111111;
-  --badge-border: #eceae6;
+  --badge-bg: #f3f0ff;
+  --badge-text: #5b21b6;
+  --badge-border: #e9e3ff;
 
   /* Semantic */
   --success: #6b7280;
@@ -37,9 +43,9 @@
 
   /* Shadows — diffused, barely-there */
   --shadow-soft: 0 1px 3px rgba(17, 17, 17, 0.04);
-  --shadow-card: 0 2px 8px rgba(17, 17, 17, 0.04), 0 12px 40px rgba(17, 17, 17, 0.04);
-  --shadow-elevated: 0 4px 20px rgba(17, 17, 17, 0.06), 0 20px 56px rgba(17, 17, 17, 0.05);
-  --shadow-float: 0 8px 32px rgba(17, 17, 17, 0.08);
+  --shadow-card: 0 2px 8px rgba(124, 58, 237, 0.04), 0 12px 40px rgba(17, 17, 17, 0.04);
+  --shadow-elevated: 0 4px 20px rgba(124, 58, 237, 0.08), 0 20px 56px rgba(17, 17, 17, 0.05);
+  --shadow-float: 0 8px 32px rgba(124, 58, 237, 0.12);
 
   /* Meeting room (dark) */
   --meeting-bg: #0a0a0b;
@@ -286,6 +292,25 @@ html {
 
 .animate-v3-fade-up {
   animation: v3-fade-up 0.45s ease-out both;
+}
+
+.btn-primary-gradient {
+  background: var(--primary-gradient);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-primary-gradient:hover:not(:disabled) {
+  background: var(--primary-gradient-hover);
+  box-shadow: var(--primary-glow);
+  transform: translateY(-1px);
+}
+
+.text-gradient-purple {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* ─── Legal documents (no typography plugin — custom Apple-style prose) ─── */

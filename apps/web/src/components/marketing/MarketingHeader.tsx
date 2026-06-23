@@ -79,7 +79,7 @@ function AuthActions({ mobile = false, onNavigate }: { mobile?: boolean; onNavig
       </AuthAwareLink>
       <StartMeetingLink
         className={cn(
-          'rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]',
+          'rounded-full bg-[var(--primary-gradient)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-soft)] transition-all duration-200 hover:shadow-[var(--primary-glow)]',
           mobile && 'mt-1 block text-center',
         )}
         onClick={onNavigate}

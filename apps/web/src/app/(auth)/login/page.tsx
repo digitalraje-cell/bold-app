@@ -2,14 +2,19 @@ import { redirect } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { auth } from '@/lib/auth';
-import { AUTHENTICATED_HOME } from '@/lib/auth-routes';
+import { sanitizeCallbackUrl } from '@/lib/auth-routes';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
   const session = await auth();
+  const { callbackUrl } = await searchParams;
   if (session?.user) {
-    redirect(AUTHENTICATED_HOME);
+    redirect(sanitizeCallbackUrl(callbackUrl));
   }
 
   return (

@@ -15,6 +15,8 @@ import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
+import { START_MEETING_LOGIN_HREF } from '@/lib/auth-routes';
+import { PwaInstallBanner } from '@/components/pwa/PwaInstallBanner';
 import { parseMeetingLinkOrCode } from '@/lib/parse-meeting-link';
 import {
   addRecentMeeting,
@@ -57,7 +59,7 @@ export function PwaJoinHome() {
           meetingName: preview.title ?? null,
         });
         setRecent(readRecentMeetings());
-        router.push(`/join/${routeId}`);
+        router.push(`/meeting/${routeId}?entry=code`);
       } catch {
         setError('Meeting not found or no longer available.');
       } finally {
@@ -81,7 +83,7 @@ export function PwaJoinHome() {
     if (sessionStatus === 'loading') return;
 
     if (!session?.user) {
-      router.push('/login?callbackUrl=/join');
+      router.push(START_MEETING_LOGIN_HREF);
       return;
     }
 
@@ -114,6 +116,7 @@ export function PwaJoinHome() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
+      <PwaInstallBanner />
       <header className="border-b border-border/80 bg-surface px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
           <HomeLogoLink wordmarkClassName="text-lg" />

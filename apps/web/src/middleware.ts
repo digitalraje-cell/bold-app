@@ -4,6 +4,7 @@ import {
   AUTHENTICATED_HOME,
   isAuthGuestAliasRoute,
   isAuthGuestRoute,
+  sanitizeCallbackUrl,
 } from '@/lib/auth-routes';
 import {
   isProtectedRoute,
@@ -20,7 +21,9 @@ export default auth((req) => {
   const adminAlias = resolveAdminRouteAlias(pathname);
 
   if (isLoggedIn && isAuthGuestRoute(pathname)) {
-    return NextResponse.redirect(new URL(AUTHENTICATED_HOME, req.nextUrl.origin));
+    const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
+    const destination = sanitizeCallbackUrl(callbackUrl, AUTHENTICATED_HOME);
+    return NextResponse.redirect(new URL(destination, req.nextUrl.origin));
   }
 
   if (

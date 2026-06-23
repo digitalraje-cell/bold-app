@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, Smartphone, X } from 'lucide-react';
+import { Download, X } from 'lucide-react';
+import { BoldLogo } from '@/components/brand/BoldLogo';
 import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -50,9 +51,7 @@ export function PwaInstallBanner() {
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--badge-bg)]">
-          <Smartphone className="h-5 w-5" />
-        </div>
+        <BoldLogo size={40} />
         <div>
           <p className="font-semibold">Install Bold App for faster meetings</p>
           <p className="mt-1 text-sm text-muted-foreground">

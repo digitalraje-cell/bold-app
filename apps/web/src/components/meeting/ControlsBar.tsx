@@ -194,7 +194,7 @@ export function ControlsBar({
     >
       <div
         className={cn(
-          'pointer-events-auto meeting-controls-float mx-auto flex max-w-full items-center justify-center gap-1.5 px-2 py-2 sm:max-w-lg sm:gap-2 sm:px-3 sm:py-2.5',
+          'pointer-events-auto meeting-controls-float mx-auto flex max-w-full items-center justify-center gap-1 overflow-x-auto px-2 py-2 sm:max-w-lg sm:gap-2 sm:px-3 sm:py-2.5',
           !controlsVisible && 'meeting-controls-float--hidden',
         )}
       >

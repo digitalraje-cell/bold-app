@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Download, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
@@ -59,7 +60,11 @@ export function MeetingJoinGate({
   const title = initialPreview?.title ?? 'Join meeting';
   const hostName = initialPreview?.hostName ?? 'your host';
 
+  const previewUnavailable = Boolean(initialPreviewError);
+  const canContinue = !previewUnavailable;
+
   async function handleDownload() {
+    if (!canContinue) return;
     savePendingJoin(meetingId);
     const result = await promptInstall();
     if (result.mode === 'manual' || isIos || isAndroid) {
@@ -72,6 +77,7 @@ export function MeetingJoinGate({
   }
 
   function handleContinueInBrowser() {
+    if (!canContinue) return;
     clearPendingJoin();
     void trackPwaEvent('BROWSER_JOIN_SELECTED', {
       meetingId: initialPreview?.id,
@@ -97,15 +103,32 @@ export function MeetingJoinGate({
         )}
 
         <div className="mt-8 space-y-3">
-          <Button size="lg" className="w-full" onClick={() => void handleDownload()}>
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={!canContinue}
+            onClick={() => void handleDownload()}
+          >
             <Download className="h-5 w-5" />
             Download Bold App
           </Button>
-          <Button size="lg" variant="secondary" className="w-full" onClick={handleContinueInBrowser}>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="w-full"
+            disabled={!canContinue}
+            onClick={handleContinueInBrowser}
+          >
             <Globe className="h-5 w-5" />
             {continueLabel}
           </Button>
         </div>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link href="/join" className="text-foreground underline-offset-4 hover:underline">
+            Back to join page
+          </Link>
+        </p>
 
         {showInstallHelp && isIos && <IosInstallGuide />}
         {showInstallHelp && isAndroid && (

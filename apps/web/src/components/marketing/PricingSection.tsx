@@ -56,7 +56,7 @@ export function PricingSection() {
               </p>
             </div>
             <Link href="/billing/upgrade" className="shrink-0">
-              <span className="inline-flex rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-[var(--primary-hover)]">
+              <span className="inline-flex rounded-full bg-[var(--primary-gradient)] px-8 py-3.5 text-sm font-semibold text-white shadow-[var(--shadow-soft)] transition hover:shadow-[var(--primary-glow)]">
                 Upgrade to Pro
               </span>
             </Link>
@@ -142,8 +142,8 @@ function PlanCard({
         className={cn(
           'mt-12 block rounded-full px-6 py-3.5 text-center text-sm font-semibold transition',
           recommended
-            ? 'bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]'
-            : 'border border-foreground/15 bg-surface text-foreground hover:bg-muted',
+            ? 'bg-[var(--primary-gradient)] text-white shadow-[var(--shadow-soft)] hover:shadow-[var(--primary-glow)]'
+            : 'border border-[var(--accent-purple)]/35 bg-surface text-[var(--accent-purple-dark)] hover:bg-[var(--badge-bg)]',
         )}
       >
         {ctaLabel}

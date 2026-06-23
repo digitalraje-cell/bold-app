@@ -69,8 +69,8 @@ export function FeaturesContent() {
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, description }) => (
               <article key={title} className={cn(cardClass(), 'p-6 sm:p-7')}>
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--badge-bg)]">
-                  <Icon className="h-5 w-5 text-foreground" />
+                <div className={cn('mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--badge-bg)] text-[var(--accent-purple)]')}>
+                  <Icon className="h-5 w-5" />
                 </div>
                 <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
