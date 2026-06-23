@@ -65,7 +65,8 @@ function normalizeStreamStartResponse(response: StreamStartApiResponse): StreamS
     Array.isArray(body.sessions) && body.sessions.length > 0 ? body.sessions : [body];
 
   return rawSessions
-    .map((item, index) => {
+    .map((raw, index) => {
+      const item = raw as Partial<StreamSession> & { streamId?: string; token?: string };
       const streamId = item.id ?? item.streamId ?? rootId;
       const ingestToken = item.ingestToken ?? item.token ?? rootToken;
 
@@ -278,9 +279,9 @@ export function useYouTubeLiveStream(meetingId: string) {
           });
 
           console.log('socket query/auth', socket.io.opts);
-          return socket;
+          return { socket, streamId };
         });
-        socketsRef.current = sockets;
+        socketsRef.current = sockets.map((entry) => entry.socket);
 
         let connectedCount = 0;
         let chunksEmitted = 0;
@@ -340,12 +341,7 @@ export function useYouTubeLiveStream(meetingId: string) {
           }
         };
 
-        for (const socket of sockets) {
-          const sessionStreamId =
-            (socket.io.opts.query as { streamId?: string } | undefined)?.streamId ??
-            (socket.io.opts.auth as { streamId?: string } | undefined)?.streamId ??
-            null;
-
+        for (const { socket, streamId: sessionStreamId } of sockets) {
           socket.io.on('reconnect_attempt', (attempt) => {
             logYouTubePipeline('STAGE-2-SOCKET', 'socket:reconnect-attempt', {
               attempt,
