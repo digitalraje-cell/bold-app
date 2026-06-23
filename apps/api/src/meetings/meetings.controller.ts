@@ -31,7 +31,10 @@ export class MeetingsController {
 
   @Post()
   @UseGuards(AuthGuard, VerifiedGuard)
-  create(@Req() req: Request & { user: AuthUser }, @Body() dto: CreateMeetingDto) {
+  create(
+    @Req() req: Request & { user: AuthUser },
+    @Body() dto: CreateMeetingDto,
+  ) {
     return this.meetingsService.create(req.user.id, dto);
   }
 
@@ -73,7 +76,10 @@ export class MeetingsController {
 
   @Post('join-by-code')
   @UseGuards(OptionalAuthGuard)
-  async joinByCode(@Body() dto: JoinByCodeDto, @Req() req: Request & { user?: AuthUser }) {
+  async joinByCode(
+    @Body() dto: JoinByCodeDto,
+    @Req() req: Request & { user?: AuthUser },
+  ) {
     const meeting = await this.meetingsService.findByCode(dto.meetingCode);
     return this.meetingsService.join(meeting.id, req.user?.id ?? null, {
       displayName: dto.displayName,
@@ -89,7 +95,10 @@ export class MeetingsController {
 
   @Get(':id/registrants')
   @UseGuards(AuthGuard)
-  listRegistrants(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+  listRegistrants(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+  ) {
     return this.meetingsService.listRegistrants(id, req.user.id);
   }
 
@@ -141,13 +150,19 @@ export class MeetingsController {
 
   @Post(':id/end')
   @UseGuards(AuthGuard)
-  endMeeting(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+  endMeeting(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+  ) {
     return this.meetingsService.endMeeting(id, req.user.id);
   }
 
   @Post(':id/leave')
   @UseGuards(AuthGuard)
-  leaveMeeting(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+  leaveMeeting(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+  ) {
     return this.meetingsService.leaveMeeting(id, req.user.id);
   }
 

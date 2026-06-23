@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { MeetingStatus, PlanInterestType, StreamStatus, SubscriptionPlan } from '@prisma/client';
+import {
+  MeetingStatus,
+  PlanInterestType,
+  StreamStatus,
+  SubscriptionPlan,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminFeatureInterestService } from './admin-feature-interest.service';
 
@@ -31,11 +36,19 @@ export class AdminProductAnalyticsService {
       featureInterest,
     ] = await Promise.all([
       this.prisma.user.count(),
-      this.prisma.user.count({ where: { subscriptionPlan: SubscriptionPlan.FREE } }),
-      this.prisma.user.count({ where: { subscriptionPlan: SubscriptionPlan.PRO } }),
-      this.prisma.planInterest.count({ where: { planInterest: PlanInterestType.MAX } }),
+      this.prisma.user.count({
+        where: { subscriptionPlan: SubscriptionPlan.FREE },
+      }),
+      this.prisma.user.count({
+        where: { subscriptionPlan: SubscriptionPlan.PRO },
+      }),
+      this.prisma.planInterest.count({
+        where: { planInterest: PlanInterestType.MAX },
+      }),
       this.prisma.meeting.count(),
-      this.prisma.meeting.groupBy({ by: ['hostId'], _count: { hostId: true } }).then((r) => r.length),
+      this.prisma.meeting
+        .groupBy({ by: ['hostId'], _count: { hostId: true } })
+        .then((r) => r.length),
       this.prisma.meeting.findMany({
         where: {
           status: MeetingStatus.ENDED,

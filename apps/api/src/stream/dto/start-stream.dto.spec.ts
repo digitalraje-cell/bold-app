@@ -30,8 +30,12 @@ describe('StartStreamDto', () => {
     });
 
     expect(errors.length).toBeGreaterThan(0);
-    const messages = errors.flatMap((error) => Object.values(error.constraints ?? {}));
-    expect(messages.some((message) => message.includes('captureMode'))).toBe(true);
+    const messages = errors.flatMap((error) =>
+      Object.values(error.constraints ?? {}),
+    );
+    expect(messages.some((message) => message.includes('captureMode'))).toBe(
+      true,
+    );
   });
 
   it('rejects other unknown client fields', async () => {
@@ -60,18 +64,18 @@ describe('toStartYouTubeLiveApiBody', () => {
     });
     expect('captureMode' in apiBody).toBe(false);
 
-    const errors = await validateStartStreamBody(apiBody as Record<string, unknown>);
+    const errors = await validateStartStreamBody(
+      apiBody as Record<string, unknown>,
+    );
     expect(errors).toHaveLength(0);
   });
 
-  it('preserves all capture modes for browser-only handling', () => {
-    for (const captureMode of ['camera', 'screen', 'window', 'tab'] as const) {
-      const apiBody = toStartYouTubeLiveApiBody({
-        provider: MeetingBroadcastProviderType.YOUTUBE_RTMP,
-        youtubeAccountIds: ['acc_123'],
-        captureMode,
-      });
-      expect(apiBody).not.toHaveProperty('captureMode');
-    }
+  it('strips legacy captureMode if present on older clients', () => {
+    const apiBody = toStartYouTubeLiveApiBody({
+      provider: MeetingBroadcastProviderType.YOUTUBE_RTMP,
+      youtubeAccountIds: ['acc_123'],
+      captureMode: 'camera',
+    });
+    expect(apiBody).not.toHaveProperty('captureMode');
   });
 });

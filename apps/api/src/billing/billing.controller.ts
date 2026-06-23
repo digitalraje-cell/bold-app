@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard, AuthUser } from '../auth/auth.guard';
 import { BillingService } from './billing.service';
@@ -33,7 +41,10 @@ export class BillingController {
 
   @Post('pending/:id/cancel')
   @UseGuards(AuthGuard)
-  cancelPending(@Req() req: Request & { user: AuthUser }, @Param('id') id: string) {
+  cancelPending(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+  ) {
     return this.billingService.cancelPending(req.user.id, id);
   }
 }

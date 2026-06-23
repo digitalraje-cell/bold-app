@@ -17,13 +17,9 @@ import {
 import { useMeetingFullscreen } from '@/contexts/MeetingFullscreenContext';
 import { useMeetingControlsAutoHide } from '@/hooks/useMeetingControlsAutoHide';
 import { useMeetingPageLifecycle } from '@/hooks/useMeetingPageLifecycle';
-import { mergeJitsiRoster, useAttendeeLayout } from '@/hooks/useAttendeeLayout';
-import { useDockRoster } from '@/hooks/useDockRoster';
-import { AttendeeDock } from '@/components/meeting/attendee-dock/AttendeeDock';
-import { SelfViewOverlay } from '@/components/meeting/attendee-dock/SelfViewOverlay';
+import { useAutoStageLayout } from '@/hooks/useAutoStageLayout';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
-import { MeetingLayoutSettings } from '@/components/meeting/MeetingLayoutSettings';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
 import { ParticipantsPanel } from '@/components/meeting/ParticipantsPanel';
 import { ReactionsOverlay } from '@/components/meeting/ReactionsOverlay';
@@ -102,7 +98,7 @@ function MeetingRoomInner({
 }: MeetingRoomProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const { can } = usePermissions();
+  const { can, shouldShowUpgrade } = usePermissions();
   const containerRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggleFullscreen } = useMeetingFullscreen();
 
@@ -122,7 +118,6 @@ function MeetingRoomInner({
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
   const [streamPanelOpen, setStreamPanelOpen] = useState(() => readStreamPanelOpen(meetingId));
   const [youtubeLiveToast, setYoutubeLiveToast] = useState(false);
-  const [layoutSettingsOpen, setLayoutSettingsOpen] = useState(false);
   const [mediaSession, setMediaSession] = useState<{
     loading: boolean;
     jwtEnabled: boolean;
@@ -149,21 +144,11 @@ function MeetingRoomInner({
   const participantId = participantIdProp || guestSession?.participantId;
   const displayName = displayNameProp || session?.user?.name || session?.user?.email || 'Guest';
   const hangupRef = useRef<(() => void) | null>(null);
+  const stopLiveRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => undefined);
   const meetingEndedRef = useRef(false);
   const youtubeTabOpenedRef = useRef(false);
   const notifyHostMediaReadyRef = useRef<() => void>(() => undefined);
   const notifyHostMediaLeftRef = useRef<() => void>(() => undefined);
-
-  const { canJoinMedia, notifyHostMediaReady, notifyHostMediaLeft } = useMeetingPresence(
-    meetingId,
-    isHost,
-    mediaSession.jwtEnabled,
-  );
-
-  useEffect(() => {
-    notifyHostMediaReadyRef.current = notifyHostMediaReady;
-    notifyHostMediaLeftRef.current = notifyHostMediaLeft;
-  }, [notifyHostMediaReady, notifyHostMediaLeft]);
 
   const {
     roomMode,
@@ -172,12 +157,12 @@ function MeetingRoomInner({
     screenShareEnabled,
     participants,
     switchRoomMode,
-    promoteToPanelist,
     bringOnStage,
     removeFromStage,
     updateChatMode,
     setScreenShareEnabled,
-  } = useRoom(meetingId, isHost);
+    isHost: isHostNow,
+  } = useRoom(meetingId, session?.user?.id, isHost);
 
   const myParticipant =
     participants.find((p) => p.userId === session?.user?.id) ||
@@ -185,17 +170,27 @@ function MeetingRoomInner({
 
   const mySocketParticipantId = myParticipant?.id ?? participantId ?? null;
 
-  const myRole = myParticipant?.role ?? (isHost ? 'HOST' : 'PARTICIPANT');
+  const myRole = myParticipant?.role ?? (isHostNow ? 'HOST' : 'PARTICIPANT');
+
+  const { canJoinMedia, notifyHostMediaReady, notifyHostMediaLeft } = useMeetingPresence(
+    meetingId,
+    isHostNow,
+    mediaSession.jwtEnabled,
+  );
+
+  useEffect(() => {
+    notifyHostMediaReadyRef.current = notifyHostMediaReady;
+    notifyHostMediaLeftRef.current = notifyHostMediaLeft;
+  }, [notifyHostMediaReady, notifyHostMediaLeft]);
   const isModerator = myRole === 'HOST' || myRole === 'CO_HOST';
-  const canAutoOpenYoutubeWatch =
-    myRole === 'HOST' || myRole === 'CO_HOST' || myRole === 'PANELIST';
+  const canAutoOpenYoutubeWatch = myRole === 'HOST' || myRole === 'CO_HOST';
 
   const canMic = canUseMicInRoom(myParticipant, roomMode);
   const canCamera = canUseCameraInRoom(myParticipant, roomMode);
   const canChat = canSendChatInRoom(myParticipant, roomMode, chatMode, chatEnabled);
   const canShareScreen =
     canShareScreenInRoom(myParticipant, roomMode, screenShareEnabled) ||
-    (isHost && myRole === 'HOST' && !myParticipant);
+    (isHostNow && myRole === 'HOST' && !myParticipant);
 
   const screenShareCapability = useMemo(() => detectScreenShareCapability(), []);
   const shareUnavailable = canShareScreen && !screenShareCapability.supported;
@@ -203,38 +198,7 @@ function MeetingRoomInner({
     ? getScreenShareUnsupportedMessage(screenShareCapability)
     : undefined;
 
-  const {
-    broadcastStatus: streamBroadcastStatus,
-    isLive: isLiveStream,
-    displayStatus: streamDisplayStatus,
-    connectionState: streamConnectionState,
-    streamHealth,
-    watchUrl: liveWatchUrl,
-    destinations: streamDestinations,
-    streamTitle,
-    viewerCount: streamViewerCount,
-    streamVisibility,
-    elapsedSeconds: streamElapsedSeconds,
-    starting: streamStarting,
-    resuming: streamResuming,
-    stopping: streamStopping,
-    error: streamError,
-    pendingResume: streamPendingResume,
-    captureActive: streamCaptureActive,
-    startLive,
-    resumeLive,
-    stopLive,
-    loadModeratorState,
-    setError: setStreamError,
-  } = useYouTubeLiveStream(meetingId);
-
   const canStreamYoutube = can('canStreamToYoutube');
-
-  useEffect(() => {
-    if (isModerator && isYouTubeLiveEnabled() && canStreamYoutube) {
-      void loadModeratorState();
-    }
-  }, [isModerator, loadModeratorState, canStreamYoutube]);
 
   const handleLeave = useCallback(
     (message?: string) => {
@@ -248,20 +212,20 @@ function MeetingRoomInner({
   );
 
   const handleJitsiReady = useCallback(() => {
-    if (isHost) notifyHostMediaReadyRef.current();
-  }, [isHost]);
+    if (isHostNow) notifyHostMediaReadyRef.current();
+  }, [isHostNow]);
 
   const joinMediaPrefs =
     typeof window !== 'undefined' ? readJoinMediaPrefs() : { startWithAudio: true, startWithVideo: true };
 
   const handleJitsiLeave = useCallback(() => {
-    if (isHost) notifyHostMediaLeftRef.current();
+    if (isHostNow) notifyHostMediaLeftRef.current();
     if (isModerator) {
-      void stopLive({ silent: true }).finally(() => handleLeave());
+      void stopLiveRef.current({ silent: true }).finally(() => handleLeave());
       return;
     }
     handleLeave();
-  }, [isHost, isModerator, handleLeave, stopLive]);
+  }, [isHostNow, isModerator, handleLeave]);
 
   useEffect(() => {
     let cancelled = false;
@@ -348,19 +312,13 @@ function MeetingRoomInner({
     setTileView,
     setFilmstripVisible,
     setSelfViewHidden,
-    pinParticipant,
-    unpinParticipant,
-    togglePinParticipant,
-    jitsiParticipants,
-    dominantSpeakerId,
-    pinnedParticipantId,
-    localParticipantId,
+    runJitsiCommand,
   } = useJitsi({
     roomName: mediaSession.embedRoomName ?? jitsiRoom,
     jitsiDomain: mediaSession.embedDomain ?? undefined,
     scriptUrl: mediaSession.scriptUrl ?? undefined,
     displayName,
-    isHost,
+    isHost: isHostNow,
     isModerator,
     jwt: mediaSession.token,
     jwtEnabled: mediaSession.jwtEnabled,
@@ -376,32 +334,7 @@ function MeetingRoomInner({
     startVideoMuted: !joinMediaPrefs.startWithVideo,
   });
 
-  useEffect(() => {
-    hangupRef.current = hangup;
-  }, [hangup]);
-
-  const jitsiLayoutApi = useMemo(
-    () => ({
-      setTileView,
-      setFilmstripVisible,
-      setSelfViewHidden,
-      pinParticipant,
-      unpinParticipant,
-      pinnedParticipantId,
-      mediaReady,
-    }),
-    [
-      setTileView,
-      setFilmstripVisible,
-      setSelfViewHidden,
-      pinParticipant,
-      unpinParticipant,
-      pinnedParticipantId,
-      mediaReady,
-    ],
-  );
-
-  const layoutContext = useMemo(
+  const youtubeCaptureContext = useMemo(
     () => ({
       isScreenSharing,
       isPresenterLayout,
@@ -411,53 +344,76 @@ function MeetingRoomInner({
   );
 
   const {
-    prefs: layoutPrefs,
-    effectivePrefs,
-    updatePrefs: updateLayoutPrefs,
-    setStageLayout,
-    setDockPosition,
-    toggleDockCollapsed,
-    setDockViewMode,
-    patchSelfViewFloating,
-    shellClassName,
-    isWebinar,
-    isScreenShareContext,
-  } = useAttendeeLayout(jitsiLayoutApi, layoutContext);
+    broadcastStatus: streamBroadcastStatus,
+    isLive: isLiveStream,
+    displayStatus: streamDisplayStatus,
+    connectionState: streamConnectionState,
+    streamHealth,
+    watchUrl: liveWatchUrl,
+    destinations: streamDestinations,
+    streamTitle,
+    viewerCount: streamViewerCount,
+    streamVisibility,
+    elapsedSeconds: streamElapsedSeconds,
+    starting: streamStarting,
+    resuming: streamResuming,
+    stopping: streamStopping,
+    error: streamError,
+    pendingResume: streamPendingResume,
+    captureActive: streamCaptureActive,
+    startLive,
+    resumeLive,
+    stopLive,
+    loadModeratorState,
+    setError: setStreamError,
+  } = useYouTubeLiveStream(meetingId, youtubeCaptureContext);
 
-  const dockParticipants = useDockRoster({
-    jitsiParticipants: mergeJitsiRoster(
-      jitsiParticipants,
-      participants.map((p) => ({ id: p.id, displayName: p.displayName })),
-    ),
-    roomParticipants: participants,
-    roomMode,
-    dockViewMode: effectivePrefs.dockViewMode,
-    dominantSpeakerId,
-    pinnedParticipantId,
-    localParticipantId,
-  });
+  useEffect(() => {
+    stopLiveRef.current = stopLive;
+  }, [stopLive]);
 
-  const handlePinToggle = useCallback(
-    (participantId: string) => {
-      togglePinParticipant(participantId);
-      if (pinnedParticipantId !== participantId) {
-        setStageLayout('speaker');
-      }
-    },
-    [pinnedParticipantId, togglePinParticipant, setStageLayout],
+  useEffect(() => {
+    if (isModerator && isYouTubeLiveEnabled() && canStreamYoutube) {
+      void loadModeratorState();
+    }
+  }, [isModerator, loadModeratorState, canStreamYoutube]);
+
+  useEffect(() => {
+    hangupRef.current = hangup;
+  }, [hangup]);
+
+  const jitsiLayoutApi = useMemo(
+    () => ({
+      setTileView,
+      setFilmstripVisible,
+      setSelfViewHidden,
+      runJitsiCommand,
+      mediaReady,
+    }),
+    [setTileView, setFilmstripVisible, setSelfViewHidden, runJitsiCommand, mediaReady],
   );
+
+  const stageContext = useMemo(
+    () => ({
+      isScreenSharing,
+      isPresenterLayout,
+      roomMode,
+    }),
+    [isScreenSharing, isPresenterLayout, roomMode],
+  );
+
+  const { shellClassName } = useAutoStageLayout(jitsiLayoutApi, stageContext);
 
   const controlsPinned =
     activePanel !== null ||
     inviteOpen ||
     hostLeaveOpen ||
     youtubeModalOpen ||
-    upgradeOpen ||
-    layoutSettingsOpen;
+    upgradeOpen;
 
   const { controlsVisible, revealControls, toggleControlsMobile } = useMeetingControlsAutoHide(
     controlsPinned,
-    layoutPrefs.autoHideControls,
+    true,
   );
 
   useMeetingPageLifecycle(mediaReady, revealControls);
@@ -655,7 +611,7 @@ function MeetingRoomInner({
 
   const handleSwitchRoomMode = async (mode: RoomMode) => {
     if (mode === roomMode) return;
-    if (mode === RoomMode.WEBINAR && !can('canSwitchRoomMode')) {
+    if (mode === RoomMode.WEBINAR && shouldShowUpgrade && !can('canSwitchRoomMode')) {
       setUpgradeFeature('Webinar mode');
       setUpgradeOpen(true);
       return;
@@ -669,7 +625,7 @@ function MeetingRoomInner({
   };
 
   const handleGoLive = () => {
-    if (!can('canStreamToYoutube')) {
+    if (shouldShowUpgrade && !can('canStreamToYoutube')) {
       setUpgradeFeature('YouTube Live streaming');
       setUpgradeOpen(true);
       return;
@@ -896,46 +852,16 @@ function MeetingRoomInner({
         />
       ) : null}
 
-      {mediaReady ? (
-        <AttendeeDock
-          effectivePrefs={effectivePrefs}
-          participants={dockParticipants}
-          dominantSpeakerId={dominantSpeakerId}
-          pinnedParticipantId={pinnedParticipantId}
-          isWebinar={isWebinar}
-          isScreenShareContext={isScreenShareContext}
-          onPinToggle={handlePinToggle}
-          onToggleCollapsed={toggleDockCollapsed}
-          onSetStageLayout={setStageLayout}
-          onSetDockPosition={setDockPosition}
-          onSetDockViewMode={setDockViewMode}
-        />
-      ) : null}
-
-      {mediaReady && layoutPrefs.selfViewMode === 'floating' ? (
-        <SelfViewOverlay
-          mode={layoutPrefs.selfViewMode}
-          displayName={displayName}
-          floating={layoutPrefs.selfViewFloating}
-          onFloatingChange={patchSelfViewFloating}
-        />
-      ) : null}
-
-      <MeetingLayoutSettings
-        open={layoutSettingsOpen}
-        prefs={layoutPrefs}
-        onClose={() => setLayoutSettingsOpen(false)}
-        onChange={updateLayoutPrefs}
-      />
-
       <ReactionsOverlay reactions={reactions} />
       {!isLiveStream && <WebinarModeBanner roomMode={roomMode} />}
 
-      <UpgradeModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        feature={upgradeFeature}
-      />
+      {shouldShowUpgrade && (
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          feature={upgradeFeature}
+        />
+      )}
 
       <YouTubeLiveModal
         open={youtubeModalOpen}
@@ -985,12 +911,6 @@ function MeetingRoomInner({
         </div>
       )}
 
-      {(isScreenSharing || isPresenterLayout) && mediaReady && (
-        <div className="absolute right-4 top-4 z-30 rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
-          {isScreenSharing ? 'You are presenting' : 'Presenter view'}
-        </div>
-      )}
-
       {activePanel === 'chat' && (
         <ChatPanel
           meetingId={meetingId}
@@ -1019,7 +939,6 @@ function MeetingRoomInner({
           roomMode={roomMode}
           waitingRoomEnabled={waitingRoomEnabled}
           onClose={() => setActivePanel(null)}
-          onPromotePanelist={isModerator ? promoteToPanelist : undefined}
           onBringOnStage={isModerator ? bringOnStage : undefined}
           onRemoveFromStage={isModerator ? removeFromStage : undefined}
           onMuteAll={isModerator ? muteAll : undefined}
@@ -1087,9 +1006,6 @@ function MeetingRoomInner({
         canManageBroadcast={isModerator}
         controlsVisible={controlsVisible}
         onRevealControls={revealControls}
-        layoutMode={layoutPrefs.stageLayout}
-        onSelectLayout={setStageLayout}
-        onOpenLayoutSettings={() => setLayoutSettingsOpen(true)}
         participantCount={participants.length}
         meetingTitle={title}
         streamElapsedSeconds={streamElapsedSeconds}

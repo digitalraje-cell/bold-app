@@ -22,7 +22,9 @@ export class PwaAnalyticsService {
     ]);
 
     const installationPercentage =
-      totalUsers > 0 ? Math.round((pwaInstalledUsers / totalUsers) * 1000) / 10 : 0;
+      totalUsers > 0
+        ? Math.round((pwaInstalledUsers / totalUsers) * 1000) / 10
+        : 0;
 
     return {
       totalUsers,

@@ -133,6 +133,7 @@ export * from './config/app';
 export * from './constants/support';
 export * from './subscriptions/plans';
 export * from './subscriptions/pricing';
+export * from './subscriptions/billing-ui';
 export * from './subscriptions/max-plan';
 export * from './integrations/providers';
 export * from './roadmap/features';

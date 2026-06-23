@@ -263,103 +263,46 @@ html {
   opacity: 0.92;
 }
 
-/* ─── Attendee Dock V1 ───────────────────────────────────────────────── */
-.attendee-dock {
-  position: absolute;
-  z-index: 25;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 14, 0.82);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  transition:
-    width 220ms cubic-bezier(0.4, 0, 0.2, 1),
-    height 220ms cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 220ms ease,
-    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.attendee-dock--right {
-  top: 4.5rem;
-  right: 0.5rem;
-  bottom: calc(var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px));
-  width: clamp(5.25rem, 13vw, 6.5rem);
-  border-radius: var(--radius-meeting);
-}
-
-.attendee-dock--right.attendee-dock--collapsed {
-  bottom: auto;
-  height: auto;
-}
-
-.attendee-dock--top {
-  top: 3.5rem;
-  left: 0.5rem;
-  right: 0.5rem;
-  height: clamp(5.5rem, 14vh, 7.5rem);
-  border-radius: var(--radius-meeting);
-}
-
-.attendee-dock--top.attendee-dock--collapsed {
-  right: auto;
-  width: auto;
-  min-width: 12rem;
-  height: auto;
-}
-
-.meeting-jitsi-shell--attendee-dock-right {
-  padding-right: clamp(5.75rem, 14vw, 7rem);
-  transition: padding 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.meeting-jitsi-shell--attendee-dock-right-collapsed {
-  padding-right: clamp(3.5rem, 8vw, 4.5rem);
-  transition: padding 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.meeting-jitsi-shell--attendee-dock-top {
-  padding-top: clamp(5.5rem, 14vh, 8rem);
-  transition: padding 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.meeting-jitsi-shell--attendee-dock-top-collapsed {
-  padding-top: 4.5rem;
-  transition: padding 220ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.meeting-jitsi-shell--attendee-dock-hidden {
-  padding-right: 0;
+/* ─── Meeting stage layout v3 (Jitsi-native filmstrip) ─────────────── */
+.meeting-jitsi-shell--auto {
   padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-@media (max-width: 767px) {
-  .attendee-dock--right {
-    width: 4.75rem;
-    top: 3.25rem;
-    right: 0.25rem;
-  }
+.meeting-jitsi-shell--gallery {
+  padding-top: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+}
 
-  .meeting-jitsi-shell--attendee-dock-right {
-    padding-right: 5rem;
-  }
+.meeting-jitsi-shell--focus {
+  padding-left: 0;
+  padding-right: 0;
+}
 
-  .attendee-dock--top {
-    top: 3.25rem;
-    height: 5.25rem;
-  }
+/* Screen share / presenter — shared content fills the stage; filmstrip stays inside Jitsi */
+.meeting-jitsi-shell--presenting {
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .attendee-dock,
-  .meeting-jitsi-shell--attendee-dock-right,
-  .meeting-jitsi-shell--attendee-dock-right-collapsed,
-  .meeting-jitsi-shell--attendee-dock-top,
-  .meeting-jitsi-shell--attendee-dock-top-collapsed {
+  .meeting-jitsi-shell--layout-v3 {
     transition: none;
   }
+}
+
+/* Legacy dock offsets — reset so v3 layout is full width */
+.meeting-jitsi-shell--attendee-dock-right,
+.meeting-jitsi-shell--attendee-dock-right-collapsed,
+.meeting-jitsi-shell--attendee-dock-top,
+.meeting-jitsi-shell--attendee-dock-top-collapsed,
+.meeting-jitsi-shell--attendee-dock-hidden {
+  padding-right: 0;
+  padding-top: 0;
 }
 
 @media (max-width: 767px) {

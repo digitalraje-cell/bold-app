@@ -54,14 +54,17 @@ export class YoutubeController {
     @Query('error') error: string | undefined,
     @Res() res: Response,
   ) {
-    const frontend = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+    const frontend =
+      process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
 
     let returnTo: string | null = null;
     let userId: string | null = null;
 
     if (state) {
       try {
-        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8')) as {
+        const parsed = JSON.parse(
+          Buffer.from(state, 'base64url').toString('utf8'),
+        ) as {
           userId?: string;
           returnTo?: string | null;
         };

@@ -26,7 +26,6 @@ interface ParticipantsPanelProps {
   roomMode: RoomMode;
   waitingRoomEnabled?: boolean;
   onClose: () => void;
-  onPromotePanelist?: (participantId: string) => void;
   onBringOnStage?: (participantId: string) => void;
   onRemoveFromStage?: (participantId: string) => void;
   onMuteAll?: () => void;
@@ -35,11 +34,15 @@ interface ParticipantsPanelProps {
 const ROLE_LABELS: Record<string, string> = {
   HOST: 'Host',
   CO_HOST: 'Co-host',
-  PANELIST: 'Panelist',
   PARTICIPANT: 'Participant',
   MODERATOR: 'Moderator',
   GUEST: 'Guest',
 };
+
+function displayRole(role: string): string | null {
+  if (role === 'PARTICIPANT' || role === 'PANELIST') return null;
+  return ROLE_LABELS[role] ?? role;
+}
 
 export function ParticipantsPanel({
   meetingId,
@@ -48,12 +51,11 @@ export function ParticipantsPanel({
   roomMode,
   waitingRoomEnabled,
   onClose,
-  onPromotePanelist,
   onBringOnStage,
   onRemoveFromStage,
   onMuteAll,
 }: ParticipantsPanelProps) {
-  const { can } = usePermissions();
+  const { can, shouldShowUpgrade } = usePermissions();
   const storeParticipants = useRoomStore((s) => s.participants);
   const [participants, setParticipants] = useState<ParticipantRecord[]>(storeParticipants);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -77,6 +79,7 @@ export function ParticipantsPanel({
             handRaised: live.handRaised ?? p.handRaised,
             isMuted: live.isMuted ?? p.isMuted,
             isVideoOff: live.isVideoOff ?? p.isVideoOff,
+            role: live.role ?? p.role,
           };
         });
       });
@@ -100,11 +103,13 @@ export function ParticipantsPanel({
   return (
     <div className="fixed inset-0 z-50 flex flex-col meeting-panel-mobile bg-black/40 sm:absolute sm:inset-y-3 sm:right-3 sm:left-auto sm:bottom-[calc(var(--meeting-controls-offset,5.5rem)+env(safe-area-inset-bottom,0px))] sm:top-3 sm:z-40 sm:h-auto sm:w-full sm:max-w-sm sm:bg-transparent">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden meeting-glass-panel rounded-none sm:rounded-[var(--radius-meeting)]">
-      <UpgradeModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        feature="Multiple co-hosts"
-      />
+      {shouldShowUpgrade && (
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          feature="Multiple co-hosts"
+        />
+      )}
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h3 className="font-semibold text-white">
           Participants ({admitted.length})
@@ -164,17 +169,19 @@ export function ParticipantsPanel({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium text-white">{p.displayName}</span>
-                {p.role !== 'PARTICIPANT' && (
+                {displayRole(p.role) && (
                   <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/80">
-                    {ROLE_LABELS[p.role] ?? p.role}
+                    {displayRole(p.role)}
                   </span>
                 )}
-                {!p.userId && p.role === 'PARTICIPANT' && (
+                {!p.userId && (p.role === 'PARTICIPANT' || p.role === 'PANELIST') && (
                   <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/60">
                     Guest
                   </span>
                 )}
-                {roomMode === RoomMode.WEBINAR && p.isOnStage && p.role === 'PARTICIPANT' && (
+                {roomMode === RoomMode.WEBINAR &&
+                  p.isOnStage &&
+                  (p.role === 'PARTICIPANT' || p.role === 'PANELIST') && (
                   <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/70">
                     On stage
                   </span>
@@ -196,7 +203,7 @@ export function ParticipantsPanel({
                 <Video className="h-4 w-4 text-emerald-400" aria-label="Camera on" />
               )}
             </div>
-            {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT') && (
+            {isModerator && p.role !== 'HOST' && (isHost || p.role === 'PARTICIPANT' || p.role === 'PANELIST') && (
               <div className="relative">
                 <button
                   type="button"
@@ -221,13 +228,27 @@ export function ParticipantsPanel({
                     >
                       {p.isMuted ? 'Ask to unmute' : 'Mute'}
                     </button>
-                    {isHost && p.role === 'PARTICIPANT' && (
+                    {isHost && (p.role === 'PARTICIPANT' || p.role === 'PANELIST') && p.userId && (
                       <button
                         type="button"
                         className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
                         onClick={() => {
                           setOpenMenuId(null);
-                          if (!can('canUseCohost')) {
+                          void runAction(p.id, () =>
+                            api.participants.transferHost(meetingId, p.id),
+                          );
+                        }}
+                      >
+                        Make host
+                      </button>
+                    )}
+                    {isHost && (p.role === 'PARTICIPANT' || p.role === 'PANELIST') && (
+                      <button
+                        type="button"
+                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          if (shouldShowUpgrade && !can('canUseCohost')) {
                             setUpgradeOpen(true);
                             return;
                           }
@@ -261,19 +282,10 @@ export function ParticipantsPanel({
                     >
                       Remove from meeting
                     </button>
-                    {onPromotePanelist && p.role === 'PARTICIPANT' && (
-                      <button
-                        type="button"
-                        className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
-                        onClick={() => {
-                          setOpenMenuId(null);
-                          onPromotePanelist(p.id);
-                        }}
-                      >
-                        Promote to panelist
-                      </button>
-                    )}
-                    {roomMode === RoomMode.WEBINAR && onBringOnStage && !p.isOnStage && (
+                    {roomMode === RoomMode.WEBINAR &&
+                      onBringOnStage &&
+                      !p.isOnStage &&
+                      (p.role === 'PARTICIPANT' || p.role === 'PANELIST') && (
                       <button
                         type="button"
                         className="flex w-full px-3 py-2 text-left text-sm text-white hover:bg-white/10"
@@ -282,7 +294,7 @@ export function ParticipantsPanel({
                           onBringOnStage(p.id);
                         }}
                       >
-                        Bring on stage
+                        Invite to stage
                       </button>
                     )}
                     {roomMode === RoomMode.WEBINAR && onRemoveFromStage && p.isOnStage && (

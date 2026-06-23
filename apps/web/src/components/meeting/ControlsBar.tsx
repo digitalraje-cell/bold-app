@@ -25,7 +25,6 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
-import { MeetingLayoutMenu } from '@/components/meeting/MeetingLayoutMenu';
 import { formatStreamElapsed } from '@/lib/stream-live-ui';
 import { logMeetingControlsEvent } from '@/lib/media/meeting-controls-diagnostics';
 import { computeMoreMenuPosition } from '@/lib/media/compute-more-menu-position';
@@ -76,9 +75,6 @@ interface ControlsBarProps {
   canManageBroadcast?: boolean;
   controlsVisible?: boolean;
   onRevealControls?: () => void;
-  layoutMode?: import('@/lib/attendee-layout-prefs').StageLayout;
-  onSelectLayout?: (mode: import('@/lib/attendee-layout-prefs').StageLayout) => void;
-  onOpenLayoutSettings?: () => void;
   participantCount?: number;
   meetingTitle?: string | null;
   streamElapsedSeconds?: number;
@@ -285,9 +281,6 @@ export function ControlsBar({
   canManageBroadcast,
   controlsVisible = true,
   onRevealControls,
-  layoutMode = 'speaker',
-  onSelectLayout,
-  onOpenLayoutSettings,
   participantCount = 0,
   meetingTitle,
   streamElapsedSeconds = 0,
@@ -381,14 +374,6 @@ export function ControlsBar({
           active={activePanel === 'participants'}
           onClick={onToggleParticipants}
         />
-
-        {onSelectLayout && onOpenLayoutSettings ? (
-          <MeetingLayoutMenu
-            stageLayout={layoutMode}
-            onSelectStageLayout={onSelectLayout}
-            onOpenSettings={onOpenLayoutSettings}
-          />
-        ) : null}
 
         {hasMoreItems && (
           <div className="relative shrink-0" ref={moreRef}>

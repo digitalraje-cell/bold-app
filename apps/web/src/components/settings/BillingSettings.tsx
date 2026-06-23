@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import {
   SubscriptionPlan,
-  PLAN_DISPLAY,
   PLAN_PRICING_INR,
+  getPlanLabel,
+  getPlanFeaturesSummary,
+  shouldShowUpgradeCTA,
+  isPremiumPlan,
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +25,7 @@ type BillingSummary = {
 };
 
 export function BillingSettings() {
+  const { data: session } = useSession();
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +37,11 @@ export function BillingSettings() {
   }, []);
 
   const plan = summary?.plan ?? SubscriptionPlan.FREE;
-  const isPro = plan === SubscriptionPlan.PRO;
+  const showUpgrade = shouldShowUpgradeCTA(
+    plan,
+    session?.user?.role,
+    session?.user?.email,
+  );
 
   return (
     <SettingsShell title="Billing" description="Your subscription and renewal status.">
@@ -45,21 +54,29 @@ export function BillingSettings() {
               <div>
                 <dt className="text-muted-foreground">Current plan</dt>
                 <dd className="mt-1 flex items-center gap-2">
-                  <span className="text-lg font-semibold">
-                    {isPro
-                      ? `PRO — ₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month`
-                      : 'FREE'}
-                  </span>
+                  <span className="text-lg font-semibold">{getPlanLabel(plan)}</span>
                   <span
                     className={cn(
                       badgeClass(),
-                      !isPro && 'text-muted-foreground',
+                      !isPremiumPlan(plan) && 'text-muted-foreground',
                     )}
                   >
-                    {PLAN_DISPLAY[plan as SubscriptionPlan.FREE | SubscriptionPlan.PRO]?.name ?? plan}
+                    {plan === SubscriptionPlan.ENTERPRISE
+                      ? 'Unlimited'
+                      : isPremiumPlan(plan)
+                        ? `₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month`
+                        : 'Free'}
                   </span>
                 </dd>
               </div>
+              {plan === SubscriptionPlan.ENTERPRISE && (
+                <div>
+                  <dt className="text-muted-foreground">Features</dt>
+                  <dd className="mt-1 text-muted-foreground">
+                    {getPlanFeaturesSummary(plan)}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-muted-foreground">Renewal status</dt>
                 <dd className="mt-1 font-medium capitalize">
@@ -75,7 +92,7 @@ export function BillingSettings() {
             </dl>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              {!isPro && (
+              {showUpgrade && (
                 <Link href="/billing/upgrade">
                   <Button>
                     Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month

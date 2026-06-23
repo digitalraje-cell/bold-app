@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { performSignOut } from '@/lib/client-auth';
 import { LogOut, Sparkles } from 'lucide-react';
-import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
+import { SubscriptionPlan, PLAN_PRICING_INR, getPlanLabel, isPremiumPlan } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { SettingsCard, SettingsShell } from '@/components/settings/SettingsShell';
 import { badgeClass } from '@/lib/ui';
@@ -16,7 +16,7 @@ type AccountSettingsProps = {
 };
 
 export function AccountSettings({ plan, createdAt, isVerified }: AccountSettingsProps) {
-  const isPro = plan === SubscriptionPlan.PRO;
+  const isPremium = isPremiumPlan(plan as SubscriptionPlan);
   const createdLabel = new Date(createdAt).toLocaleDateString('en-IN', {
     year: 'numeric',
     month: 'long',
@@ -56,12 +56,15 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
               <dt className="text-muted-foreground">Current plan</dt>
               <dd className="mt-1 flex items-center gap-2">
                 <span className="text-lg font-semibold">
-                  {isPro ? 'Pro' : 'Free'}
+                  {getPlanLabel(plan as SubscriptionPlan)}
                 </span>
-                {isPro && (
+                {isPremium && plan !== SubscriptionPlan.ENTERPRISE && (
                   <span className={badgeClass()}>
-                    PRO — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
+                    ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
                   </span>
+                )}
+                {plan === SubscriptionPlan.ENTERPRISE && (
+                  <span className={badgeClass()}>Unlimited</span>
                 )}
               </dd>
             </div>
@@ -78,7 +81,7 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
 
         <SettingsCard title="Actions">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            {!isPro && (
+            {!isPremium && (
               <Link href="/billing/upgrade">
                 <Button>
                   <Sparkles className="mr-2 h-4 w-4" />

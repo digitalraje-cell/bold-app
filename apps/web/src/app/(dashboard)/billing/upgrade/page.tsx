@@ -20,11 +20,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 export default function UpgradePage() {
   const { data: session } = useSession();
-  const { plan } = usePermissions();
+  const { shouldShowUpgrade, isPremium } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const isPro = plan === SubscriptionPlan.PRO;
 
   async function handlePay() {
     setLoading(true);
@@ -99,7 +97,11 @@ export default function UpgradePage() {
         )}
 
         <div className="mt-6">
-          {isPro ? (
+          {!shouldShowUpgrade ? (
+            <p className="text-sm text-muted-foreground">
+              Your account already has full access — no upgrade needed.
+            </p>
+          ) : isPremium ? (
             <p className="text-sm text-muted-foreground">You are already on the Pro plan.</p>
           ) : (
             <Button className="w-full sm:w-auto" onClick={() => void handlePay()} loading={loading}>

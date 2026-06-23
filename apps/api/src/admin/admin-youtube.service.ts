@@ -7,21 +7,28 @@ export class AdminYoutubeService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
-    const [channelsConnected, liveEnabledChannels, streamsCreated, activeStreams, completedStreams] =
-      await Promise.all([
-        this.prisma.youTubeAccount.count(),
-        this.prisma.youTubeAccount.count({ where: { liveStreamingEnabled: true } }),
-        this.prisma.youTubeStream.count(),
-        this.prisma.youTubeStream.count({ where: { status: StreamStatus.LIVE } }),
-        this.prisma.youTubeStream.findMany({
-          where: {
-            status: { in: [StreamStatus.ENDED, StreamStatus.ERROR] },
-            startedAt: { not: null },
-            endedAt: { not: null },
-          },
-          select: { startedAt: true, endedAt: true },
-        }),
-      ]);
+    const [
+      channelsConnected,
+      liveEnabledChannels,
+      streamsCreated,
+      activeStreams,
+      completedStreams,
+    ] = await Promise.all([
+      this.prisma.youTubeAccount.count(),
+      this.prisma.youTubeAccount.count({
+        where: { liveStreamingEnabled: true },
+      }),
+      this.prisma.youTubeStream.count(),
+      this.prisma.youTubeStream.count({ where: { status: StreamStatus.LIVE } }),
+      this.prisma.youTubeStream.findMany({
+        where: {
+          status: { in: [StreamStatus.ENDED, StreamStatus.ERROR] },
+          startedAt: { not: null },
+          endedAt: { not: null },
+        },
+        select: { startedAt: true, endedAt: true },
+      }),
+    ]);
 
     const totalMs = completedStreams.reduce((sum, stream) => {
       if (!stream.startedAt || !stream.endedAt) return sum;
@@ -43,7 +50,12 @@ export class AdminYoutubeService {
         startedAt: true,
         endedAt: true,
         createdAt: true,
-        meeting: { select: { title: true, host: { select: { email: true, name: true } } } },
+        meeting: {
+          select: {
+            title: true,
+            host: { select: { email: true, name: true } },
+          },
+        },
       },
     });
 

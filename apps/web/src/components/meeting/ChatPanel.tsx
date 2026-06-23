@@ -9,7 +9,7 @@ import { useSocket } from '@/hooks/useSocket';
 const CHAT_MODE_LABELS: Record<string, string> = {
   EVERYONE: 'Everyone',
   HOST_ONLY: 'Host only',
-  HOST_PANELISTS: 'Host + Panelists',
+  HOST_PANELISTS: 'Host + Co-hosts + Stage',
   DISABLED: 'Disabled',
 };
 

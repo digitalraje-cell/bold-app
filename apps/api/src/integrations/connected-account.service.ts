@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ConnectedAccountProvider, ConnectedAccountStatus } from '@prisma/client';
+import {
+  ConnectedAccountProvider,
+  ConnectedAccountStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface SyncYoutubeConnectedAccountInput {

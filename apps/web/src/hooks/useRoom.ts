@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { RoomMode, ChatMode } from '@boldmeet/shared';
 import { useSocket } from '@/hooks/useSocket';
 import { useRoomStore, RoomParticipant } from '@/stores/roomStore';
 import { api } from '@/lib/api';
 
-export function useRoom(meetingId: string, isHost: boolean) {
+export function useRoom(
+  meetingId: string,
+  userId?: string | null,
+  bootstrapIsHost = false,
+) {
   const { on, emit, socket } = useSocket(meetingId);
   const {
     roomMode,
@@ -25,6 +29,14 @@ export function useRoom(meetingId: string, isHost: boolean) {
     removeParticipant,
     reset,
   } = useRoomStore();
+
+  const isHost = useMemo(() => {
+    if (userId) {
+      const mine = participants.find((p) => p.userId === userId);
+      if (mine?.role) return mine.role === 'HOST';
+    }
+    return bootstrapIsHost;
+  }, [participants, userId, bootstrapIsHost]);
 
   const refreshRoom = useCallback(async () => {
     try {
@@ -230,14 +242,6 @@ export function useRoom(meetingId: string, isHost: boolean) {
     [meetingId, setRoomMode, setParticipants],
   );
 
-  const promoteToPanelist = useCallback(
-    async (participantId: string) => {
-      const updated = (await api.room.promotePanelist(meetingId, participantId)) as RoomParticipant;
-      updateParticipant(participantId, updated);
-    },
-    [meetingId, updateParticipant],
-  );
-
   const bringOnStage = useCallback(
     async (participantId: string, micAllowed = true, cameraAllowed = true) => {
       const updated = (await api.room.bringOnStage(meetingId, participantId, {
@@ -278,7 +282,6 @@ export function useRoom(meetingId: string, isHost: boolean) {
     setMyParticipantId,
     setScreenShareEnabled,
     switchRoomMode,
-    promoteToPanelist,
     bringOnStage,
     removeFromStage,
     updateChatMode,

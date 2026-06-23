@@ -384,16 +384,18 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
 
     pending.transitionAttempted = true;
     const stats = this.relay.getIngestStats(boldStreamId);
-        this.logger.log(
-          `[youtube-live-pipeline] STAGE-7-TRANSITION schedule-transition:start ${JSON.stringify({
-            meetingId: pending.meetingId,
-            broadcastId: pending.broadcastId,
-            streamId: pending.youtubeStreamId,
-            boldStreamId,
-            chunksReceived: stats?.chunksReceived ?? 0,
-            bytesReceived: stats?.bytesReceived ?? 0,
-          })}`,
-        );
+    this.logger.log(
+      `[youtube-live-pipeline] STAGE-7-TRANSITION schedule-transition:start ${JSON.stringify(
+        {
+          meetingId: pending.meetingId,
+          broadcastId: pending.broadcastId,
+          streamId: pending.youtubeStreamId,
+          boldStreamId,
+          chunksReceived: stats?.chunksReceived ?? 0,
+          bytesReceived: stats?.bytesReceived ?? 0,
+        },
+      )}`,
+    );
 
     void this.youtube
       .transitionBroadcastToLiveWhenReady(

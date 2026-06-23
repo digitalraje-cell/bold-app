@@ -15,7 +15,9 @@ export class AdminFeatureInterestService {
       where: { planInterest: PlanInterestType.MAX },
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { id: true, email: true, name: true, subscriptionPlan: true } },
+        user: {
+          select: { id: true, email: true, name: true, subscriptionPlan: true },
+        },
       },
     });
 
@@ -36,7 +38,9 @@ export class AdminFeatureInterestService {
 
     for (const entry of entries) {
       const plan = entry.user.subscriptionPlan;
-      const nonYoutubeProviders = entry.requestedProviders.filter((p) => p !== 'youtube');
+      const nonYoutubeProviders = entry.requestedProviders.filter(
+        (p) => p !== 'youtube',
+      );
       const isPro = plan === SubscriptionPlan.PRO;
 
       if (isPro) {

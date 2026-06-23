@@ -40,7 +40,10 @@ export class PermissionsService {
     let plan = user.subscriptionPlan as SubscriptionPlan;
 
     if (!isSuperAdmin(role, user.email)) {
-      if (user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
+      if (
+        user.subscriptionExpiresAt &&
+        user.subscriptionExpiresAt < new Date()
+      ) {
         plan = SubscriptionPlan.FREE;
       }
     }
@@ -63,9 +66,13 @@ export class PermissionsService {
     }
   }
 
-  async getAttendeeLimit(userId: string, roomMode: 'MEETING' | 'WEBINAR' = 'MEETING'): Promise<number> {
+  async getAttendeeLimit(
+    userId: string,
+    roomMode: 'MEETING' | 'WEBINAR' = 'MEETING',
+  ): Promise<number> {
     const ctx = await this.getUserPlanContext(userId);
-    const key = roomMode === 'WEBINAR' ? 'webinarAttendeeLimit' : 'meetingAttendeeLimit';
+    const key =
+      roomMode === 'WEBINAR' ? 'webinarAttendeeLimit' : 'meetingAttendeeLimit';
     return getPlanLimit(ctx.plan, key) ?? 100;
   }
 

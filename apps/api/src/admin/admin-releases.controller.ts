@@ -16,7 +16,10 @@ export class AdminReleasesController {
   }
 
   @Post()
-  create(@Req() req: Request & { user: AuthUser }, @Body() dto: CreateAppReleaseDto) {
+  create(
+    @Req() req: Request & { user: AuthUser },
+    @Body() dto: CreateAppReleaseDto,
+  ) {
     return this.releasesService.createRelease(dto, req.user.id);
   }
 }

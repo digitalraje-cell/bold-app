@@ -17,34 +17,7 @@ import { api } from '@/lib/api';
 import { formatYouTubeLiveUserError } from '@/lib/youtube-live-errors';
 import { youtubeOverlayStackTopClass } from '@/lib/meeting-youtube-overlay-layout';
 import { cn } from '@/lib/utils';
-import type { StartLiveStreamParams, YouTubeCaptureMode } from '@/hooks/useYouTubeLiveStream';
-
-const CAPTURE_OPTIONS: {
-  value: YouTubeCaptureMode;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    value: 'camera',
-    label: 'Camera & microphone',
-    hint: 'Stream your webcam and mic directly to YouTube (recommended).',
-  },
-  {
-    value: 'screen',
-    label: 'Share screen',
-    hint: 'Share your entire display — your browser will ask what to share.',
-  },
-  {
-    value: 'window',
-    label: 'Share window',
-    hint: 'Share a specific application window.',
-  },
-  {
-    value: 'tab',
-    label: 'Share tab',
-    hint: 'Share a browser tab — useful for slides or demos.',
-  },
-];
+import type { StartLiveStreamParams } from '@/hooks/useYouTubeLiveStream';
 
 interface YouTubeLiveModalProps {
   open: boolean;
@@ -66,7 +39,6 @@ export function YouTubeLiveModal({
   const [connectionLoading, setConnectionLoading] = useState(true);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<YouTubePrivacyStatus>('unlisted');
-  const [captureMode, setCaptureMode] = useState<YouTubeCaptureMode>('camera');
   const [error, setError] = useState('');
 
   const isBusy = Boolean(loading);
@@ -97,7 +69,6 @@ export function YouTubeLiveModal({
   useEffect(() => {
     if (!open) return;
     setError('');
-    setCaptureMode('camera');
     void loadConnection();
   }, [open, loadConnection]);
 
@@ -136,7 +107,6 @@ export function YouTubeLiveModal({
         provider: MeetingBroadcastProviderType.YOUTUBE_RTMP,
         youtubeAccountIds: selectedAccountIds,
         visibility,
-        captureMode,
       });
       onClose();
     } catch (err) {
@@ -294,55 +264,9 @@ export function YouTubeLiveModal({
                 </select>
               </div>
 
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Stream source
-                </p>
-                <div className="space-y-1.5">
-                  {CAPTURE_OPTIONS.map((option) => {
-                    const selected = captureMode === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => setCaptureMode(option.value)}
-                        className={cn(
-                          'flex w-full items-start gap-3 rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition',
-                          selected
-                            ? 'border-foreground bg-background'
-                            : 'border-border bg-surface hover:bg-muted/50',
-                          isBusy && 'cursor-not-allowed opacity-60',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                            selected ? 'border-foreground' : 'border-muted-foreground',
-                          )}
-                        >
-                          {selected && <span className="h-2 w-2 rounded-full bg-foreground" />}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-medium text-foreground">
-                            {option.label}
-                          </span>
-                          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                            {option.hint}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {captureMode === 'camera'
-                  ? 'When you click Go Live, your browser will ask for camera and microphone access. No screen or tab sharing is required.'
-                  : 'When you click Go Live, your browser will ask you to choose what to share.'}
-                {' '}
-                Title and description are set from this meeting automatically.
+                Viewers on YouTube see the same meeting stage as attendees here. Title and
+                description are set from this meeting automatically.
               </p>
             </div>
 

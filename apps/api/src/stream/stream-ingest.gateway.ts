@@ -29,7 +29,7 @@ function toIngestBuffer(payload: unknown): Buffer | null {
     return Buffer.from(payload);
   }
   if (ArrayBuffer.isView(payload)) {
-    const view = payload as ArrayBufferView;
+    const view = payload;
     return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
   }
   return null;
@@ -71,20 +71,24 @@ export class StreamIngestGateway
 
   handleConnection(client: Socket) {
     const query = client.handshake.query;
-    const auth = client.handshake.auth as { streamId?: string; token?: string } | undefined;
+    const auth = client.handshake.auth as
+      | { streamId?: string; token?: string }
+      | undefined;
     const streamId = (query.streamId as string) || auth?.streamId;
     const token = (query.token as string) || auth?.token;
     const relayRunning = streamId ? this.relay.isRunning(streamId) : false;
 
     if (!streamId || !token || !this.relay.verifyIngestToken(streamId, token)) {
       this.logger.warn(
-        `[youtube-live-pipeline] STAGE-3-GATEWAY websocket:connection-rejected ${JSON.stringify({
-          streamId: streamId || 'missing',
-          hasToken: Boolean(token),
-          relayRunning,
-          clientId: client.id,
-          origin: client.handshake.headers.origin ?? null,
-        })}`,
+        `[youtube-live-pipeline] STAGE-3-GATEWAY websocket:connection-rejected ${JSON.stringify(
+          {
+            streamId: streamId || 'missing',
+            hasToken: Boolean(token),
+            relayRunning,
+            clientId: client.id,
+            origin: client.handshake.headers.origin ?? null,
+          },
+        )}`,
       );
       client.disconnect();
       return;
@@ -125,7 +129,9 @@ export class StreamIngestGateway
 
     const streamId = getStreamId(client);
     if (!streamId) {
-      this.logger.warn('[youtube-live-pipeline] STAGE-3-GATEWAY chunk:no-stream-id');
+      this.logger.warn(
+        '[youtube-live-pipeline] STAGE-3-GATEWAY chunk:no-stream-id',
+      );
       return { ok: false };
     }
 

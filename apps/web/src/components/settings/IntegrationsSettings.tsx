@@ -36,7 +36,7 @@ type IntegrationSection = {
 };
 
 export function IntegrationsSettings() {
-  const { can } = usePermissions();
+  const { can, shouldShowUpgrade } = usePermissions();
   const canStream = can('canStreamToYoutube');
 
   const [sections, setSections] = useState<IntegrationSection[]>([]);
@@ -236,7 +236,7 @@ export function IntegrationsSettings() {
                 : 'Stream meetings to your YouTube channel.'
             }
             footer={
-              !canStream ? (
+              shouldShowUpgrade && !canStream ? (
                 <Link
                   href="/billing/upgrade"
                   className="inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
@@ -257,7 +257,7 @@ export function IntegrationsSettings() {
               ) : null
             }
           >
-            {!canStream ? (
+            {!canStream && shouldShowUpgrade ? (
               <p className="text-sm text-muted-foreground">
                 YouTube Live requires Pro. Free plans include meetings without livestreaming.
               </p>

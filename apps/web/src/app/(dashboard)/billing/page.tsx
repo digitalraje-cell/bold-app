@@ -4,10 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   SubscriptionPlan,
-  PLAN_DISPLAY,
   PLAN_PRICING_INR,
   FEATURE_COMPARISON,
+  getPlanLabel,
+  getPlanFeaturesSummary,
+  shouldShowUpgradeCTA,
+  isPremiumPlan,
+  isSuperAdmin,
 } from '@boldmeet/shared';
+import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import { PlanComparisonTable } from '@/components/ui/PlanComparisonTable';
 import { Button } from '@/components/ui/Button';
@@ -57,6 +62,7 @@ function formatStatus(status: string): string {
 }
 
 export default function BillingPage() {
+  const { data: session } = useSession();
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -70,8 +76,14 @@ export default function BillingPage() {
   }, []);
 
   const plan = summary?.plan ?? SubscriptionPlan.FREE;
-  const isPro = plan === SubscriptionPlan.PRO;
-  const planName = PLAN_DISPLAY[plan as SubscriptionPlan.FREE | SubscriptionPlan.PRO]?.name ?? plan;
+  const superAdmin = isSuperAdmin(session?.user?.role, session?.user?.email);
+  const showUpgrade = shouldShowUpgradeCTA(
+    plan,
+    session?.user?.role,
+    session?.user?.email,
+  );
+  const planName = superAdmin ? 'Enterprise (Super Admin)' : getPlanLabel(plan);
+  const isEnterprise = plan === SubscriptionPlan.ENTERPRISE || superAdmin;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -100,11 +112,15 @@ export default function BillingPage() {
                   <dt className="text-sm text-muted-foreground">Current plan</dt>
                   <dd className="mt-1 flex items-center gap-2">
                     <span className="text-lg font-semibold">{planName}</span>
-                    <span className={isPro ? badgeClass() : badgeClass('text-muted-foreground')}>
-                      {isPro
-                        ? `₹${PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo`
-                        : '₹0'}
-                    </span>
+                    {isEnterprise ? (
+                      <span className={badgeClass()}>Unlimited</span>
+                    ) : isPremiumPlan(plan) ? (
+                      <span className={badgeClass()}>
+                        ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo
+                      </span>
+                    ) : (
+                      <span className={badgeClass('text-muted-foreground')}>₹0</span>
+                    )}
                   </dd>
                 </div>
                 <div>
@@ -113,6 +129,14 @@ export default function BillingPage() {
                     {formatStatus(summary?.subscriptionStatus ?? 'active')}
                   </dd>
                 </div>
+                {isEnterprise && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm text-muted-foreground">Features</dt>
+                    <dd className="mt-1 text-sm text-muted-foreground">
+                      {getPlanFeaturesSummary(plan)}
+                    </dd>
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <dt className="text-sm text-muted-foreground">Renewal</dt>
                   <dd className="mt-1 font-medium">
@@ -122,13 +146,13 @@ export default function BillingPage() {
                           month: 'long',
                           day: 'numeric',
                         })}`
-                      : isPro
+                      : isPremiumPlan(plan)
                         ? 'Manual renewal — contact support to extend'
                         : 'No active subscription'}
                   </dd>
                 </div>
               </dl>
-              {!isPro && (
+              {showUpgrade && (
                 <Link href="/billing/upgrade" className="shrink-0">
                   <Button size="lg">
                     Upgrade to Pro — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month
@@ -190,7 +214,7 @@ export default function BillingPage() {
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
                 No payments yet.
-                {!isPro && (
+                {showUpgrade && (
                   <>
                     {' '}
                     <Link href="/billing/upgrade" className="text-foreground underline-offset-4 hover:underline">

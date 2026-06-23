@@ -44,12 +44,17 @@ function normalizePrivateKey(raw: string): string {
   return Buffer.from(trimmed, 'base64').toString('utf8');
 }
 
-function signJwtHs256(payload: Record<string, unknown>, secret: string): string {
+function signJwtHs256(
+  payload: Record<string, unknown>,
+  secret: string,
+): string {
   const header = { alg: 'HS256', typ: 'JWT' };
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const data = `${encodedHeader}.${encodedPayload}`;
-  const signature = createHmac('sha256', secret).update(data).digest('base64url');
+  const signature = createHmac('sha256', secret)
+    .update(data)
+    .digest('base64url');
   return `${data}.${signature}`;
 }
 
@@ -66,17 +71,25 @@ function signJwtRs256(
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const data = `${encodedHeader}.${encodedPayload}`;
   const key = createPrivateKey(normalizePrivateKey(privateKeyPem));
-  const signature = createSign('RSA-SHA256').update(data).sign(key, 'base64url');
+  const signature = createSign('RSA-SHA256')
+    .update(data)
+    .sign(key, 'base64url');
   return `${data}.${signature}`;
 }
 
 function resolveJitsiPrivateKey(): string | undefined {
-  return process.env.JITSI_PRIVATE_KEY?.trim() || process.env.JITSI_APP_SECRET?.trim();
+  return (
+    process.env.JITSI_PRIVATE_KEY?.trim() ||
+    process.env.JITSI_APP_SECRET?.trim()
+  );
 }
 
 function resolveAuthMode(appId: string | undefined): JitsiAuthMode {
   if (!appId) return 'unconfigured';
-  if (process.env.JITSI_JAAS === 'true' || appId.startsWith('vpaas-magic-cookie')) {
+  if (
+    process.env.JITSI_JAAS === 'true' ||
+    appId.startsWith('vpaas-magic-cookie')
+  ) {
     return 'jaas';
   }
   if (resolveJitsiPrivateKey()) {
@@ -99,7 +112,10 @@ export class JitsiTokenService {
     }
     const configured = process.env.JITSI_DOMAIN?.trim();
     if (configured) {
-      return configured.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+      return configured
+        .replace(/^https?:\/\//, '')
+        .replace(/\/$/, '')
+        .toLowerCase();
     }
     return 'meet.jit.si';
   }
@@ -111,10 +127,17 @@ export class JitsiTokenService {
       process.env.JWT_SECRET?.trim() ||
       process.env.AUTH_SECRET?.trim() ||
       'bold-jitsi-room-secret';
-    return createHmac('sha256', secret).update(`bold:${roomName}`).digest('hex').slice(0, 24);
+    return createHmac('sha256', secret)
+      .update(`bold:${roomName}`)
+      .digest('hex')
+      .slice(0, 24);
   }
 
-  private buildEmbedTargets(mode: JitsiAuthMode, appId: string, roomSlug: string) {
+  private buildEmbedTargets(
+    mode: JitsiAuthMode,
+    appId: string,
+    roomSlug: string,
+  ) {
     if (mode === 'jaas') {
       const embedRoomName = `${appId}/${roomSlug}`;
       return {
