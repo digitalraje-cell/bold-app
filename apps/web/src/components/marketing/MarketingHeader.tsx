@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { LogOut, Menu, X } from 'lucide-react';
 import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { performSignOut } from '@/lib/client-auth';
-import { APP_CONFIG } from '@/lib/app-config';
+import { HomeLogoLink } from '@/components/layout/HomeLogoLink';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { navLinkClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -25,20 +26,6 @@ const AUTH_NAV_ITEMS = [
   { href: '/meetings', label: 'Meetings' },
   { href: '/billing', label: 'Billing' },
 ] as const;
-
-function BrandMark() {
-  const appName = APP_CONFIG.name;
-  const logoLetter = appName.charAt(0).toUpperCase();
-
-  return (
-    <Link href="/" className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-        {logoLetter}
-      </div>
-      <span className="text-xl font-semibold tracking-tight">{appName}</span>
-    </Link>
-  );
-}
 
 function AuthActions({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { status } = useSession();
@@ -90,16 +77,15 @@ function AuthActions({ mobile = false, onNavigate }: { mobile?: boolean; onNavig
       >
         Login
       </AuthAwareLink>
-      <AuthAwareLink
-        href="/login"
+      <StartMeetingLink
         className={cn(
           'rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]',
           mobile && 'mt-1 block text-center',
         )}
         onClick={onNavigate}
       >
-        Get Started
-      </AuthAwareLink>
+        Start a Meeting
+      </StartMeetingLink>
     </>
   );
 }
@@ -115,7 +101,7 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <BrandMark />
+        <HomeLogoLink wordmarkClassName="text-xl" />
 
         <nav className="hidden items-center gap-1 sm:flex sm:gap-2">
           {NAV_ITEMS.map((item) => (

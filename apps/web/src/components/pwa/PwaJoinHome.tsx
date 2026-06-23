@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Radio, Video } from 'lucide-react';
 import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { HomeLogoLink } from '@/components/layout/HomeLogoLink';
 import { DEFAULT_MEETING_SETTINGS, formatMeetingCode } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -115,9 +116,7 @@ export function PwaJoinHome() {
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border/80 bg-surface px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <Link href="/join" className="text-lg font-semibold tracking-tight text-foreground">
-            Bold
-          </Link>
+          <HomeLogoLink wordmarkClassName="text-lg" />
           {session?.user ? (
             <Link
               href="/dashboard"

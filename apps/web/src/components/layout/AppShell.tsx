@@ -9,8 +9,8 @@ import { useSession } from 'next-auth/react';
 import { SubscriptionPlan, isPlatformAdmin, isSuperAdmin } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { navLinkClass } from '@/lib/ui';
-import { appConfig } from '@/lib/app-config';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { HomeLogoLink } from '@/components/layout/HomeLogoLink';
 import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getActiveNavId, isSidebarItemActive } from '@/lib/sidebar-nav';
@@ -67,13 +67,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex items-center gap-3 px-6 py-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-            {appConfig.name.charAt(0).toUpperCase()}
-          </div>
-          <span className="text-lg font-semibold tracking-tight">{appConfig.name}</span>
+          <HomeLogoLink className="min-w-0 flex-1" onClick={() => setSidebarOpen(false)} />
           <button
             type="button"
-            className="ml-auto rounded-[var(--radius-sm)] p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
+            className="ml-auto shrink-0 rounded-[var(--radius-sm)] p-1.5 text-muted-foreground hover:bg-muted lg:hidden"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -151,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-[var(--radius-sm)] p-1">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold tracking-tight">{appConfig.name}</span>
+          <HomeLogoLink variant="wordmark" onClick={() => setSidebarOpen(false)} />
         </header>
         <main className="min-w-0 flex-1 overflow-x-clip p-6 sm:p-8 lg:p-10">{children}</main>
         <AppFooter />
