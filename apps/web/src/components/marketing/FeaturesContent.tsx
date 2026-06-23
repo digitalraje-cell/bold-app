@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Video, Radio, Shield, Users, Sparkles, LayoutGrid } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { PageCta } from '@/components/marketing/PageCta';
-import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -55,12 +55,12 @@ export function FeaturesContent() {
               educators, and teams.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <AuthAwareLink href="/login">
-                <Button size="lg">Get started</Button>
-              </AuthAwareLink>
+              <StartMeetingLink>
+                <Button size="lg">Start a Meeting</Button>
+              </StartMeetingLink>
               <Link href="/join">
                 <Button size="lg" variant="secondary">
-                  Join a meeting
+                  Join a Meeting
                 </Button>
               </Link>
             </div>

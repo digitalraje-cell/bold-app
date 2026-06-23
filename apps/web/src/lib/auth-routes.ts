@@ -1,6 +1,12 @@
 /** Default destination for authenticated users hitting guest-only auth entry points. */
 export const AUTHENTICATED_HOME = '/dashboard';
 
+/** Guest login entry for “Start a Meeting” CTAs. */
+export const START_MEETING_LOGIN_HREF = '/login?callbackUrl=%2Fdashboard';
+
+/** Logged-in destination for instant meeting creation. */
+export const START_MEETING_AUTH_HREF = '/meetings/create?type=instant';
+
 const EXACT_AUTH_GUEST_ROUTES = new Set([
   '/login',
   '/signup',

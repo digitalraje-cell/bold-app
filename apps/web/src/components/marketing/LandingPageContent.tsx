@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PricingSection } from '@/components/marketing/PricingSection';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { PageCta } from '@/components/marketing/PageCta';
-import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -48,14 +48,14 @@ export function LandingPageContent() {
           </p>
 
           <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <AuthAwareLink href="/login">
+            <StartMeetingLink>
               <Button size="lg" className="h-14 w-full px-8 sm:w-auto">
-                Get started
+                Start a Meeting
               </Button>
-            </AuthAwareLink>
+            </StartMeetingLink>
             <Link href="/join">
               <Button variant="secondary" size="lg" className="h-14 w-full px-8 sm:w-auto">
-                Join a meeting
+                Join a Meeting
               </Button>
             </Link>
           </div>

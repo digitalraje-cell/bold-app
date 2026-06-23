@@ -1,6 +1,7 @@
 'use client';
 
 import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
+import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
 import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -8,15 +9,13 @@ import { cn } from '@/lib/utils';
 export function PageCta({
   title = 'Start your first meeting',
   subtitle = 'Free to start. No download required. Join from any modern browser.',
-  primaryHref = '/login',
-  primaryLabel = 'Get started free',
+  primaryLabel = 'Start a Meeting',
   secondaryHref = '/pricing',
   secondaryLabel = 'View pricing',
   className,
 }: {
   title?: string;
   subtitle?: string;
-  primaryHref?: string;
   primaryLabel?: string;
   secondaryHref?: string;
   secondaryLabel?: string;
@@ -28,9 +27,9 @@ export function PageCta({
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
         <p className="mx-auto mt-3 max-w-lg text-muted-foreground">{subtitle}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <AuthAwareLink href={primaryHref}>
+          <StartMeetingLink>
             <Button size="lg">{primaryLabel}</Button>
-          </AuthAwareLink>
+          </StartMeetingLink>
           {secondaryHref && (
             <AuthAwareLink href={secondaryHref}>
               <Button size="lg" variant="secondary">
