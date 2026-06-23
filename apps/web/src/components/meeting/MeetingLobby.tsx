@@ -14,6 +14,7 @@ import { saveJoinMediaPrefs } from '@/lib/join-media-prefs';
 import { readUserSettings } from '@/lib/user-settings';
 import { useMeetingRouteId } from '@/hooks/useMeetingRouteId';
 import { cn } from '@/lib/utils';
+import { MeetingInvitationChrome } from '@/components/meeting/MeetingInvitationChrome';
 
 export type PublicMeetingPreview = {
   id: string;
@@ -29,6 +30,7 @@ export type PublicMeetingPreview = {
   participantCount?: number;
   hasPassword: boolean;
   registrationRequired?: boolean;
+  posterUrl?: string | null;
   scheduledEndAt?: string | null;
   durationMinutes?: number | null;
 };
@@ -325,6 +327,7 @@ export function MeetingLobby({
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md space-y-6">
+        <MeetingInvitationChrome preview={meeting ?? initialPreview} />
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           {previewLoading ? (
             <div className="space-y-3 animate-pulse">

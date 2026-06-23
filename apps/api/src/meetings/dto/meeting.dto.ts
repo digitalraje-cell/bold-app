@@ -61,6 +61,10 @@ export class MeetingSettingsDto {
   @IsOptional()
   @IsBoolean()
   registrationRequired?: boolean;
+
+  @IsOptional()
+  @IsString()
+  posterUrl?: string | null;
 }
 
 export class CreateMeetingDto {

@@ -265,6 +265,7 @@ model MeetingSettings {
   coHostPermissionsEnabled Boolean  @default(true)
   autoMuteParticipants     Boolean  @default(false)
   registrationRequired     Boolean  @default(false)
+  posterUrl                String?  @db.Text
 
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 

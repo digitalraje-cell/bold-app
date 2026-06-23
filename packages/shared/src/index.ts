@@ -58,6 +58,7 @@ export interface MeetingSettings {
   coHostPermissionsEnabled: boolean;
   autoMuteParticipants: boolean;
   registrationRequired: boolean;
+  posterUrl?: string | null;
 }
 
 export const DEFAULT_MEETING_SETTINGS: MeetingSettings = {
@@ -73,6 +74,7 @@ export const DEFAULT_MEETING_SETTINGS: MeetingSettings = {
   coHostPermissionsEnabled: true,
   autoMuteParticipants: false,
   registrationRequired: false,
+  posterUrl: null,
 };
 
 export const REACTIONS = ['👍', '❤️', '👏', '🎉', '😂', '🙌'] as const;

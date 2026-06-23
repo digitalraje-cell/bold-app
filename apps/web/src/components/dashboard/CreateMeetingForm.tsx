@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import { joinMeetingAndGetPath } from '@/lib/meeting-join';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DEFAULT_MEETING_SETTINGS } from '@boldmeet/shared';
+import { MeetingPosterUpload } from '@/components/meeting/MeetingPosterUpload';
 import {
   hostDefaultsToMeetingSettings,
   readUserSettings,
@@ -48,6 +49,7 @@ export function CreateMeetingForm() {
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [customDuration, setCustomDuration] = useState('');
   const [settings, setSettings] = useState(DEFAULT_MEETING_SETTINGS);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [passcodeRequired, setPasscodeRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -119,7 +121,10 @@ export function CreateMeetingForm() {
         password: passcode || undefined,
         scheduledAt: isInstant ? undefined : scheduledAt,
         durationMinutes: resolvedDuration,
-        settings,
+        settings: {
+          ...settings,
+          ...(posterUrl ? { posterUrl } : {}),
+        },
       })) as { id: string; meetingCode: string };
 
       if (isInstant) {
@@ -196,6 +201,8 @@ export function CreateMeetingForm() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What's this meeting about?"
           />
+
+          <MeetingPosterUpload value={posterUrl} onChange={setPosterUrl} />
 
           {!isInstant && (
             <>

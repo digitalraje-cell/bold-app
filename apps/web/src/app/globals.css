@@ -289,6 +289,26 @@ html {
   padding-right: 0 !important;
 }
 
+/* Mobile screen share: maximize stage for shared content (portrait + landscape) */
+@media (max-width: 767px), (pointer: coarse) {
+  .meeting-jitsi-shell--mobile-presenting {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: calc(
+      var(--meeting-controls-offset, 5.5rem) + env(safe-area-inset-bottom, 0px)
+    ) !important;
+  }
+}
+
+@media (max-width: 767px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
+  .meeting-jitsi-shell--mobile-presenting {
+    padding-bottom: calc(
+      var(--meeting-controls-offset, 4.25rem) + env(safe-area-inset-bottom, 0px)
+    ) !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .meeting-jitsi-shell--layout-v3 {
     transition: none;

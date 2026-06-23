@@ -35,6 +35,8 @@ export interface MeetingSettingsInput {
   participantMicAccess: boolean;
   coHostPermissionsEnabled: boolean;
   autoMuteParticipants: boolean;
+  registrationRequired?: boolean;
+  posterUrl?: string | null;
 }
 
 export interface Participant {

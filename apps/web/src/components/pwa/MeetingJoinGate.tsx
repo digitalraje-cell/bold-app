@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Download, Globe } from 'lucide-react';
+import { Download, Globe, Video } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { savePendingJoin, clearPendingJoin } from '@/lib/pwa-pending-join';
 import { IosInstallGuide } from '@/components/pwa/IosInstallGuide';
 import { AndroidInstallGuide } from '@/components/pwa/AndroidInstallGuide';
+import { MeetingInvitationChrome } from '@/components/meeting/MeetingInvitationChrome';
 import type { PublicMeetingPreview } from '@/components/meeting/MeetingLobby';
 
 export function MeetingJoinGate({
@@ -35,12 +36,6 @@ export function MeetingJoinGate({
   } = usePwaInstall();
   const [showInstallHelp, setShowInstallHelp] = useState(false);
 
-  useEffect(() => {
-    if (!ready || !isInstalled) return;
-    clearPendingJoin();
-    router.replace(`/meeting/${meetingId}`);
-  }, [isInstalled, ready, meetingId, router]);
-
   if (!ready) {
     return (
       <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
@@ -49,19 +44,20 @@ export function MeetingJoinGate({
     );
   }
 
-  if (isInstalled) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
-        Opening meeting…
-      </div>
-    );
-  }
-
   const title = initialPreview?.title ?? 'Join meeting';
   const hostName = initialPreview?.hostName ?? 'your host';
-
   const previewUnavailable = Boolean(initialPreviewError);
   const canContinue = !previewUnavailable;
+
+  function handleJoinMeeting() {
+    if (!canContinue) return;
+    clearPendingJoin();
+    void trackPwaEvent('BROWSER_JOIN_SELECTED', {
+      meetingId: initialPreview?.id,
+      meetingCode: meetingId,
+    });
+    router.push(`/meeting/${meetingId}`);
+  }
 
   async function handleDownload() {
     if (!canContinue) return;
@@ -76,19 +72,11 @@ export function MeetingJoinGate({
     }
   }
 
-  function handleContinueInBrowser() {
-    if (!canContinue) return;
-    clearPendingJoin();
-    void trackPwaEvent('BROWSER_JOIN_SELECTED', {
-      meetingId: initialPreview?.id,
-      meetingCode: meetingId,
-    });
-    router.push(`/meeting/${meetingId}`);
-  }
-
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-16">
       <div className={cn(cardClass(), 'w-full max-w-lg p-8 sm:p-10')}>
+        <MeetingInvitationChrome preview={initialPreview} className="mb-6" />
+
         <p className={ui.eyebrow}>Join meeting</p>
         <h1 className="mt-4 text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -103,25 +91,34 @@ export function MeetingJoinGate({
         )}
 
         <div className="mt-8 space-y-3">
-          <Button
-            size="lg"
-            className="w-full"
-            disabled={!canContinue}
-            onClick={() => void handleDownload()}
-          >
-            <Download className="h-5 w-5" />
-            Install Bold App
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="w-full"
-            disabled={!canContinue}
-            onClick={handleContinueInBrowser}
-          >
-            <Globe className="h-5 w-5" />
-            {continueLabel}
-          </Button>
+          {isInstalled ? (
+            <Button size="lg" className="w-full" disabled={!canContinue} onClick={handleJoinMeeting}>
+              <Video className="h-5 w-5" />
+              Join Meeting
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="lg"
+                className="w-full"
+                disabled={!canContinue}
+                onClick={() => void handleDownload()}
+              >
+                <Download className="h-5 w-5" />
+                Install Bold App
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="w-full"
+                disabled={!canContinue}
+                onClick={handleJoinMeeting}
+              >
+                <Globe className="h-5 w-5" />
+                {continueLabel}
+              </Button>
+            </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
@@ -140,7 +137,7 @@ export function MeetingJoinGate({
           </p>
         )}
 
-        {!showInstallHelp && !canNativeInstall && !isIos && !isAndroid && (
+        {!isInstalled && !showInstallHelp && !canNativeInstall && !isIos && !isAndroid && (
           <p className="mt-4 text-sm text-muted-foreground">
             For the best install experience, use Chrome or Edge, then choose Install from the menu.
           </p>

@@ -238,6 +238,7 @@ export function useJitsi({
 
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPresenterLayout, setIsPresenterLayout] = useState(false);
+  const [contentSharingParticipantIds, setContentSharingParticipantIds] = useState<string[]>([]);
   const [isAudioMuted, setIsAudioMuted] = useState(startMuted);
   const [isVideoMuted, setIsVideoMuted] = useState(startVideoMuted);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -473,6 +474,15 @@ export function useJitsi({
         callbacksRef.current.onScreenShareChange?.(active);
       });
 
+      api.addListener('contentSharingParticipantsChanged', (payload: unknown) => {
+        const ids = Array.isArray(payload)
+          ? payload
+          : (payload as { data?: string[]; participants?: string[] })?.data ??
+            (payload as { participants?: string[] })?.participants ??
+            [];
+        setContentSharingParticipantIds(ids.filter((id): id is string => typeof id === 'string'));
+      });
+
       api.addListener('tileViewChanged', (payload: unknown) => {
         const { enabled: tileView } = payload as { enabled?: boolean };
         const presenter = !tileView;
@@ -569,6 +579,7 @@ export function useJitsi({
     const frame = requestAnimationFrame(() => {
       setIsScreenSharing(false);
       setIsPresenterLayout(false);
+      setContentSharingParticipantIds([]);
       setIsAudioMuted(true);
       setIsVideoMuted(true);
       setIsReconnecting(false);
@@ -634,6 +645,10 @@ export function useJitsi({
     runJitsiCommand('setFilmstripEnabled', visible);
   }, [runJitsiCommand]);
 
+  const overwriteConfig = useCallback((config: Record<string, unknown>) => {
+    runJitsiCommand('overwriteConfig', config);
+  }, [runJitsiCommand]);
+
   const selfViewHiddenRef = useRef(false);
 
   const setSelfViewHidden = useCallback(
@@ -676,6 +691,7 @@ export function useJitsi({
     setTileView,
     toggleTileView,
     setFilmstripVisible,
+    overwriteConfig,
     setSelfViewHidden,
     runJitsiCommand,
     pinParticipant,
@@ -683,6 +699,7 @@ export function useJitsi({
     togglePinParticipant,
     isScreenSharing,
     isPresenterLayout,
+    contentSharingParticipantIds,
     isAudioMuted,
     isVideoMuted,
     isReconnecting,

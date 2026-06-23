@@ -30,6 +30,7 @@ import {
   RegisterMeetingDto,
   UpdateMeetingSettingsDto,
 } from './dto/meeting.dto';
+import { normalizePosterUrl } from './poster.util';
 import { JitsiTokenService } from './jitsi-token.service';
 @Injectable()
 export class MeetingsService {
@@ -160,6 +161,9 @@ export class MeetingsService {
               dto.settings?.coHostPermissionsEnabled ?? true,
             autoMuteParticipants: dto.settings?.autoMuteParticipants ?? false,
             registrationRequired: dto.settings?.registrationRequired ?? false,
+            ...(dto.settings?.posterUrl
+              ? { posterUrl: normalizePosterUrl(dto.settings.posterUrl) }
+              : {}),
           },
         },
       },
@@ -244,6 +248,7 @@ export class MeetingsService {
       participantCount: meeting._count.participants,
       hasPassword: !!meeting.password,
       registrationRequired: meeting.settings?.registrationRequired ?? false,
+      posterUrl: meeting.settings?.posterUrl ?? null,
       endedAt: meeting.endedAt,
     };
   }
@@ -608,9 +613,13 @@ export class MeetingsService {
     if (meeting.hostId !== hostId)
       throw new ForbiddenException('Only the host can update settings');
 
+    const { posterUrl, ...rest } = dto;
     const settings = await this.prisma.meetingSettings.update({
       where: { meetingId },
-      data: dto,
+      data: {
+        ...rest,
+        ...(posterUrl !== undefined ? { posterUrl: normalizePosterUrl(posterUrl) } : {}),
+      },
     });
 
     this.gateway.broadcastSettingsUpdate(

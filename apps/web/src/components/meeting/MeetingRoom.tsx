@@ -43,10 +43,12 @@ import {
   publishMeetingControlsDiagnostics,
   logMeetingControlsEvent,
 } from '@/lib/media/meeting-controls-diagnostics';
+import { useMobileScreenShareLayout } from '@/hooks/useMobileScreenShareLayout';
 import {
   detectScreenShareCapability,
   getScreenShareUnsupportedMessage,
 } from '@/lib/media/screen-share-capability';
+import { cn } from '@/lib/utils';
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -270,9 +272,15 @@ function MeetingRoomInner({
     hangup,
     muteAll,
     isScreenSharing,
+    isPresenterLayout,
+    contentSharingParticipantIds,
     isAudioMuted,
     isVideoMuted,
     isReconnecting,
+    setTileView,
+    setFilmstripVisible,
+    setSelfViewHidden,
+    overwriteConfig,
   } = useJitsi({
     roomName: mediaSession.embedRoomName ?? jitsiRoom,
     jitsiDomain: mediaSession.embedDomain ?? undefined,
@@ -293,6 +301,22 @@ function MeetingRoomInner({
     startMuted: !joinMediaPrefs.startWithAudio,
     startVideoMuted: !joinMediaPrefs.startWithVideo,
   });
+
+  const { shellClassName: mobileScreenShareShellClass } = useMobileScreenShareLayout(
+    {
+      mediaReady,
+      setTileView,
+      setFilmstripVisible,
+      setSelfViewHidden,
+      overwriteConfig,
+    },
+    {
+      isScreenSharing,
+      isPresenterLayout,
+      contentSharingParticipantIds,
+      roomMode,
+    },
+  );
 
   useEffect(() => {
     hangupRef.current = hangup;
@@ -596,9 +620,11 @@ function MeetingRoomInner({
       <div
         ref={containerRef}
         data-meeting-stage
-        className={`meeting-jitsi-shell absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
-          !mediaReady ? 'invisible pointer-events-none' : ''
-        }`}
+        className={cn(
+          'meeting-jitsi-shell absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a]',
+          mobileScreenShareShellClass,
+          !mediaReady && 'invisible pointer-events-none',
+        )}
       />
 
       {!controlsVisible && !controlsPinned && mediaReady ? (
