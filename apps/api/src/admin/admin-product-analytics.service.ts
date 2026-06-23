@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   MeetingStatus,
   PlanInterestType,
-  StreamStatus,
   SubscriptionPlan,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,8 +28,6 @@ export class AdminProductAnalyticsService {
       meetingsHosted,
       completedMeetings,
       pwaInstalledUsers,
-      youtubeStreamsCreated,
-      connectedChannels,
       activeUsers7d,
       activeUsers30d,
       featureInterest,
@@ -58,8 +55,6 @@ export class AdminProductAnalyticsService {
         select: { startedAt: true, endedAt: true },
       }),
       this.prisma.user.count({ where: { isPwaInstalled: true } }),
-      this.prisma.youTubeStream.count(),
-      this.prisma.youTubeAccount.count(),
       this.prisma.user.count({
         where: {
           OR: [
@@ -90,10 +85,6 @@ export class AdminProductAnalyticsService {
         ? Math.round(totalMs / completedMeetings.length / 60_000)
         : 0;
 
-    const activeStreams = await this.prisma.youTubeStream.count({
-      where: { status: StreamStatus.LIVE },
-    });
-
     return {
       totalUsers,
       activeUsers7d,
@@ -105,9 +96,6 @@ export class AdminProductAnalyticsService {
       meetingsHosted,
       avgMeetingDurationMinutes,
       pwaInstalls: pwaInstalledUsers,
-      youtubeStreamsCreated,
-      activeYoutubeStreams: activeStreams,
-      connectedChannels,
       featureInterestDemand: {
         waitlistTotal: featureInterest.maxWaitlistTotal,
         providerDemand: featureInterest.providerDemand,

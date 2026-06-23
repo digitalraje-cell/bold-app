@@ -29,10 +29,15 @@ type VoteRow = {
 
 const NOW_FEATURES = [
   ...ROADMAP_AVAILABLE_NOW,
-  'YouTube Live Streaming',
+  'Webinar Hosting',
   'Co-hosts',
   'Waiting Room',
   'Host Controls',
+] as const;
+
+const COMING_SOON_HIGHLIGHTS = [
+  'Cloud Recording (Coming Soon)',
+  'Multi-platform Streaming (Coming Soon)',
 ] as const;
 
 const NEXT_FEATURES = ROADMAP_COMING_SOON.slice(0, 3);
@@ -204,6 +209,9 @@ export function RoadmapContent() {
                     status="building"
                   />
                 ))}
+                {COMING_SOON_HIGHLIGHTS.map((title) => (
+                  <FeatureCard key={title} title={title} status="building" />
+                ))}
               </ul>
             </div>
 
@@ -303,8 +311,8 @@ export function RoadmapContent() {
               Get early access to what we ship
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
-              Pro members get priority access to new features, YouTube recording, co-hosts, and
-              advanced attendee management.
+              Pro members get priority access to new features, webinar hosting, screen sharing,
+              co-hosts, and advanced attendee management.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/billing/upgrade">

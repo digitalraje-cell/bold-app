@@ -34,11 +34,11 @@ export function getPlanLabel(plan: SubscriptionPlan): string {
 export function getPlanFeaturesSummary(plan: SubscriptionPlan): string {
   switch (plan) {
     case SubscriptionPlan.ENTERPRISE:
-      return 'Unlimited meetings, co-hosts, YouTube Live, and admin tools';
+      return 'Unlimited meetings, co-hosts, webinar hosting, and admin tools';
     case SubscriptionPlan.BUSINESS:
-      return 'Advanced meetings, co-hosts, and YouTube Live';
+      return 'Advanced meetings, co-hosts, and screen sharing';
     case SubscriptionPlan.PRO:
-      return 'Co-hosts, YouTube Live, and attendee management';
+      return 'Co-hosts, webinar hosting, and attendee management';
     case SubscriptionPlan.STARTER:
       return 'Extended meeting limits';
     default:

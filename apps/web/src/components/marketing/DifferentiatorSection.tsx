@@ -1,4 +1,4 @@
-import { Radio, Smartphone, Users, Video } from 'lucide-react';
+import { Smartphone, Users, Video, MonitorUp } from 'lucide-react';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
@@ -14,9 +14,9 @@ const PILLARS = [
     description: 'Run presentations and training sessions.',
   },
   {
-    icon: Radio,
-    title: 'YouTube Live',
-    description: 'Broadcast directly to your audience.',
+    icon: MonitorUp,
+    title: 'Screen sharing',
+    description: 'Present slides, demos, and documents in any meeting.',
   },
   {
     icon: Smartphone,
@@ -37,9 +37,9 @@ export function DifferentiatorSection({ className }: { className?: string }) {
           <p className={cn('mt-4 text-balance', ui.sectionSubtitle)}>
             Bold is not another meeting app. It is your{' '}
             <span className="font-semibold text-foreground">
-              meeting + webinar + streaming platform
+              meeting + webinar platform
             </span>{' '}
-            — built for teams that present, collaborate, and broadcast without switching tools.
+            — built for teams that present, collaborate, and host without switching tools.
           </p>
         </div>
 

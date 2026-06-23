@@ -42,8 +42,8 @@ export default function RefundPolicyPage() {
           <strong>Bold Pro</strong> — ₹{proPrice}/month
         </p>
         <p>
-          Pro includes advanced features such as co-hosts, attendee management, YouTube Live
-          integration, and related Pro capabilities as described on our{' '}
+          Pro includes advanced features such as co-hosts, attendee management, webinar hosting,
+          screen sharing, and related Pro capabilities as described on our{' '}
           <Link href="/pricing">pricing page</Link>.
         </p>
       </LegalSection>

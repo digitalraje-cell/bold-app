@@ -22,7 +22,7 @@ export function LandingPageContent() {
           <div className="relative mx-auto w-full max-w-6xl px-5 pb-10 pt-4 sm:px-8 sm:pb-14 sm:pt-8 lg:pb-16">
             <div className="mx-auto max-w-4xl text-center">
               <p className="animate-v3-fade-up text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent-purple-light)]/90 sm:text-sm">
-                Meeting + Webinar + Streaming
+                Meeting + Webinar + Screen Share
               </p>
 
               <h1 className="animate-v3-fade-up mt-4 text-balance sm:mt-5">

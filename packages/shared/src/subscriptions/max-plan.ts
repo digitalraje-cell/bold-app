@@ -18,7 +18,7 @@ export const MAX_PLAN_COMING_SOON = true;
 
 export const MAX_PLAN_DISPLAY = {
   name: 'Max',
-  tagline: 'For creators, coaches, agencies and broadcasters.',
+  tagline: 'For creators, coaches, agencies and teams.',
   badge: 'Coming Soon',
   launchMessage: 'Launching Soon',
   earlyAdopterMessage:
@@ -28,7 +28,7 @@ export const MAX_PLAN_DISPLAY = {
 } as const;
 
 export const MAX_HERO = {
-  headline: 'Broadcast Everywhere From One Meeting',
+  headline: 'Reach Everywhere From One Meeting',
   lines: ['One meeting.', 'Multiple platforms.', 'Unlimited reach.'],
 } as const;
 
@@ -43,7 +43,10 @@ export const MAX_HERO_PLATFORMS = [
 
 /** Roadmap status rows for the Max page */
 export const MAX_ROADMAP_VISIBILITY = [
-  { name: 'YouTube Live', status: 'available' as const },
+  { name: 'Webinar Hosting', status: 'available' as const },
+  { name: 'Screen Sharing', status: 'available' as const },
+  { name: 'Cloud Recording', status: 'coming_soon' as const },
+  { name: 'Multi-platform Streaming', status: 'coming_soon' as const },
   { name: 'Facebook Live', status: 'coming_soon' as const },
   { name: 'Instagram Live', status: 'coming_soon' as const },
   { name: 'LinkedIn Live', status: 'coming_soon' as const },
@@ -80,13 +83,13 @@ export function isMaxDestinationDemand(value: string): value is MaxDestinationDe
 }
 
 export const MAX_FEATURE_LIST = [
-  'Multiple YouTube Channels',
+  'Multi-platform Streaming',
   'Simultaneous Multi-Channel Streaming',
   'Facebook Live',
   'Instagram Live',
   'LinkedIn Live',
   'Custom RTMP',
-  'Multi-Destination Broadcasting',
+  'Multi-Destination Publishing',
   'Advanced Analytics',
   'Team Management',
   'Agency Workspace',
@@ -95,13 +98,13 @@ export const MAX_FEATURE_LIST = [
 
 export const PRO_PLAN_SUMMARY = {
   name: 'Pro',
-  tagline: 'YouTube Live, co-hosts, and webinar tools for growing hosts.',
+  tagline: 'Webinar hosting, co-hosts, and screen sharing for growing hosts.',
   features: [
-    '1 Connected YouTube Channel',
-    'YouTube Live',
+    'Webinar hosting',
+    'Screen sharing',
     'Browser meetings',
     'Registration forms',
-    'Webinar features',
+    'Co-host tools',
   ],
 } as const;
 

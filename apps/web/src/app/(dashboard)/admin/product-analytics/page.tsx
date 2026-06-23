@@ -17,9 +17,6 @@ type ProductAnalytics = {
   meetingsHosted: number;
   avgMeetingDurationMinutes: number;
   pwaInstalls: number;
-  youtubeStreamsCreated: number;
-  activeYoutubeStreams: number;
-  connectedChannels: number;
   featureInterestDemand: {
     waitlistTotal: number;
     conversionOpportunities: {
@@ -60,9 +57,6 @@ export default function AdminProductAnalyticsPage() {
         { label: 'Meetings hosted (unique hosts)', value: stats.meetingsHosted },
         { label: 'Avg meeting duration (min)', value: stats.avgMeetingDurationMinutes },
         { label: 'PWA installs', value: stats.pwaInstalls },
-        { label: 'YouTube streams created', value: stats.youtubeStreamsCreated },
-        { label: 'Active YouTube streams', value: stats.activeYoutubeStreams },
-        { label: 'Connected channels', value: stats.connectedChannels },
         {
           label: 'High-intent Pro (waitlist)',
           value: stats.featureInterestDemand.conversionOpportunities.highIntentPro,
@@ -75,7 +69,7 @@ export default function AdminProductAnalyticsPage() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Product Analytics</h1>
-          <p className="mt-1 text-muted-foreground">Founder dashboard — users, meetings, streaming, and demand.</p>
+          <p className="mt-1 text-muted-foreground">Founder dashboard — users, meetings, and demand.</p>
         </div>
         <Link href="/admin/feature-interest" className="text-sm font-medium underline">
           Feature interest →

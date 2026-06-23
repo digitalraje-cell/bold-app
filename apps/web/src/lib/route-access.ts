@@ -33,7 +33,6 @@ export const PROTECTED_ROUTE_PREFIXES = [
   '/admin-users',
   '/admin-payments',
   '/releases',
-  '/youtube-live',
 ];
 
 export function isPublicRoute(pathname: string): boolean {
@@ -52,7 +51,6 @@ export const ADMIN_ROUTE_ALIASES: Record<string, string> = {
   '/admin-users': '/admin/users',
   '/admin-payments': '/admin/payments',
   '/releases': '/admin/releases',
-  '/youtube-live': '/admin/youtube',
 };
 
 export function resolveAdminRouteAlias(pathname: string): string | null {

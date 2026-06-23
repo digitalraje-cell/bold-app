@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Video, Radio, Shield, Users, Sparkles, LayoutGrid, Smartphone } from 'lucide-react';
+import { Video, Users, Shield, Sparkles, LayoutGrid, Smartphone, MonitorUp, Cloud, Globe } from 'lucide-react';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
 import { PageCta } from '@/components/marketing/PageCta';
 import { StartMeetingLink } from '@/components/auth/StartMeetingLink';
@@ -16,14 +16,30 @@ const FEATURES = [
       'Start instantly in Chrome, Safari, or Edge. HD video, audio, and screen share — install optional for one-click launch.',
   },
   {
-    icon: Radio,
-    title: 'YouTube Live streaming',
-    description: 'Stream meetings to your own YouTube channel with Pro. Recording and replay on your account.',
+    icon: Users,
+    title: 'Webinar hosting',
+    description:
+      'Run structured webinars with stage controls, co-hosts, and audience management on Pro.',
+  },
+  {
+    icon: MonitorUp,
+    title: 'Screen sharing',
+    description: 'Share your screen or a window for presentations, demos, and collaborative work.',
+  },
+  {
+    icon: Cloud,
+    title: 'Cloud Recording (Coming Soon)',
+    description: 'Record meetings to the cloud and replay them from your Bold library.',
+  },
+  {
+    icon: Globe,
+    title: 'Multi-platform Streaming (Coming Soon)',
+    description: 'Reach multiple destinations from a single meeting when Max launches.',
   },
   {
     icon: Users,
-    title: 'Co-hosts & webinar mode',
-    description: 'Promote participants, manage permissions, and switch between meeting and webinar layouts.',
+    title: 'Co-hosts & permissions',
+    description: 'Promote participants, manage permissions, and keep large sessions under control.',
   },
   {
     icon: Shield,

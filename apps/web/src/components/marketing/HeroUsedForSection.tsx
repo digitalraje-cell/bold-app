@@ -6,7 +6,7 @@ const USE_CASES = [
   'Webinars',
   'Online Training',
   'Sales Demos',
-  'Live Streaming',
+  'Screen Sharing',
 ] as const;
 
 export function HeroUsedForSection({ className }: { className?: string }) {

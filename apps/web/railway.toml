@@ -32,4 +32,3 @@ restartPolicyType = "ON_FAILURE"
 # NEXT_PUBLIC_API_URL — inlined at build; defaults from API_URL in railway-build-web.sh
 # NEXT_PUBLIC_SOCKET_URL — Socket.IO origin; production: https://boldmeetapi-production.up.railway.app
 # RESEND_API_KEY, EMAIL_FROM — OTP email delivery
-# NEXT_PUBLIC_ENABLE_YOUTUBE_LIVE=true — YouTube Live in meetings (default: enabled)

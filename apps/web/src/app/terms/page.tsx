@@ -55,8 +55,8 @@ export default function TermsPage() {
         <p>
           {productName} is a browser-based platform that enables users to host and join online
           meetings, use chat, screen sharing, raise hand, reactions, and (on eligible plans) advanced
-          features such as co-hosting, attendee management, YouTube Live integration, and recording
-          capabilities. Features available to you depend on your subscription plan (Free or Pro).
+          features such as co-hosting, attendee management, webinar hosting, and recording
+          capabilities when available. Features available to you depend on your subscription plan (Free or Pro).
         </p>
       </LegalSection>
 

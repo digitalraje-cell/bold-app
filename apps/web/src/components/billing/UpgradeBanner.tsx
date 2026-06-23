@@ -30,7 +30,7 @@ export function UpgradeBanner({ compact = false }: { compact?: boolean }) {
           </p>
           <h2 className="mt-2 text-lg font-semibold">Unlock Pro features</h2>
           <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-            <li>• YouTube Recording</li>
+            <li>• Webinar hosting</li>
             <li>• Multiple Co-hosts</li>
             <li>• Attendee Reports</li>
           </ul>

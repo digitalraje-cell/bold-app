@@ -4,7 +4,7 @@ import { getServerAppOrigin } from '@/lib/urls';
 
 const TITLE = 'Features | Bold';
 const DESCRIPTION =
-  'HD video meetings, YouTube Live streaming, co-hosts, webinar mode, and host controls — all in your browser.';
+  'HD video meetings, webinar hosting, screen sharing, co-hosts, and host controls — all in your browser. Cloud recording and multi-platform streaming coming soon.';
 
 export const metadata: Metadata = {
   title: TITLE,

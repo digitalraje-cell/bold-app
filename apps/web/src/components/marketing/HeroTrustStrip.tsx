@@ -6,7 +6,7 @@ const TRUST_ITEMS = [
   'Client Calls',
   'Webinars',
   'Online Training',
-  'Live Streaming',
+  'Screen Sharing',
   'Remote Collaboration',
 ] as const;
 

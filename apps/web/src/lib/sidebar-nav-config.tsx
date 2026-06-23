@@ -7,7 +7,6 @@ import {
   Map,
   Users,
   Rocket,
-  Radio,
 } from 'lucide-react';
 import type { SidebarNavItem } from '@/lib/sidebar-nav';
 
@@ -80,13 +79,6 @@ export const adminNavItems: SidebarNavItem[] = [
     label: 'Releases',
     icon: Rocket,
     isActive: (pathname) => pathname.startsWith('/admin/releases'),
-  },
-  {
-    id: 'admin-youtube',
-    href: '/admin/youtube',
-    label: 'YouTube Live',
-    icon: Radio,
-    isActive: (pathname) => pathname.startsWith('/admin/youtube'),
   },
   {
     id: 'admin-product-analytics',

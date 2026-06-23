@@ -16,7 +16,7 @@ export const APP_CONFIG: AppConfig = {
   domain: process.env.NEXT_PUBLIC_APP_DOMAIN || 'localhost:3000',
   description:
     process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
-    'Browser-based meeting platform with YouTube recording',
+    'Browser-based meeting platform with webinar hosting and screen sharing',
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || SUPPORT_EMAIL,
 };
 

@@ -111,7 +111,7 @@ export function MaxPlanPageContent() {
       </section>
 
       <p className="mt-10 text-center text-sm text-muted-foreground">
-        Need YouTube Live today?{' '}
+        Need webinar hosting and screen sharing today?{' '}
         <Link href="/billing/upgrade" className="font-medium text-foreground underline">
           Upgrade to Pro
         </Link>

@@ -79,10 +79,9 @@ export default function PrivacyPolicyPage() {
             raise-hand status, and reactions may be processed to deliver the service.
           </li>
           <li>
-            <strong>Recording and streaming</strong> — if you use Pro features such as YouTube Live
-            or recording integrations, we process stream configuration and related metadata.
-            Video/audio streams are routed through our media and integration partners as described
-            below.
+            <strong>Recording</strong> — if you use Pro features such as cloud recording (when
+            available), we process recording configuration and related metadata. Video/audio during
+            meetings is routed through our media partners as described below.
           </li>
         </ul>
 
@@ -153,8 +152,8 @@ export default function PrivacyPolicyPage() {
             <strong>Razorpay</strong> — payment processing for Bold Pro subscriptions.
           </li>
           <li>
-            <strong>YouTube (Google)</strong> — optional Pro integration for live streaming and
-            recording to your YouTube channel when you choose to use that feature.
+            <strong>YouTube (Google)</strong> — optional integration planned for a future release
+            phase. No YouTube connection is required to use core meeting features today.
           </li>
         </ul>
         <p>

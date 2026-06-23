@@ -1,6 +1,4 @@
 import { getApiBaseUrl, getClientApiTransport } from '@/lib/api-base';
-import type { StartYouTubeLiveInput } from '@boldmeet/shared';
-
 async function getAuthToken(): Promise<string | null> {
   const res = await fetch('/api/token');
   if (!res.ok) return null;
@@ -203,7 +201,6 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    youtubeStats: () => apiFetch('/admin/youtube/stats'),
     featureInterestStats: () => apiFetch('/admin/feature-interest/stats'),
     productAnalytics: () => apiFetch('/admin/product-analytics/stats'),
   },
@@ -246,20 +243,6 @@ export const api = {
     removeVote: (featureKey: string) =>
       apiFetch(`/roadmap/votes/${featureKey}`, { method: 'DELETE' }),
   },
-  youtube: {
-    status: (refresh?: boolean) =>
-      apiFetch(`/youtube/status${refresh ? '?refresh=true' : ''}`),
-    connectUrl: (returnTo?: string) =>
-      apiFetch(
-        `/youtube/connect${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,
-      ),
-    refreshEligibility: (accountId: string) =>
-      apiFetch(`/youtube/accounts/${accountId}/refresh-eligibility`, { method: 'POST' }),
-    disconnectAccount: (accountId: string) =>
-      apiFetch(`/youtube/accounts/${accountId}`, { method: 'DELETE' }),
-    disconnect: () => apiFetch('/youtube/disconnect', { method: 'POST' }),
-    architecture: () => apiFetch('/youtube/architecture'),
-  },
   participants: {
     list: (meetingId: string) => apiFetch(`/meetings/${meetingId}/participants`),
     mute: (meetingId: string, participantId: string, isMuted: boolean) =>
@@ -287,20 +270,6 @@ export const api = {
       apiFetch(`/meetings/${meetingId}/participants/waiting/${participantId}/admit`, {
         method: 'POST',
       }),
-  },
-  stream: {
-    get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/stream`),
-    getPublic: (meetingId: string) =>
-      apiFetch(`/meetings/${meetingId}/stream/public`, {}, false),
-    start: (meetingId: string, data: StartYouTubeLiveInput) =>
-      apiFetch(`/meetings/${meetingId}/stream/start`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    stop: (meetingId: string) =>
-      apiFetch(`/meetings/${meetingId}/stream/stop`, { method: 'POST' }),
-    resume: (meetingId: string) =>
-      apiFetch(`/meetings/${meetingId}/stream/resume`, { method: 'POST' }),
   },
   room: {
     get: (meetingId: string) => apiFetch(`/meetings/${meetingId}/room`, {}, false),

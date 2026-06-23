@@ -8,7 +8,6 @@ import { UsersModule } from './users/users.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { ParticipantsModule } from './participants/participants.module';
-import { YoutubeModule } from './youtube/youtube.module';
 import { BillingModule } from './billing/billing.module';
 import { AdminModule } from './admin/admin.module';
 import { RoadmapModule } from './roadmap/roadmap.module';
@@ -19,7 +18,6 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { RecordingModule } from './recording/recording.module';
 import { WebinarModule } from './webinar/webinar.module';
 import { RoomModule } from './room/room.module';
-import { StreamModule } from './stream/stream.module';
 import { PublicModule } from './public/public.module';
 import { PwaModule } from './pwa/pwa.module';
 
@@ -41,8 +39,6 @@ import { PwaModule } from './pwa/pwa.module';
     RecordingModule,
     WebinarModule,
     RoomModule,
-    StreamModule,
-    YoutubeModule,
     PublicModule,
     PwaModule,
   ],

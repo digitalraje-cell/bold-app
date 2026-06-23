@@ -40,8 +40,7 @@ export default function RecordingsPage() {
           <>
             <h2 className="text-lg font-semibold">No recordings yet</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Recordings from your meetings will appear here. Start a meeting and enable recording
-              when the feature is connected to your YouTube channel.
+              Recordings from your meetings will appear here when cloud recording is available.
             </p>
             <Link href="/meetings/create?type=instant" className="mt-6 inline-block">
               <Button>Start a meeting</Button>
@@ -51,7 +50,7 @@ export default function RecordingsPage() {
           <>
             <h2 className="text-lg font-semibold">Recordings are a Pro feature</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Upgrade to Pro to save meeting recordings and YouTube Live streams to your library.
+              Upgrade to Pro for webinar hosting, co-hosts, and cloud recording when it launches.
             </p>
             {shouldShowUpgrade && (
               <Button className="mt-6" onClick={() => setUpgradeOpen(true)}>

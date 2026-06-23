@@ -15,7 +15,7 @@ export const PLAN_DISPLAY: Record<
   },
   [SubscriptionPlan.PRO]: {
     name: 'Pro',
-    tagline: 'Co-hosts, YouTube Live, and advanced attendee tools',
+    tagline: 'Webinar hosting, screen sharing, and advanced attendee tools',
     badge: 'Recommended',
   },
 };
@@ -32,7 +32,7 @@ export const FREE_FEATURE_LIST = [
 export const FREE_RESTRICTIONS = [
   'No co-hosts',
   'No recording',
-  'No YouTube Live',
+  'No webinar hosting',
   'No attendee management',
 ] as const;
 
@@ -41,11 +41,10 @@ export const PRO_FEATURE_LIST = [
   'Multiple co-hosts',
   'Attendee list',
   'Attendee comments',
-  'YouTube Live integration',
-  'YouTube recording',
+  'Webinar hosting',
   'Meeting analytics (Coming Soon)',
-  'Recording library (Coming Soon)',
-  'Webinar Mode (Coming Soon)',
+  'Cloud Recording (Coming Soon)',
+  'Multi-platform Streaming (Coming Soon)',
 ] as const;
 
 export const FEATURE_COMPARISON: {
@@ -61,11 +60,10 @@ export const FEATURE_COMPARISON: {
   { feature: 'Host transfer', free: false, pro: true },
   { feature: 'Multiple co-hosts', free: false, pro: true },
   { feature: 'Attendee list & comments', free: false, pro: true },
-  { feature: 'YouTube Live', free: false, pro: true },
-  { feature: 'YouTube recording', free: false, pro: true },
+  { feature: 'Webinar hosting', free: false, pro: true },
   { feature: 'Meeting analytics', free: false, pro: 'Coming Soon' },
-  { feature: 'Recording library', free: false, pro: 'Coming Soon' },
-  { feature: 'Webinar Mode', free: false, pro: 'Coming Soon' },
+  { feature: 'Cloud Recording', free: false, pro: 'Coming Soon' },
+  { feature: 'Multi-platform Streaming', free: false, pro: 'Coming Soon' },
 ];
 
 export const MAX_FEATURE_COMPARISON_ROWS: {
@@ -75,7 +73,7 @@ export const MAX_FEATURE_COMPARISON_ROWS: {
   max: boolean | string;
 }[] = [
   ...FEATURE_COMPARISON.map((row) => ({ ...row, max: row.pro === true ? true : row.pro })),
-  { feature: 'Multiple YouTube channels', free: false, pro: false, max: true },
+  { feature: 'Multi-platform Streaming', free: false, pro: 'Coming Soon', max: true },
   { feature: 'Multi-channel streaming', free: false, pro: false, max: true },
   { feature: 'Facebook Live', free: false, pro: false, max: 'Coming Soon' },
   { feature: 'Instagram Live', free: false, pro: false, max: 'Coming Soon' },

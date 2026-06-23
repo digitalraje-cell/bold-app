@@ -27,8 +27,8 @@ export function PricingSection() {
           <p className={ui.eyebrow}>Pricing</p>
           <h2 className={cn('mt-6', ui.sectionTitle, 'sm:text-4xl')}>Simple, transparent pricing</h2>
           <p className={cn(ui.sectionSubtitle, 'sm:text-lg')}>
-            Start free on Pro when you need YouTube Live. Max multi-platform streaming is launching
-            soon.
+            Start free on Pro when you need webinar hosting and screen sharing. Cloud recording and
+            multi-platform streaming are launching soon.
           </p>
         </div>
 
@@ -51,8 +51,8 @@ export function PricingSection() {
                 Lock in ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/month before prices increase
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Founder launch pricing includes YouTube Live, co-hosts, and webinar tools. Max waitlist
-                members get early access to multi-platform streaming.
+                Founder launch pricing includes webinar hosting, screen sharing, and co-host tools. Max
+                waitlist members get early access to multi-platform streaming.
               </p>
             </div>
             <Link href="/billing/upgrade" className="shrink-0">

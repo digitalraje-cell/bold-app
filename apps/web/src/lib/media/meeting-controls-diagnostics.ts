@@ -14,7 +14,6 @@ import {
 export type MoreMenuVisibility = {
   reactions: boolean;
   raiseHand: boolean;
-  youtubeLive: boolean;
   adminControls: {
     invite: boolean;
     switchRoomMode: boolean;
@@ -87,8 +86,6 @@ export function detectBrowserCapabilities(): BrowserCapabilities {
 export function buildMoreMenuVisibility(input: {
   reactionsEnabled: boolean;
   raiseHandEnabled: boolean;
-  canManageBroadcast?: boolean;
-  onGoLive?: () => void;
   onInvite?: () => void;
   onSwitchRoomMode?: (mode: RoomMode) => void;
   onMuteAll?: () => void;
@@ -102,7 +99,6 @@ export function buildMoreMenuVisibility(input: {
   return {
     reactions: input.reactionsEnabled,
     raiseHand: input.raiseHandEnabled,
-    youtubeLive: Boolean(input.canManageBroadcast && input.onGoLive),
     adminControls: {
       invite: Boolean(input.onInvite),
       switchRoomMode: Boolean(input.onSwitchRoomMode),

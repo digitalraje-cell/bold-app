@@ -3,8 +3,6 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import {
@@ -33,8 +31,6 @@ import {
   UpdateMeetingSettingsDto,
 } from './dto/meeting.dto';
 import { JitsiTokenService } from './jitsi-token.service';
-import { StreamService } from '../stream/stream.service';
-
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -42,8 +38,6 @@ export class MeetingsService {
     private permissionsService: PermissionsService,
     private gateway: MeetingGateway,
     private jitsiTokenService: JitsiTokenService,
-    @Inject(forwardRef(() => StreamService))
-    private streamService: StreamService,
   ) {}
 
   private meetingIdentifierWhere(idOrCode: string) {
@@ -672,8 +666,6 @@ export class MeetingsService {
     });
 
     this.gateway.broadcastMeetingEnded(meeting.id, 'Meeting ended by host');
-
-    await this.streamService.stopIfLiveQuiet(meeting.id);
 
     return updated;
   }

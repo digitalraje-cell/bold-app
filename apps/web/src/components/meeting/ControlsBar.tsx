@@ -25,7 +25,6 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { RoomMode } from '@boldmeet/shared';
-import { formatStreamElapsed } from '@/lib/stream-live-ui';
 import { logMeetingControlsEvent } from '@/lib/media/meeting-controls-diagnostics';
 import { computeMoreMenuPosition } from '@/lib/media/compute-more-menu-position';
 import { cn } from '@/lib/utils';
@@ -68,17 +67,10 @@ interface ControlsBarProps {
   onSwitchRoomMode?: (mode: RoomMode) => void;
   reactionsEnabled?: boolean;
   raiseHandEnabled?: boolean;
-  isLiveStream?: boolean;
-  onGoLive?: () => void;
-  onStopLive?: () => void;
-  streamStopping?: boolean;
-  canManageBroadcast?: boolean;
   controlsVisible?: boolean;
   onRevealControls?: () => void;
   participantCount?: number;
   meetingTitle?: string | null;
-  streamElapsedSeconds?: number;
-  streamViewerCount?: number | null;
 }
 
 function ControlButton({
@@ -274,17 +266,10 @@ export function ControlsBar({
   onSwitchRoomMode,
   reactionsEnabled = true,
   raiseHandEnabled = true,
-  isLiveStream,
-  onGoLive,
-  onStopLive,
-  streamStopping,
-  canManageBroadcast,
   controlsVisible = true,
   onRevealControls,
   participantCount = 0,
   meetingTitle,
-  streamElapsedSeconds = 0,
-  streamViewerCount,
 }: ControlsBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -388,9 +373,6 @@ export function ControlsBar({
                 meetingTitle={meetingTitle}
                 participantCount={participantCount}
                 roomMode={roomMode}
-                isLiveStream={isLiveStream}
-                streamElapsedSeconds={streamElapsedSeconds}
-                streamViewerCount={streamViewerCount}
               />
               {reactionsEnabled && (
                 <div className="border-b border-white/10 px-3 py-2">
@@ -477,15 +459,6 @@ export function ControlsBar({
                   onClick={() => { closeMoreMenu(); onToggleParticipantScreenShare(); }}
                 />
               )}
-              {canManageBroadcast && !isLiveStream && onGoLive && (
-                <MenuItem label="Go Live on YouTube" onClick={() => { closeMoreMenu(); onGoLive(); }} />
-              )}
-              {canManageBroadcast && isLiveStream && onStopLive && (
-                <MenuItem
-                  label={streamStopping ? 'Stopping…' : 'Stop YouTube Live'}
-                  onClick={() => { closeMoreMenu(); onStopLive(); }}
-                />
-              )}
               {isHost && onEndMeeting && (
                 <MenuItem
                   label="End meeting for all"
@@ -509,16 +482,10 @@ function MeetingInfoMenuSection({
   meetingTitle,
   participantCount,
   roomMode,
-  isLiveStream,
-  streamElapsedSeconds,
-  streamViewerCount,
 }: {
   meetingTitle?: string | null;
   participantCount: number;
   roomMode?: RoomMode;
-  isLiveStream?: boolean;
-  streamElapsedSeconds: number;
-  streamViewerCount?: number | null;
 }) {
   const modeLabel =
     roomMode === RoomMode.WEBINAR
@@ -546,20 +513,6 @@ function MeetingInfoMenuSection({
             <dt className="text-white/50">Mode</dt>
             <dd className="font-medium">{modeLabel}</dd>
           </div>
-        ) : null}
-        {isLiveStream ? (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-white/50">Live duration</dt>
-              <dd className="font-medium tabular-nums">{formatStreamElapsed(streamElapsedSeconds)}</dd>
-            </div>
-            {streamViewerCount != null ? (
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-white/50">Viewers</dt>
-                <dd className="font-medium tabular-nums">{streamViewerCount.toLocaleString()}</dd>
-              </div>
-            ) : null}
-          </>
         ) : null}
       </dl>
     </div>

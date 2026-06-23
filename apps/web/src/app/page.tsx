@@ -3,7 +3,7 @@ import { LandingPageContent } from '@/components/marketing/LandingPageContent';
 import { MARKETING_COPY } from '@/lib/marketing-copy';
 import { getServerAppOrigin } from '@/lib/urls';
 
-const TITLE = 'Bold — Meet, Present & Stream in One Platform';
+const TITLE = 'Bold — Meet, Present & Collaborate in One Platform';
 const DESCRIPTION = MARKETING_COPY.metaDescription;
 
 export const metadata: Metadata = {

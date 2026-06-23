@@ -88,7 +88,5 @@ export const config = {
     '/admin-payments/:path*',
     '/releases',
     '/releases/:path*',
-    '/youtube-live',
-    '/youtube-live/:path*',
   ],
 };

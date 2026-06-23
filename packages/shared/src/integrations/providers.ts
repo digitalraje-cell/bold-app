@@ -24,9 +24,9 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     id: 'youtube',
     name: 'YouTube',
     shortName: 'YouTube',
-    status: 'active',
-    roadmapDescription: 'Connect your channel and go live from any meeting.',
-    connectable: true,
+    status: 'coming_soon',
+    roadmapDescription: 'Coming Soon – Available in Phase 2',
+    connectable: false,
     sortOrder: 1,
   },
   {
@@ -35,7 +35,7 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     shortName: 'Facebook',
     status: 'coming_soon',
     roadmapDescription:
-      'Stream Bold meetings to Facebook Pages and Groups. OAuth connection and multi-page support planned for Max.',
+      'Facebook integration — planned for Max.',
     connectable: false,
     sortOrder: 2,
   },
@@ -45,7 +45,7 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     shortName: 'Instagram',
     status: 'coming_soon',
     roadmapDescription:
-      'Go live to Instagram from Bold. Requires Meta Business integration — launching with Max.',
+      'Instagram integration — planned for Max.',
     connectable: false,
     sortOrder: 3,
   },
@@ -55,7 +55,7 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     shortName: 'LinkedIn',
     status: 'coming_soon',
     roadmapDescription:
-      'Broadcast professional events to LinkedIn Live. Company page streaming on the Max roadmap.',
+      'LinkedIn integration — planned for Max.',
     connectable: false,
     sortOrder: 4,
   },
@@ -65,7 +65,7 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     shortName: 'RTMP',
     status: 'coming_soon',
     roadmapDescription:
-      'Send your stream to any RTMP endpoint — Restream, OBS destinations, and custom servers.',
+      'Custom RTMP endpoints — planned for Max.',
     connectable: false,
     sortOrder: 5,
   },
@@ -74,7 +74,7 @@ export const STREAMING_PROVIDERS: StreamingProviderDefinition[] = [
     name: 'Twitch',
     shortName: 'Twitch',
     status: 'coming_soon',
-    roadmapDescription: 'Twitch streaming for creators — planned after core Max launch.',
+    roadmapDescription: 'Twitch integration — planned after core Max launch.',
     connectable: false,
     sortOrder: 6,
   },

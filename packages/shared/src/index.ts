@@ -109,16 +109,6 @@ export interface SocketEvents {
     role?: ParticipantRole;
   };
   'chat:mode-changed': { chatMode: string; chatEnabled: boolean };
-  'stream:live': {
-    meetingId: string;
-    title?: string;
-    watchUrl?: string;
-    provider?: string;
-    startedAt?: string;
-    status?: string;
-  };
-  'stream:stopped': { meetingId: string };
-  'stream:error': { meetingId: string; message?: string };
 }
 
 export * from './room/types';
@@ -139,10 +129,6 @@ export * from './integrations/providers';
 export * from './roadmap/features';
 export * from './recording/types';
 export * from './app/version';
-export * from './stream/types';
-export * from './stream/youtube-url';
-export * from './stream/youtube-live';
-export * from './youtube/plan-limits';
 export * from './webinar/types';
 export * from './founders/content';
 export * from './pwa/types';

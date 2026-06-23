@@ -8,8 +8,6 @@ import { AdminUsersController } from './admin-users.controller';
 import { AdminUsersService } from './admin-users.service';
 import { AdminReleasesController } from './admin-releases.controller';
 import { AdminReleasesService } from './admin-releases.service';
-import { AdminYoutubeController } from './admin-youtube.controller';
-import { AdminYoutubeService } from './admin-youtube.service';
 import { AdminFeatureInterestController } from './admin-feature-interest.controller';
 import { AdminFeatureInterestService } from './admin-feature-interest.service';
 import { AdminProductAnalyticsController } from './admin-product-analytics.controller';
@@ -21,7 +19,6 @@ import { AdminProductAnalyticsService } from './admin-product-analytics.service'
     AdminPaymentsController,
     AdminUsersController,
     AdminReleasesController,
-    AdminYoutubeController,
     AdminFeatureInterestController,
     AdminProductAnalyticsController,
   ],
@@ -29,7 +26,6 @@ import { AdminProductAnalyticsService } from './admin-product-analytics.service'
     AdminPaymentsService,
     AdminUsersService,
     AdminReleasesService,
-    AdminYoutubeService,
     AdminFeatureInterestService,
     AdminProductAnalyticsService,
     AdminGuard,

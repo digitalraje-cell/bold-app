@@ -3,10 +3,11 @@ import { cn } from '@/lib/utils';
 
 const PROOF_ITEMS = [
   'HD Meetings',
-  'Webinar Mode',
-  'YouTube Live Streaming',
-  'Browser Based',
+  'Webinar Hosting',
   'Screen Sharing',
+  'Browser Based',
+  'Cloud Recording (Coming Soon)',
+  'Multi-platform Streaming (Coming Soon)',
   'Install as App',
 ] as const;
 
