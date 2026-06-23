@@ -36,19 +36,51 @@ function isLocalOrigin(origin: string): boolean {
   );
 }
 
+/** Production builds and non-local browsers must never use a local API origin. */
+export function resolveApiOriginForEnvironment(origin: string | null): string | null {
+  if (!origin) return null;
+  if (process.env.NODE_ENV === 'production' && isLocalOrigin(origin)) {
+    return PRODUCTION_API_ORIGIN;
+  }
+  if (
+    typeof window !== 'undefined' &&
+    !isLocalOrigin(window.location.origin) &&
+    isLocalOrigin(origin)
+  ) {
+    return PRODUCTION_API_ORIGIN;
+  }
+  return origin;
+}
+
 function resolveConfiguredPublicApiOrigin(): string | null {
-  return (
-    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL', 'NEXT_PUBLIC_API_URL', 'API_URL') ||
-    null
+  return resolveApiOriginForEnvironment(
+    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL', 'NEXT_PUBLIC_API_URL', 'API_URL'),
   );
+}
+
+/** Origin inlined into the client bundle at build time. */
+export function resolveClientBundleApiOrigin(): string {
+  const configured = resolveConfiguredPublicApiOrigin();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') {
+    return PRODUCTION_API_ORIGIN;
+  }
+  return devApiOrigin();
+}
+
+/** Socket.IO origin inlined into the client bundle at build time. */
+export function resolveSocketBundleApiOrigin(): string {
+  const socketOnly = resolveApiOriginForEnvironment(
+    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL'),
+  );
+  if (socketOnly) return socketOnly;
+  return resolveClientBundleApiOrigin();
 }
 
 /** Server-side Nest API origin (no /api suffix). */
 export function getServerApiOrigin(): string {
-  const configured = readEnvOrigin(
-    'API_URL',
-    'NEXT_PUBLIC_API_URL',
-    'RAILWAY_SERVICE_BOLD_API_URL',
+  const configured = resolveApiOriginForEnvironment(
+    readEnvOrigin('API_URL', 'NEXT_PUBLIC_API_URL', 'RAILWAY_SERVICE_BOLD_API_URL'),
   );
   if (configured) return configured;
   if (process.env.NODE_ENV === 'production') {
@@ -95,13 +127,6 @@ export function getSocketOrigin(): string {
     if (isLocalOrigin(window.location.origin)) {
       return devApiOrigin();
     }
-    console.error(
-      '[youtube-live-pipeline] socket-origin:missing',
-      JSON.stringify({
-        webOrigin: window.location.origin,
-        hint: 'Set NEXT_PUBLIC_SOCKET_URL at web build time (e.g. https://boldmeetapi-production.up.railway.app)',
-      }),
-    );
     throw new Error(
       'YouTube Live socket URL is not configured. Rebuild the web app with NEXT_PUBLIC_SOCKET_URL.',
     );

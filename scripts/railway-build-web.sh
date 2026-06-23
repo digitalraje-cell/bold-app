@@ -23,12 +23,13 @@ export NEXT_PUBLIC_BUILD_TIMESTAMP="$(date -u +%Y-%m-%d)"
 export NEXT_PUBLIC_BUILD_ID="${NEXT_PUBLIC_APP_VERSION}-${NEXT_PUBLIC_BUILD_TIMESTAMP}-$(git rev-parse --short HEAD 2>/dev/null || echo local)"
 
 # Bake Socket.IO + client API origin into the bundle (Next inlines NEXT_PUBLIC_* at build time).
-API_ORIGIN="${API_URL:-https://boldmeetapi-production.up.railway.app}"
+PRODUCTION_API_ORIGIN="https://boldmeetapi-production.up.railway.app"
+API_ORIGIN="${API_URL:-$PRODUCTION_API_ORIGIN}"
 API_ORIGIN="${API_ORIGIN%/}"
 API_ORIGIN="${API_ORIGIN%/api}"
 export API_URL="${API_URL:-$API_ORIGIN}"
 export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-$API_ORIGIN}"
-export NEXT_PUBLIC_SOCKET_URL="${NEXT_PUBLIC_SOCKET_URL:-$API_ORIGIN}"
+export NEXT_PUBLIC_SOCKET_URL="${NEXT_PUBLIC_SOCKET_URL:-$PRODUCTION_API_ORIGIN}"
 
 NODE_ENV=development pnpm install --frozen-lockfile
 pnpm build:web
