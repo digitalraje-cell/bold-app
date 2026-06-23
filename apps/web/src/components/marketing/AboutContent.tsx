@@ -176,7 +176,7 @@ export function AboutContent({
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </AuthAwareLink>
-            <Link href="/#pricing">
+            <Link href="/pricing">
               <Button variant="secondary" size="lg" className="h-14 px-8">
                 View Pricing
               </Button>

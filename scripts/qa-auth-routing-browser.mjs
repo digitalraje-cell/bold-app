@@ -145,8 +145,15 @@ async function main() {
   console.log(`Browser QA\nBASE: ${BASE_URL}\nEMAIL: ${QA_EMAIL}\n`);
 
   try {
+    const useSeededOtp = process.env.QA_USE_SEEDED_OTP === '1';
+
     // 1–3 Login and dashboard
-    await loginViaBrowser(page, QA_EMAIL);
+    if (useSeededOtp) {
+      await seedOtp(QA_EMAIL, QA_OTP);
+      await loginViaBrowser(page, QA_EMAIL, { useSeededOtp: true, otp: QA_OTP });
+    } else {
+      await loginViaBrowser(page, QA_EMAIL);
+    }
     await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle' });
 
     const welcome = page.getByRole('heading', { name: /Welcome back/i });

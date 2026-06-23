@@ -5,6 +5,10 @@ import {
   isAuthGuestAliasRoute,
   isAuthGuestRoute,
 } from '@/lib/auth-routes';
+import {
+  isProtectedRoute,
+  resolveAdminRouteAlias,
+} from '@/lib/route-access';
 import { NextResponse } from 'next/server';
 
 const { auth } = NextAuth(authConfig);
@@ -12,6 +16,8 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth?.user;
+
+  const adminAlias = resolveAdminRouteAlias(pathname);
 
   if (isLoggedIn && isAuthGuestRoute(pathname)) {
     return NextResponse.redirect(new URL(AUTHENTICATED_HOME, req.nextUrl.origin));
@@ -33,21 +39,18 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  const protectedPaths = [
-    '/dashboard',
-    '/settings',
-    '/meetings',
-    '/verify',
-    '/billing',
-    '/recordings',
-    '/admin',
-  ];
-  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
-
-  if (isProtected && !isLoggedIn) {
+  if (isProtectedRoute(pathname) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.nextUrl.origin);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (adminAlias) {
+    const target = new URL(adminAlias, req.nextUrl.origin);
+    req.nextUrl.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(target);
   }
 
   if (
@@ -76,5 +79,13 @@ export const config = {
     '/billing/:path*',
     '/recordings/:path*',
     '/admin/:path*',
+    '/admin-users',
+    '/admin-users/:path*',
+    '/admin-payments',
+    '/admin-payments/:path*',
+    '/releases',
+    '/releases/:path*',
+    '/youtube-live',
+    '/youtube-live/:path*',
   ],
 };

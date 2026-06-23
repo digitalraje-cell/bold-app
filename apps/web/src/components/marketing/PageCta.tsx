@@ -10,7 +10,7 @@ export function PageCta({
   subtitle = 'Free to start. No download required. Join from any modern browser.',
   primaryHref = '/login',
   primaryLabel = 'Get started free',
-  secondaryHref = '/#pricing',
+  secondaryHref = '/pricing',
   secondaryLabel = 'View pricing',
   className,
 }: {

@@ -80,7 +80,7 @@ export function PwaJoinHome() {
     if (sessionStatus === 'loading') return;
 
     if (!session?.user) {
-      router.push('/login?callbackUrl=/');
+      router.push('/login?callbackUrl=/join');
       return;
     }
 
@@ -115,7 +115,7 @@ export function PwaJoinHome() {
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border/80 bg-surface px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-foreground">
+          <Link href="/join" className="text-lg font-semibold tracking-tight text-foreground">
             Bold
           </Link>
           {session?.user ? (
