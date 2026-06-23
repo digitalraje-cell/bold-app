@@ -314,6 +314,46 @@ html {
   -webkit-text-fill-color: transparent;
 }
 
+/* Italic wordmark — prevent left-edge clipping in nav */
+.bold-wordmark {
+  padding-left: 0.2em;
+  padding-right: 0.08em;
+}
+
+/* ─── Premium marketing hero ─────────────────────────────────────────── */
+.marketing-hero {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -20%, rgba(124, 58, 237, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 20%, rgba(91, 33, 182, 0.14), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 10% 60%, rgba(158, 122, 255, 0.08), transparent 45%),
+    linear-gradient(180deg, #030308 0%, #07070f 38%, #0a0a12 72%, #0f0f18 100%);
+}
+
+.marketing-hero-glow {
+  background: radial-gradient(
+    ellipse 70% 45% at 50% 100%,
+    rgba(124, 58, 237, 0.35),
+    transparent 70%
+  );
+}
+
+.marketing-hero-mockup-glow {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 50%,
+    rgba(124, 58, 237, 0.28),
+    rgba(91, 33, 182, 0.08) 45%,
+    transparent 72%
+  );
+  filter: blur(48px);
+}
+
+.marketing-hero-badge {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 /* ─── Legal documents (no typography plugin — custom Apple-style prose) ─── */
 .legal-document {
   color: var(--foreground);

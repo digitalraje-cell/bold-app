@@ -18,7 +18,7 @@ export function BoldWordmark({ className, size = 'md' }: BoldWordmarkProps) {
   return (
     <span
       className={cn(
-        'inline-block font-black italic leading-none text-gradient-purple',
+        'bold-wordmark inline-block font-black italic leading-none text-gradient-purple',
         sizeClass[size],
         className,
       )}
