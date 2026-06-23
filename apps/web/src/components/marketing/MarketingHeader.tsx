@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import { APP_CONFIG } from '@/lib/app-config';
 import { LEGAL_CONFIG } from '@/lib/legal-config';
 import { cardClass, navLinkClass, ui } from '@/lib/ui';
@@ -47,18 +48,18 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
               {item.label}
             </Link>
           ))}
-          <Link
+          <AuthAwareLink
             href="/login"
             className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             Sign in
-          </Link>
-          <Link
+          </AuthAwareLink>
+          <AuthAwareLink
             href="/login"
             className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-200 hover:bg-[var(--primary-hover)]"
           >
             Get started
-          </Link>
+          </AuthAwareLink>
         </nav>
 
         <button
@@ -85,20 +86,20 @@ export function MarketingHeader({ active }: { active?: NavKey }) {
                 {item.label}
               </Link>
             ))}
-            <Link
+            <AuthAwareLink
               href="/login"
               className="mt-2 block rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground"
               onClick={() => setMobileOpen(false)}
             >
               Sign in
-            </Link>
-            <Link
+            </AuthAwareLink>
+            <AuthAwareLink
               href="/login"
               className="mt-1 block rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground"
               onClick={() => setMobileOpen(false)}
             >
               Get started
-            </Link>
+            </AuthAwareLink>
           </nav>
         </div>
       )}
@@ -139,9 +140,9 @@ export function MarketingFooter() {
             <Link href="/contact" className="hover:text-foreground">
               Contact
             </Link>
-            <Link href="/login" className={ui.link}>
+            <AuthAwareLink href="/login" className={ui.link}>
               Start free
-            </Link>
+            </AuthAwareLink>
           </div>
         </div>
       </div>

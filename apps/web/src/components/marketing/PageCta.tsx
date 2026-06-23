@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import { Button } from '@/components/ui/Button';
 import { cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -26,15 +28,15 @@ export function PageCta({
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
         <p className="mx-auto mt-3 max-w-lg text-muted-foreground">{subtitle}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href={primaryHref}>
+          <AuthAwareLink href={primaryHref}>
             <Button size="lg">{primaryLabel}</Button>
-          </Link>
+          </AuthAwareLink>
           {secondaryHref && (
-            <Link href={secondaryHref}>
+            <AuthAwareLink href={secondaryHref}>
               <Button size="lg" variant="secondary">
                 {secondaryLabel}
               </Button>
-            </Link>
+            </AuthAwareLink>
           )}
         </div>
       </div>

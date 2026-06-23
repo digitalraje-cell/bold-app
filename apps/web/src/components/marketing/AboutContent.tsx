@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import {
   ArrowRight,
   Briefcase,
@@ -169,12 +170,12 @@ export function AboutContent({
             intentional as the work they do inside it.&rdquo;
           </blockquote>
           <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-            <Link href="/login">
+            <AuthAwareLink href="/login">
               <Button size="lg" className="h-14 px-8">
                 Start Free Meeting
                 <ArrowRight className="h-5 w-5" />
               </Button>
-            </Link>
+            </AuthAwareLink>
             <Link href="/#pricing">
               <Button variant="secondary" size="lg" className="h-14 px-8">
                 View Pricing

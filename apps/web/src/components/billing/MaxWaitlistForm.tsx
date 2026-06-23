@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import {
   MAX_DESTINATION_DEMAND_OPTIONS,
   MAX_PLAN_DISPLAY,
@@ -127,12 +128,12 @@ export function MaxWaitlistForm({ className, compact = false, onJoined }: MaxWai
         <p className="mt-2 text-sm text-muted-foreground">
           Sign in to join the Max waitlist and tell us which platforms matter most.
         </p>
-        <Link
+        <AuthAwareLink
           href="/login"
           className="mt-4 inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
         >
           Sign in to join waitlist
-        </Link>
+        </AuthAwareLink>
       </div>
     );
   }

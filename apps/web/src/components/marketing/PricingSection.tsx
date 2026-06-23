@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import {
   SubscriptionPlan,
   PLAN_PRICING_INR,
@@ -136,7 +137,7 @@ function PlanCard({
             </li>
           ))}
       </ul>
-      <Link
+      <AuthAwareLink
         href={ctaHref}
         className={cn(
           'mt-12 block rounded-full px-6 py-3.5 text-center text-sm font-semibold transition',
@@ -146,7 +147,7 @@ function PlanCard({
         )}
       >
         {ctaLabel}
-      </Link>
+      </AuthAwareLink>
     </div>
   );
 }

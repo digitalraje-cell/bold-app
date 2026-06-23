@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Radio, Video } from 'lucide-react';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import { DEFAULT_MEETING_SETTINGS, formatMeetingCode } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -125,12 +126,12 @@ export function PwaJoinHome() {
               Dashboard
             </Link>
           ) : (
-            <Link
+            <AuthAwareLink
               href="/login"
               className="text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               Sign in
-            </Link>
+            </AuthAwareLink>
           )}
         </div>
       </header>

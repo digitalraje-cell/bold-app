@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { AuthAwareLink } from '@/components/auth/AuthAwareLink';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { ThumbsUp, Loader2, Check, Clock, Sparkles } from 'lucide-react';
@@ -308,11 +309,11 @@ export function RoadmapContent() {
               <Link href="/billing/upgrade">
                 <Button size="lg">Upgrade — ₹{PLAN_PRICING_INR[SubscriptionPlan.PRO]}/mo</Button>
               </Link>
-              <Link href="/login">
+              <AuthAwareLink href="/login">
                 <Button size="lg" variant="secondary">
                   Start free
                 </Button>
-              </Link>
+              </AuthAwareLink>
             </div>
           </div>
         </section>

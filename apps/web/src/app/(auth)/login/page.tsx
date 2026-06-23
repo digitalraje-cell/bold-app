@@ -1,9 +1,17 @@
+import { redirect } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { MarketingFooter, MarketingHeader } from '@/components/marketing/MarketingHeader';
+import { auth } from '@/lib/auth';
+import { AUTHENTICATED_HOME } from '@/lib/auth-routes';
 import { cardClass, ui } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await auth();
+  if (session?.user) {
+    redirect(AUTHENTICATED_HOME);
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <MarketingHeader />
