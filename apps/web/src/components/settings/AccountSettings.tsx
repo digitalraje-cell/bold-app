@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { performSignOut } from '@/lib/client-auth';
 import { LogOut, Sparkles } from 'lucide-react';
 import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
 import { Button } from '@/components/ui/Button';
@@ -89,7 +89,7 @@ export function AccountSettings({ plan, createdAt, isVerified }: AccountSettings
             <Link href="/billing">
               <Button variant="secondary">Billing</Button>
             </Link>
-            <Button variant="secondary" onClick={() => signOut({ callbackUrl: '/' })}>
+            <Button variant="secondary" onClick={() => void performSignOut()}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>

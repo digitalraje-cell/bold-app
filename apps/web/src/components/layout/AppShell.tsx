@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
+import { performSignOut } from '@/lib/client-auth';
 import { LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { SubscriptionPlan, isPlatformAdmin, isSuperAdmin } from '@boldmeet/shared';
 import { cn } from '@/lib/utils';
 import { navLinkClass } from '@/lib/ui';
@@ -136,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => void performSignOut()}
             className={cn(navLinkClass(false), 'w-full')}
           >
             <LogOut className="h-4 w-4" />
