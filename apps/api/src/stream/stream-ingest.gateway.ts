@@ -3,6 +3,7 @@ import {
   WebSocketServer,
   SubscribeMessage,
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
@@ -17,6 +18,30 @@ type IngestSocketData = {
   chunksReceived?: number;
   bytesReceived?: number;
 };
+
+function toIngestBuffer(payload: unknown): Buffer | null {
+  if (payload == null) return null;
+  if (Buffer.isBuffer(payload)) return payload;
+  if (payload instanceof Uint8Array) {
+    return Buffer.from(payload.buffer, payload.byteOffset, payload.byteLength);
+  }
+  if (payload instanceof ArrayBuffer) {
+    return Buffer.from(payload);
+  }
+  if (ArrayBuffer.isView(payload)) {
+    const view = payload as ArrayBufferView;
+    return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
+  }
+  return null;
+}
+
+function payloadByteLength(payload: unknown): number | undefined {
+  if (payload == null) return undefined;
+  if (Buffer.isBuffer(payload)) return payload.length;
+  if (payload instanceof ArrayBuffer) return payload.byteLength;
+  if (ArrayBuffer.isView(payload)) return payload.byteLength;
+  return undefined;
+}
 
 function getStreamId(client: Socket): string | undefined {
   const data = client.data as IngestSocketData;
@@ -90,15 +115,22 @@ export class StreamIngestGateway
   }
 
   @SubscribeMessage('ingest-chunk')
-  handleChunk(@ConnectedSocket() client: Socket, data: Buffer | ArrayBuffer) {
+  handleChunk(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: Buffer | ArrayBuffer | Uint8Array,
+  ) {
+    this.logger.log(
+      `[ingest-chunk] typeof=${typeof payload} constructor=${payload?.constructor?.name ?? 'none'} byteLength=${payloadByteLength(payload) ?? 'n/a'} isBuffer=${Buffer.isBuffer(payload)}`,
+    );
+
     const streamId = getStreamId(client);
     if (!streamId) {
       this.logger.warn('[youtube-live-pipeline] STAGE-3-GATEWAY chunk:no-stream-id');
       return { ok: false };
     }
 
-    const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
-    if (chunk.length === 0) {
+    const chunk = toIngestBuffer(payload);
+    if (!chunk || chunk.length === 0) {
       this.logger.warn(
         `[youtube-live-pipeline] STAGE-3-GATEWAY chunk:empty streamId=${streamId}`,
       );
