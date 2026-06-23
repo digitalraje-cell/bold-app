@@ -17,7 +17,6 @@ import {
 import { useMeetingFullscreen } from '@/contexts/MeetingFullscreenContext';
 import { useMeetingControlsAutoHide } from '@/hooks/useMeetingControlsAutoHide';
 import { useMeetingPageLifecycle } from '@/hooks/useMeetingPageLifecycle';
-import { useAutoStageLayout } from '@/hooks/useAutoStageLayout';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
 import { ChatPanel } from '@/components/meeting/ChatPanel';
@@ -304,10 +303,6 @@ function MeetingRoomInner({
     isAudioMuted,
     isVideoMuted,
     isReconnecting,
-    setTileView,
-    setFilmstripVisible,
-    setSelfViewHidden,
-    runJitsiCommand,
   } = useJitsi({
     roomName: mediaSession.embedRoomName ?? jitsiRoom,
     jitsiDomain: mediaSession.embedDomain ?? undefined,
@@ -376,41 +371,6 @@ function MeetingRoomInner({
   useEffect(() => {
     hangupRef.current = hangup;
   }, [hangup]);
-
-  const jitsiLayoutApi = useMemo(
-    () => ({
-      setTileView,
-      setFilmstripVisible,
-      setSelfViewHidden,
-      runJitsiCommand,
-      mediaReady,
-    }),
-    [setTileView, setFilmstripVisible, setSelfViewHidden, runJitsiCommand, mediaReady],
-  );
-
-  const stageContext = useMemo(
-    () => ({
-      isScreenSharing,
-      isPresenterLayout,
-      roomMode,
-      isYoutubeLiveCapturing:
-        streamCaptureActive ||
-        isLiveStream ||
-        streamStarting ||
-        streamDisplayStatus === 'CONNECTING',
-    }),
-    [
-      isScreenSharing,
-      isPresenterLayout,
-      roomMode,
-      streamCaptureActive,
-      isLiveStream,
-      streamStarting,
-      streamDisplayStatus,
-    ],
-  );
-
-  const { shellClassName } = useAutoStageLayout(jitsiLayoutApi, stageContext);
 
   const controlsPinned =
     activePanel !== null ||
@@ -852,7 +812,7 @@ function MeetingRoomInner({
       <div
         ref={containerRef}
         data-meeting-stage
-        className={`meeting-jitsi-shell ${shellClassName} absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
+        className={`meeting-jitsi-shell absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
           !mediaReady ? 'invisible pointer-events-none' : ''
         }`}
       />
