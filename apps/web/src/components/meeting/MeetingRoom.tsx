@@ -98,7 +98,6 @@ function MeetingRoomInner({
   const { isFullscreen, toggleFullscreen } = useMeetingFullscreen();
 
   const [activePanel, setActivePanel] = useState<'chat' | 'participants' | null>(null);
-  const [handRaised, setHandRaised] = useState(false);
   const [reactions, setReactions] = useState<{ id: string; reaction: string }[]>([]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hostLeaveOpen, setHostLeaveOpen] = useState(false);
@@ -152,8 +151,10 @@ function MeetingRoomInner({
     mediaSession.jwtEnabled,
   );
 
-  notifyHostMediaReadyRef.current = notifyHostMediaReady;
-  notifyHostMediaLeftRef.current = notifyHostMediaLeft;
+  useEffect(() => {
+    notifyHostMediaReadyRef.current = notifyHostMediaReady;
+    notifyHostMediaLeftRef.current = notifyHostMediaLeft;
+  }, [notifyHostMediaReady, notifyHostMediaLeft]);
 
   const {
     roomMode,
@@ -247,7 +248,11 @@ function MeetingRoomInner({
 
   useEffect(() => {
     let cancelled = false;
-    setMediaSession((prev) => ({ ...prev, loading: true, error: null }));
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setMediaSession((prev) => ({ ...prev, loading: true, error: null }));
+      }
+    });
 
     void api.meetings
       .getJitsiToken(meetingId, participantId ? { participantId } : undefined)
@@ -356,7 +361,9 @@ function MeetingRoomInner({
     startVideoMuted: !joinMediaPrefs.startWithVideo,
   });
 
-  hangupRef.current = hangup;
+  useEffect(() => {
+    hangupRef.current = hangup;
+  }, [hangup]);
 
   const jitsiLayoutApi = useMemo(
     () => ({
@@ -530,26 +537,10 @@ function MeetingRoomInner({
       }, 3000);
     });
 
-    const unsubHandRaise = on('hand:raise', (data: unknown) => {
-      const { participantId: raisedId } = data as { participantId?: string };
-      if (raisedId && raisedId === mySocketParticipantId) {
-        setHandRaised(true);
-      }
-    });
-
-    const unsubHandLower = on('hand:lower', (data: unknown) => {
-      const { participantId: loweredId } = data as { participantId?: string };
-      if (loweredId && loweredId === mySocketParticipantId) {
-        setHandRaised(false);
-      }
-    });
-
     return () => {
       unsubEnded?.();
       unsubLeft?.();
       unsubReaction?.();
-      unsubHandRaise?.();
-      unsubHandLower?.();
     };
   }, [on, handleLeave, participantId, mySocketParticipantId]);
 
@@ -565,11 +556,7 @@ function MeetingRoomInner({
     }
   }, [roomMode, myParticipant, canCamera, isVideoMuted, toggleVideo]);
 
-  useEffect(() => {
-    if (typeof myParticipant?.handRaised === 'boolean') {
-      setHandRaised(myParticipant.handRaised);
-    }
-  }, [myParticipant?.handRaised, myParticipant?.id]);
+  const handRaised = Boolean(myParticipant?.handRaised);
 
   const handleToggleMic = () => {
     if (!canMic) return;
@@ -598,7 +585,6 @@ function MeetingRoomInner({
   const handleRaiseHand = () => {
     if (!mySocketParticipantId) return;
     const next = !handRaised;
-    setHandRaised(next);
     emit(next ? 'hand:raise' : 'hand:lower', {
       participantId: mySocketParticipantId,
       displayName,
@@ -664,7 +650,7 @@ function MeetingRoomInner({
   useEffect(() => {
     if (!isModerator || streamBroadcastStatus !== 'LIVE') return;
     if (!liveWatchUrl && streamDestinations.length === 0) return;
-    handleShowStreamPanel();
+    queueMicrotask(() => handleShowStreamPanel());
   }, [
     isModerator,
     streamBroadcastStatus,
@@ -702,14 +688,14 @@ function MeetingRoomInner({
     if (!canAutoOpenYoutubeWatch || !liveWatchUrl || youtubeTabOpenedRef.current || !isLiveStream) return;
 
     if (hasYoutubeLiveViewerSignal) {
-      promptYoutubeWatchOpen();
+      queueMicrotask(() => promptYoutubeWatchOpen());
       return;
     }
 
     if (!streamCaptureActive || streamConnectionState !== 'connected') return;
 
     const timer = window.setTimeout(() => {
-      promptYoutubeWatchOpen();
+      queueMicrotask(() => promptYoutubeWatchOpen());
     }, 15_000);
 
     return () => window.clearTimeout(timer);
@@ -726,16 +712,20 @@ function MeetingRoomInner({
   useEffect(() => {
     if (isLiveStream) return;
     youtubeTabOpenedRef.current = false;
-    setYoutubeLiveToast(false);
-    setStreamPanelOpen(true);
-    clearStreamPanelStorage(meetingId);
+    queueMicrotask(() => {
+      setYoutubeLiveToast(false);
+      setStreamPanelOpen(true);
+      clearStreamPanelStorage(meetingId);
+    });
   }, [isLiveStream, meetingId]);
 
   useEffect(() => {
     if (streamDisplayStatus !== 'OFFLINE') return;
-    setYoutubeLiveToast(false);
-    setStreamPanelOpen(true);
-    clearStreamPanelStorage(meetingId);
+    queueMicrotask(() => {
+      setYoutubeLiveToast(false);
+      setStreamPanelOpen(true);
+      clearStreamPanelStorage(meetingId);
+    });
   }, [streamDisplayStatus, meetingId]);
 
   const handleToggleLock = async () => {

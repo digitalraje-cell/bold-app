@@ -13,9 +13,10 @@ export function useMeetingControlsAutoHide(
   forceVisible: boolean,
   autoHideEnabled: boolean = true,
 ) {
-  const [visible, setVisible] = useState(true);
+  const [idleHidden, setIdleHidden] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const visibleRef = useRef(true);
+
+  const controlsVisible = forceVisible || !autoHideEnabled || !idleHidden;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -27,41 +28,27 @@ export function useMeetingControlsAutoHide(
   const scheduleHide = useCallback(() => {
     clearTimer();
     if (forceVisible || !autoHideEnabled) return;
-    timerRef.current = setTimeout(() => {
-      visibleRef.current = false;
-      setVisible(false);
-    }, IDLE_MS);
+    timerRef.current = setTimeout(() => setIdleHidden(true), IDLE_MS);
   }, [autoHideEnabled, clearTimer, forceVisible]);
 
   const reveal = useCallback(() => {
-    visibleRef.current = true;
-    setVisible(true);
+    setIdleHidden(false);
     scheduleHide();
   }, [scheduleHide]);
 
   const toggleMobile = useCallback(() => {
     if (!isMobileViewport()) return;
-    if (visibleRef.current) {
-      reveal();
-      return;
-    }
     reveal();
   }, [reveal]);
 
   useEffect(() => {
-    visibleRef.current = visible;
-  }, [visible]);
-
-  useEffect(() => {
     if (forceVisible || !autoHideEnabled) {
-      visibleRef.current = true;
-      setVisible(true);
       clearTimer();
       return;
     }
-    reveal();
+    scheduleHide();
     return clearTimer;
-  }, [autoHideEnabled, clearTimer, forceVisible, reveal]);
+  }, [autoHideEnabled, clearTimer, forceVisible, scheduleHide]);
 
   useEffect(() => {
     if (!autoHideEnabled) return;
@@ -82,7 +69,7 @@ export function useMeetingControlsAutoHide(
   }, [autoHideEnabled, reveal]);
 
   return {
-    controlsVisible: visible,
+    controlsVisible,
     revealControls: reveal,
     toggleControlsMobile: toggleMobile,
   };

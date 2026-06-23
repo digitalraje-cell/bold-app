@@ -41,6 +41,7 @@ function VirtualizedStrip({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [viewportSize, setViewportSize] = useState(orientation === 'vertical' ? 320 : 120);
 
   const onScroll = useCallback(() => {
     const el = containerRef.current;
@@ -48,10 +49,19 @@ function VirtualizedStrip({
     setScrollOffset(orientation === 'vertical' ? el.scrollTop : el.scrollLeft);
   }, [orientation]);
 
-  const viewportSize =
-    orientation === 'vertical'
-      ? (containerRef.current?.clientHeight ?? 320)
-      : (containerRef.current?.clientHeight ?? 120);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      setViewportSize(orientation === 'vertical' ? el.clientHeight : el.clientWidth);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [orientation, items.length]);
 
   const overscan = 2;
   const start = Math.max(0, Math.floor(scrollOffset / itemSize) - overscan);

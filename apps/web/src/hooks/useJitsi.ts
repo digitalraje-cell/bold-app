@@ -200,14 +200,31 @@ export function useJitsi({
     moderatorPassword,
   });
 
-  callbacksRef.current = {
+  useEffect(() => {
+    callbacksRef.current = {
+      onReady,
+      onLeave,
+      onMediaError,
+      onScreenShareChange,
+      onPresenterLayoutChange,
+    };
+    optionsRef.current = {
+      displayName,
+      isHost,
+      isModerator,
+      allowDesktopSharing,
+      startMuted,
+      startVideoMuted,
+      jwt,
+      jwtEnabled,
+      moderatorPassword,
+    };
+  }, [
     onReady,
     onLeave,
     onMediaError,
     onScreenShareChange,
     onPresenterLayoutChange,
-  };
-  optionsRef.current = {
     displayName,
     isHost,
     isModerator,
@@ -217,7 +234,7 @@ export function useJitsi({
     jwt,
     jwtEnabled,
     moderatorPassword,
-  };
+  ]);
 
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isPresenterLayout, setIsPresenterLayout] = useState(false);
@@ -261,37 +278,34 @@ export function useJitsi({
     [disposeSession],
   );
 
-  const scheduleReconnect = useCallback(
-    (reason: string) => {
-      if (
-        intentionalLeaveRef.current ||
-        authErrorRef.current ||
-        disposingRef.current ||
-        reconnectScheduledRef.current ||
-        !enabled ||
-        !roomName
-      ) {
-        return;
-      }
-      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-        reportMediaError(BOLD_MEDIA_ERROR);
-        return;
-      }
+  const scheduleReconnect = useCallback(() => {
+    if (
+      intentionalLeaveRef.current ||
+      authErrorRef.current ||
+      disposingRef.current ||
+      reconnectScheduledRef.current ||
+      !enabled ||
+      !roomName
+    ) {
+      return;
+    }
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      reportMediaError(BOLD_MEDIA_ERROR);
+      return;
+    }
 
-      reconnectScheduledRef.current = true;
-      reconnectAttemptsRef.current += 1;
-      setIsReconnecting(true);
+    reconnectScheduledRef.current = true;
+    reconnectAttemptsRef.current += 1;
+    setIsReconnecting(true);
 
-      disposeSession();
-      reconnectTimerRef.current = setTimeout(() => {
-        reconnectTimerRef.current = null;
-        reconnectScheduledRef.current = false;
-        setIsReconnecting(false);
-        setReconnectNonce((n) => n + 1);
-      }, RECONNECT_DELAY_MS);
-    },
-    [enabled, roomName, disposeSession, reportMediaError],
-  );
+    disposeSession();
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      reconnectScheduledRef.current = false;
+      setIsReconnecting(false);
+      setReconnectNonce((n) => n + 1);
+    }, RECONNECT_DELAY_MS);
+  }, [enabled, roomName, disposeSession, reportMediaError]);
 
   useEffect(() => {
     if (!enabled || !roomName) return;
@@ -403,7 +417,7 @@ export function useJitsi({
           return;
         }
         if (joinedRef.current) {
-          scheduleReconnect('videoConferenceLeft');
+          scheduleReconnect();
         }
       });
 
@@ -414,11 +428,11 @@ export function useJitsi({
           return;
         }
         if (joinedRef.current) {
-          scheduleReconnect('connectionFailed');
+          scheduleReconnect();
         } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS - 1) {
           reportMediaError(BOLD_MEDIA_ERROR);
         } else {
-          scheduleReconnect('connectionFailed');
+          scheduleReconnect();
         }
       });
 
@@ -429,7 +443,7 @@ export function useJitsi({
           return;
         }
         if (joinedRef.current) {
-          scheduleReconnect('errorOccurred');
+          scheduleReconnect();
         }
       });
 
@@ -550,15 +564,20 @@ export function useJitsi({
 
     intentionalLeaveRef.current = true;
     disposeSession();
-    setIsScreenSharing(false);
-    setIsPresenterLayout(false);
-    setIsAudioMuted(true);
-    setIsVideoMuted(true);
-    setIsReconnecting(false);
-    setJitsiParticipants([]);
-    setDominantSpeakerId(null);
-    setPinnedParticipantId(null);
-    setLocalParticipantId(null);
+
+    const frame = requestAnimationFrame(() => {
+      setIsScreenSharing(false);
+      setIsPresenterLayout(false);
+      setIsAudioMuted(true);
+      setIsVideoMuted(true);
+      setIsReconnecting(false);
+      setJitsiParticipants([]);
+      setDominantSpeakerId(null);
+      setPinnedParticipantId(null);
+      setLocalParticipantId(null);
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, [enabled, disposeSession]);
 
   useEffect(() => {

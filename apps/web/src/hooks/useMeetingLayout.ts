@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JitsiRosterParticipant } from '@/hooks/useJitsi';
 import {
-  DEFAULT_MEETING_LAYOUT_PREFS,
   type MeetingLayoutMode,
   type MeetingLayoutPrefs,
   readMeetingLayoutPrefs,
@@ -54,13 +53,12 @@ function applyLayoutToJitsi(api: JitsiLayoutApi, prefs: MeetingLayoutPrefs) {
 }
 
 export function useMeetingLayout(api: JitsiLayoutApi) {
-  const [prefs, setPrefs] = useState<MeetingLayoutPrefs>(DEFAULT_MEETING_LAYOUT_PREFS);
+  const [prefs, setPrefs] = useState<MeetingLayoutPrefs>(() => readMeetingLayoutPrefs());
   const apiRef = useRef(api);
-  apiRef.current = api;
 
   useEffect(() => {
-    setPrefs(readMeetingLayoutPrefs());
-  }, []);
+    apiRef.current = api;
+  }, [api]);
 
   const updatePrefs = useCallback((patch: Partial<MeetingLayoutPrefs>) => {
     setPrefs((current) => {
