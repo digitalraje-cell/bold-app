@@ -28,6 +28,18 @@ function readEnvOrigin(...keys: string[]): string | null {
   return null;
 }
 
+/**
+ * Client bundle env — must use static process.env.NEXT_PUBLIC_* property access
+ * so Next.js inlines values at build time (dynamic process.env[key] stays undefined).
+ */
+function readPublicClientEnvOrigin(): string | null {
+  return (
+    resolveApiOriginForEnvironment(normalizeApiOrigin(process.env.NEXT_PUBLIC_SOCKET_URL)) ||
+    resolveApiOriginForEnvironment(normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL)) ||
+    null
+  );
+}
+
 function isLocalOrigin(origin: string): boolean {
   return (
     origin.includes('localhost') ||
@@ -53,9 +65,7 @@ export function resolveApiOriginForEnvironment(origin: string | null): string | 
 }
 
 function resolveConfiguredPublicApiOrigin(): string | null {
-  return resolveApiOriginForEnvironment(
-    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL', 'NEXT_PUBLIC_API_URL', 'API_URL'),
-  );
+  return readPublicClientEnvOrigin();
 }
 
 /** Origin inlined into the client bundle at build time. */
@@ -71,7 +81,7 @@ export function resolveClientBundleApiOrigin(): string {
 /** Socket.IO origin inlined into the client bundle at build time. */
 export function resolveSocketBundleApiOrigin(): string {
   const socketOnly = resolveApiOriginForEnvironment(
-    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL'),
+    normalizeApiOrigin(process.env.NEXT_PUBLIC_SOCKET_URL),
   );
   if (socketOnly) return socketOnly;
   return resolveClientBundleApiOrigin();
@@ -119,24 +129,22 @@ export function getClientApiTransport(): 'proxy' | 'direct-server' {
  */
 export function getSocketOrigin(): string {
   const configured = resolveConfiguredPublicApiOrigin();
+  let origin: string;
+
   if (configured) {
-    return configured;
+    origin = configured;
+  } else if (typeof window !== 'undefined') {
+    origin = isLocalOrigin(window.location.origin)
+      ? devApiOrigin()
+      : PRODUCTION_API_ORIGIN;
+  } else if (process.env.NODE_ENV === 'production') {
+    origin = PRODUCTION_API_ORIGIN;
+  } else {
+    origin = devApiOrigin();
   }
 
-  if (typeof window !== 'undefined') {
-    if (isLocalOrigin(window.location.origin)) {
-      return devApiOrigin();
-    }
-    throw new Error(
-      'YouTube Live socket URL is not configured. Rebuild the web app with NEXT_PUBLIC_SOCKET_URL.',
-    );
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    return PRODUCTION_API_ORIGIN;
-  }
-
-  return devApiOrigin();
+  console.info('[socket] resolved origin:', origin);
+  return origin;
 }
 
 export function buildNestApiUrl(path: string): string {
