@@ -72,21 +72,32 @@ function deriveStreamHealth(
 }
 
 async function requestDisplayCapture(): Promise<MediaStream> {
-  logYouTubePipeline('capture:getDisplayMedia:request');
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: 30 },
-    audio: true,
-    // @ts-expect-error preferCurrentTab is supported in Chromium for meeting-tab capture
-    preferCurrentTab: true,
-  });
-  const videoTrack = stream.getVideoTracks()[0];
-  logYouTubePipeline('capture:getDisplayMedia:success', {
-    videoTracks: stream.getVideoTracks().length,
-    audioTracks: stream.getAudioTracks().length,
-    videoLabel: videoTrack?.label ?? null,
-    videoReadyState: videoTrack?.readyState ?? null,
-  });
-  return stream;
+  logYouTubePipeline('STAGE-1-BROWSER', 'getDisplayMedia:request');
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 30 },
+      audio: true,
+      // @ts-expect-error preferCurrentTab is supported in Chromium for meeting-tab capture
+      preferCurrentTab: true,
+    });
+    const videoTrack = stream.getVideoTracks()[0];
+    const audioTrack = stream.getAudioTracks()[0];
+    logYouTubePipeline('STAGE-1-BROWSER', 'getDisplayMedia:success', {
+      videoTracks: stream.getVideoTracks().length,
+      audioTracks: stream.getAudioTracks().length,
+      videoLabel: videoTrack?.label ?? null,
+      videoReadyState: videoTrack?.readyState ?? null,
+      audioLabel: audioTrack?.label ?? null,
+      audioReadyState: audioTrack?.readyState ?? null,
+    });
+    logYouTubePipeline('STAGE-1-BROWSER', 'camera-stream:acquired', {
+      note: 'This is the display/tab capture stream used for YouTube ingest (not the Jitsi camera preview)',
+    });
+    return stream;
+  } catch (error) {
+    logYouTubePipelineError('STAGE-1-BROWSER', 'getDisplayMedia:failure', error);
+    throw error;
+  }
 }
 
 export function useYouTubeLiveStream(meetingId: string) {
@@ -174,7 +185,10 @@ export function useYouTubeLiveStream(meetingId: string) {
           ? 'video/webm;codecs=vp8,opus'
           : 'video/webm';
 
-        logYouTubePipeline('capture:media-recorder:create', { mimeType });
+        logYouTubePipeline('STAGE-1-BROWSER', 'media-recorder:created', {
+          mimeType,
+          videoBitsPerSecond: 2_500_000,
+        });
 
         const recorder = new MediaRecorder(displayStream, {
           mimeType,
@@ -183,16 +197,21 @@ export function useYouTubeLiveStream(meetingId: string) {
         recorderRef.current = recorder;
 
         const socketOrigin = getSocketOrigin();
-        logYouTubePipeline('ingest:socket:connecting', {
+        const socketUrl = `${socketOrigin}/stream`;
+        logYouTubePipeline('STAGE-2-SOCKET', 'socket:url-resolved', {
           socketOrigin,
+          socketUrl,
+          webPageOrigin: typeof window !== 'undefined' ? window.location.origin : null,
           namespace: '/stream',
+          transport: 'websocket',
           sessionCount: sessions.length,
           streamIds: sessions.map((s) => s.id),
         });
+        logYouTubePipeline('STAGE-2-SOCKET', 'socket:connecting');
 
         const sockets = sessions.map(
           (session) =>
-            io(`${socketOrigin}/stream`, {
+            io(socketUrl, {
               query: { streamId: session.id, token: session.ingestToken },
               transports: ['websocket'],
             }),
@@ -208,7 +227,7 @@ export function useYouTubeLiveStream(meetingId: string) {
           if (recorder.state !== 'inactive') return;
           try {
             recorder.start(1000);
-            logYouTubePipeline('capture:media-recorder:started', {
+            logYouTubePipeline('STAGE-1-BROWSER', 'media-recorder:started', {
               state: recorder.state,
               timesliceMs: 1000,
               mimeType: recorder.mimeType,
@@ -217,7 +236,7 @@ export function useYouTubeLiveStream(meetingId: string) {
             setPendingResume(false);
             setConnectionState('connected');
           } catch (err) {
-            logYouTubePipelineError('capture:media-recorder:start-failed', err);
+            logYouTubePipelineError('STAGE-1-BROWSER', 'media-recorder:start-failed', err);
             const message = err instanceof Error ? err.message : 'Could not start media capture';
             setConnectionState('error');
             setError(formatYouTubeLiveUserError(err, 'youtube-live:recorder'));
@@ -230,13 +249,14 @@ export function useYouTubeLiveStream(meetingId: string) {
           chunksEmitted += 1;
           const bytes = new Uint8Array(await event.data.arrayBuffer());
           if (chunksEmitted === 1) {
-            logYouTubePipeline('capture:media-recorder:first-chunk', {
+            logYouTubePipeline('STAGE-1-BROWSER', 'media-recorder:first-chunk', {
+              chunkNumber: 1,
               bytes: bytes.byteLength,
               type: event.data.type,
             });
           } else if (chunksEmitted % 10 === 0) {
-            logYouTubePipeline('capture:media-recorder:chunk-progress', {
-              chunksEmitted,
+            logYouTubePipeline('STAGE-1-BROWSER', 'media-recorder:chunk-progress', {
+              chunkNumber: chunksEmitted,
               bytes: bytes.byteLength,
             });
           }
@@ -248,7 +268,7 @@ export function useYouTubeLiveStream(meetingId: string) {
             }
           }
           if (chunksEmitted === 1) {
-            logYouTubePipeline('ingest:socket:first-chunk-emitted', {
+            logYouTubePipeline('STAGE-2-SOCKET', 'socket:first-chunk-emitted', {
               bytes: bytes.byteLength,
               socketsConnected,
               socketsTotal: socketsRef.current.length,
@@ -257,26 +277,54 @@ export function useYouTubeLiveStream(meetingId: string) {
         };
 
         for (const socket of sockets) {
+          const sessionStreamId =
+            (socket.io.opts.query as { streamId?: string } | undefined)?.streamId ?? null;
+
+          socket.io.on('reconnect_attempt', (attempt) => {
+            logYouTubePipeline('STAGE-2-SOCKET', 'socket:reconnect-attempt', {
+              attempt,
+              streamId: sessionStreamId,
+            });
+          });
+
+          socket.io.on('reconnect_error', (err) => {
+            logYouTubePipelineError('STAGE-2-SOCKET', 'socket:reconnect-error', err, {
+              streamId: sessionStreamId,
+            });
+          });
+
+          socket.io.on('reconnect_failed', () => {
+            logYouTubePipeline('STAGE-2-SOCKET', 'socket:reconnect-failed', {
+              streamId: sessionStreamId,
+            });
+          });
+
           socket.on('connect', () => {
             connectedCount += 1;
-            logYouTubePipeline('ingest:socket:connected', {
+            logYouTubePipeline('STAGE-2-SOCKET', 'socket:connected', {
               socketId: socket.id,
               connectedCount,
               requiredConnections,
-              streamId: socket.io.opts.query?.streamId ?? null,
+              streamId: sessionStreamId,
+              transport: socket.io.engine?.transport?.name ?? 'unknown',
             });
             tryStartRecorder();
           });
 
           socket.on('disconnect', (reason) => {
-            logYouTubePipeline('ingest:socket:disconnected', { reason });
+            logYouTubePipeline('STAGE-2-SOCKET', 'socket:disconnected', {
+              reason,
+              streamId: sessionStreamId,
+            });
             setConnectionState('disconnected');
             setCaptureActive(false);
           });
 
           socket.on('connect_error', (err) => {
-            logYouTubePipelineError('ingest:socket:connect-error', err, {
+            logYouTubePipelineError('STAGE-2-SOCKET', 'socket:connect-error', err, {
               socketOrigin,
+              socketUrl,
+              streamId: sessionStreamId,
             });
             setConnectionState('error');
             setError('Could not connect media relay. Check your connection and try again.');
@@ -369,14 +417,14 @@ export function useYouTubeLiveStream(meetingId: string) {
       let pendingCapture: MediaStream | null = null;
       try {
         pendingCapture = await requestDisplayCapture();
-        logYouTubePipeline('api:stream.start:request', { meetingId });
+        logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:request', { meetingId });
         const session = (await api.stream.start(meetingId, params)) as StreamSession & {
           ingestToken: string;
           sessions?: StreamSession[];
         };
         startedOnServer = true;
         serverStreamActiveRef.current = true;
-        logYouTubePipeline('api:stream.start:success', {
+        logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:success', {
           streamId: session.id,
           sessionCount: session.sessions?.length ?? 1,
           hasIngestToken: Boolean(session.ingestToken),

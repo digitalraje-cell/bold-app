@@ -1040,7 +1040,7 @@ export class YoutubeService {
       const streamStatus = parsed.items?.[0]?.status?.streamStatus ?? null;
       const healthStatus = parsed.items?.[0]?.status?.healthStatus ?? null;
       this.logger.log(
-        `[youtube-live-pipeline] youtube:liveStreams.list youtubeStreamId=${youtubeStreamId} streamStatus=${streamStatus} healthStatus=${healthStatus}`,
+        `[youtube-live-pipeline] STAGE-6-YOUTUBE liveStreams.list youtubeStreamId=${youtubeStreamId} streamStatus=${streamStatus} healthStatus=${healthStatus} responseBody=${body.slice(0, 1500)}`,
       );
       return { streamStatus, healthStatus };
     } catch {
@@ -1059,31 +1059,37 @@ export class YoutubeService {
       `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&id=${encodeURIComponent(broadcastId)}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
+    const body = await res.text();
     if (!res.ok) {
+      this.logger.warn(
+        `[youtube-live-pipeline] STAGE-6-YOUTUBE liveBroadcasts.list:failed broadcastId=${broadcastId} httpStatus=${res.status} body=${body.slice(0, 1500)}`,
+      );
       return { lifeCycleStatus: null, actualStartTime: null };
     }
-    const data = (await res.json()) as {
+    let data: {
       items?: Array<{
         status?: { lifeCycleStatus?: string };
         snippet?: { actualStartTime?: string };
       }>;
     };
+    try {
+      data = JSON.parse(body) as typeof data;
+    } catch {
+      this.logger.warn(
+        `[youtube-live-pipeline] STAGE-6-YOUTUBE liveBroadcasts.list:parse-failed broadcastId=${broadcastId} body=${body.slice(0, 500)}`,
+      );
+      return { lifeCycleStatus: null, actualStartTime: null };
+    }
     const item = data.items?.[0];
-    return {
-      lifeCycleStatus: item?.status?.lifeCycleStatus ?? null,
-      actualStartTime: item?.snippet?.actualStartTime ?? null,
-    };
-  }
-
-  private async fetchBroadcastLifeCycleStatus(
-    accessToken: string,
-    broadcastId: string,
-  ): Promise<string | null> {
-    const details = await this.fetchBroadcastLifecycle(
-      accessToken,
-      broadcastId,
+    const lifeCycleStatus = item?.status?.lifeCycleStatus ?? null;
+    const actualStartTime = item?.snippet?.actualStartTime ?? null;
+    this.logger.log(
+      `[youtube-live-pipeline] STAGE-6-YOUTUBE liveBroadcasts.list broadcastId=${broadcastId} lifecycleStatus=${lifeCycleStatus} actualStartTime=${actualStartTime ?? 'null'} responseBody=${body.slice(0, 1500)}`,
     );
-    return details.lifeCycleStatus;
+    return {
+      lifeCycleStatus,
+      actualStartTime,
+    };
   }
 
   private async getBroadcastEnableAutoStart(
@@ -1263,7 +1269,7 @@ export class YoutubeService {
   ): Promise<void> {
     const url = `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=${status}&id=${encodeURIComponent(broadcastId)}&part=snippet,status,contentDetails`;
     this.logger.log(
-      `[youtube-live] transitionBroadcast:request targetStatus=${status} broadcastId=${broadcastId} url=${url}`,
+      `[youtube-live-pipeline] STAGE-7-TRANSITION transition:request targetStatus=${status} broadcastId=${broadcastId}`,
     );
 
     const res = await fetch(url, {
@@ -1274,7 +1280,7 @@ export class YoutubeService {
     const body = await res.text();
     if (!res.ok) {
       this.logger.error(
-        `[youtube-live] transitionBroadcast:failed targetStatus=${status} broadcastId=${broadcastId} httpStatus=${res.status} body=${body.slice(0, 1000)}`,
+        `[youtube-live-pipeline] STAGE-7-TRANSITION transition:failed targetStatus=${status} broadcastId=${broadcastId} httpStatus=${res.status} responseBody=${body.slice(0, 1500)}`,
       );
       throw new ServiceUnavailableException(
         `YouTube broadcast transition (${status}) failed: ${body.slice(0, 300)}`,
@@ -1293,12 +1299,12 @@ export class YoutubeService {
     }
 
     this.logger.log(
-      `[youtube-live] transitionBroadcast:success targetStatus=${status} ${JSON.stringify(
+      `[youtube-live-pipeline] STAGE-7-TRANSITION transition:success targetStatus=${status} ${JSON.stringify(
         {
           broadcastId: parsed?.id ?? broadcastId,
           lifeCycleStatus: parsed?.status?.lifeCycleStatus ?? null,
           actualStartTime: parsed?.snippet?.actualStartTime ?? null,
-          responseBody: body.slice(0, 1000),
+          responseBody: body.slice(0, 1500),
         },
       )}`,
     );

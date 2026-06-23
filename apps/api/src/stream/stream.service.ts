@@ -385,7 +385,7 @@ export class StreamService implements OnModuleInit, OnModuleDestroy {
     pending.transitionAttempted = true;
     const stats = this.relay.getIngestStats(boldStreamId);
         this.logger.log(
-          `[youtube-live-pipeline] stream.schedule-transition:start ${JSON.stringify({
+          `[youtube-live-pipeline] STAGE-7-TRANSITION schedule-transition:start ${JSON.stringify({
             meetingId: pending.meetingId,
             broadcastId: pending.broadcastId,
             streamId: pending.youtubeStreamId,

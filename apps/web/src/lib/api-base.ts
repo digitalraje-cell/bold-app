@@ -1,4 +1,14 @@
-const LOCAL_API = 'http://localhost:4000';
+/** Production Nest API origin (Socket.IO + server-side fallback). */
+export const PRODUCTION_API_ORIGIN = 'https://boldmeetapi-production.up.railway.app';
+
+const DEV_API_PORT = 4000;
+
+function devApiOrigin(): string {
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:${DEV_API_PORT}`;
+  }
+  return `http://127.0.0.1:${DEV_API_PORT}`;
+}
 
 /** Strip trailing slashes and a trailing `/api` segment from an API origin. */
 export function normalizeApiOrigin(value?: string | null): string | null {
@@ -18,25 +28,38 @@ function readEnvOrigin(...keys: string[]): string | null {
   return null;
 }
 
-/** Server-side Nest API origin (no /api suffix). */
-export function getServerApiOrigin(): string {
-  return (
-    readEnvOrigin('API_URL', 'NEXT_PUBLIC_API_URL', 'RAILWAY_SERVICE_BOLD_API_URL') ||
-    LOCAL_API
-  );
-}
-
-/** Full REST base including the Nest global `/api` prefix. */
-export function getServerApiBaseUrl(): string {
-  return `${getServerApiOrigin()}/api`;
-}
-
 function isLocalOrigin(origin: string): boolean {
   return (
     origin.includes('localhost') ||
     origin.includes('127.0.0.1') ||
     origin.startsWith('http://0.0.0.0')
   );
+}
+
+function resolveConfiguredPublicApiOrigin(): string | null {
+  return (
+    readEnvOrigin('NEXT_PUBLIC_SOCKET_URL', 'NEXT_PUBLIC_API_URL', 'API_URL') ||
+    null
+  );
+}
+
+/** Server-side Nest API origin (no /api suffix). */
+export function getServerApiOrigin(): string {
+  const configured = readEnvOrigin(
+    'API_URL',
+    'NEXT_PUBLIC_API_URL',
+    'RAILWAY_SERVICE_BOLD_API_URL',
+  );
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'production') {
+    return PRODUCTION_API_ORIGIN;
+  }
+  return devApiOrigin();
+}
+
+/** Full REST base including the Nest global `/api` prefix. */
+export function getServerApiBaseUrl(): string {
+  return `${getServerApiOrigin()}/api`;
 }
 
 /**
@@ -58,33 +81,37 @@ export function getClientApiTransport(): 'proxy' | 'direct-server' {
   return typeof window === 'undefined' ? 'direct-server' : 'proxy';
 }
 
-/** Socket.io must connect to the API host (cannot use HTTP rewrite proxy). */
+/**
+ * Socket.io must connect to the API host (cannot use HTTP rewrite proxy).
+ * Never returns localhost when the page is served from a non-local origin.
+ */
 export function getSocketOrigin(): string {
-  const configured =
-    normalizeApiOrigin(process.env.NEXT_PUBLIC_SOCKET_URL) ||
-    normalizeApiOrigin(process.env.NEXT_PUBLIC_API_URL) ||
-    (typeof window === 'undefined' ? getServerApiOrigin() : null);
-
-  if (configured && !isLocalOrigin(configured)) {
+  const configured = resolveConfiguredPublicApiOrigin();
+  if (configured) {
     return configured;
   }
 
   if (typeof window !== 'undefined') {
-    const fallback = getServerApiOrigin();
-    if (isLocalOrigin(fallback) && !isLocalOrigin(window.location.origin)) {
-      console.error(
-        '[youtube-live-pipeline] socket-origin:misconfigured',
-        JSON.stringify({
-          resolved: fallback,
-          webOrigin: window.location.origin,
-          hint: 'Set NEXT_PUBLIC_SOCKET_URL (or API_URL at web build) to the Nest API origin',
-        }),
-      );
+    if (isLocalOrigin(window.location.origin)) {
+      return devApiOrigin();
     }
-    return fallback;
+    console.error(
+      '[youtube-live-pipeline] socket-origin:missing',
+      JSON.stringify({
+        webOrigin: window.location.origin,
+        hint: 'Set NEXT_PUBLIC_SOCKET_URL at web build time (e.g. https://boldmeetapi-production.up.railway.app)',
+      }),
+    );
+    throw new Error(
+      'YouTube Live socket URL is not configured. Rebuild the web app with NEXT_PUBLIC_SOCKET_URL.',
+    );
   }
 
-  return getServerApiOrigin();
+  if (process.env.NODE_ENV === 'production') {
+    return PRODUCTION_API_ORIGIN;
+  }
+
+  return devApiOrigin();
 }
 
 export function buildNestApiUrl(path: string): string {

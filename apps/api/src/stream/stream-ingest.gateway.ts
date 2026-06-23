@@ -14,6 +14,8 @@ import { StreamService } from './stream.service';
 
 type IngestSocketData = {
   streamId?: string;
+  chunksReceived?: number;
+  bytesReceived?: number;
 };
 
 function getStreamId(client: Socket): string | undefined {
@@ -49,11 +51,12 @@ export class StreamIngestGateway
 
     if (!streamId || !token || !this.relay.verifyIngestToken(streamId, token)) {
       this.logger.warn(
-        `[youtube-live-pipeline] ingest:connection-rejected ${JSON.stringify({
+        `[youtube-live-pipeline] STAGE-3-GATEWAY websocket:connection-rejected ${JSON.stringify({
           streamId: streamId || 'missing',
           hasToken: Boolean(token),
           relayRunning,
           clientId: client.id,
+          origin: client.handshake.headers.origin ?? null,
         })}`,
       );
       client.disconnect();
@@ -61,9 +64,14 @@ export class StreamIngestGateway
     }
 
     (client.data as IngestSocketData).streamId = streamId;
+    (client.data as IngestSocketData).chunksReceived = 0;
+    (client.data as IngestSocketData).bytesReceived = 0;
     this.relay.setIngestConnected(streamId, true);
     this.logger.log(
-      `[youtube-live-pipeline] ingest:websocket-connected streamId=${streamId} clientId=${client.id} relayRunning=${relayRunning}`,
+      `[youtube-live-pipeline] STAGE-3-GATEWAY websocket:connected streamId=${streamId} clientId=${client.id} relayRunning=${relayRunning} origin=${client.handshake.headers.origin ?? 'unknown'}`,
+    );
+    this.logger.log(
+      `[youtube-live-pipeline] STAGE-3-GATEWAY ingest-session:started streamId=${streamId}`,
     );
     this.streamService.onYoutubeIngestSocketConnected(streamId);
   }
@@ -74,7 +82,7 @@ export class StreamIngestGateway
       this.relay.setIngestConnected(streamId, false);
       const stats = this.relay.getIngestStats(streamId);
       this.logger.log(
-        `[youtube-live-pipeline] ingest:websocket-disconnected streamId=${streamId} chunksReceived=${stats?.chunksReceived ?? 0} bytesReceived=${stats?.bytesReceived ?? 0}`,
+        `[youtube-live-pipeline] STAGE-3-GATEWAY websocket:disconnected streamId=${streamId} chunksReceived=${stats?.chunksReceived ?? 0} bytesReceived=${stats?.bytesReceived ?? 0}`,
       );
     }
   }
@@ -83,31 +91,43 @@ export class StreamIngestGateway
   handleChunk(@ConnectedSocket() client: Socket, data: Buffer | ArrayBuffer) {
     const streamId = getStreamId(client);
     if (!streamId) {
-      this.logger.warn('[youtube-live-pipeline] ingest:chunk-no-stream-id');
+      this.logger.warn('[youtube-live-pipeline] STAGE-3-GATEWAY chunk:no-stream-id');
       return { ok: false };
     }
 
     const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
     if (chunk.length === 0) {
       this.logger.warn(
-        `[youtube-live-pipeline] ingest:empty-chunk streamId=${streamId}`,
+        `[youtube-live-pipeline] STAGE-3-GATEWAY chunk:empty streamId=${streamId}`,
       );
       return { ok: false };
     }
 
+    const socketData = client.data as IngestSocketData;
+    const gatewayChunksBefore = socketData.chunksReceived ?? 0;
     const statsBefore = this.relay.getIngestStats(streamId);
-    if ((statsBefore?.chunksReceived ?? 0) === 0) {
+
+    if (gatewayChunksBefore === 0) {
       this.logger.log(
-        `[youtube-live-pipeline] ingest:first-chunk-received streamId=${streamId} bytes=${chunk.length} ingestConnected=${statsBefore?.ingestConnected ?? false}`,
+        `[youtube-live-pipeline] STAGE-3-GATEWAY chunk:first-received streamId=${streamId} bytes=${chunk.length} relayChunksBefore=${statsBefore?.chunksReceived ?? 0}`,
       );
     }
 
     const ok = this.relay.writeChunk(streamId, chunk);
     if (!ok) {
       this.logger.error(
-        `[youtube-live-pipeline] ingest:chunk-write-failed streamId=${streamId} bytes=${chunk.length}`,
+        `[youtube-live-pipeline] STAGE-3-GATEWAY chunk:relay-write-failed streamId=${streamId} bytes=${chunk.length}`,
       );
       return { ok: false };
+    }
+
+    socketData.chunksReceived = gatewayChunksBefore + 1;
+    socketData.bytesReceived = (socketData.bytesReceived ?? 0) + chunk.length;
+
+    if (socketData.chunksReceived % 10 === 0) {
+      this.logger.log(
+        `[youtube-live-pipeline] STAGE-3-GATEWAY chunk:progress streamId=${streamId} chunkCount=${socketData.chunksReceived} totalBytes=${socketData.bytesReceived}`,
+      );
     }
 
     if ((statsBefore?.chunksReceived ?? 0) === 0) {
