@@ -16,6 +16,7 @@ import {
 } from '@/stores/roomStore';
 import { useMeetingFullscreen } from '@/contexts/MeetingFullscreenContext';
 import { useMeetingControlsAutoHide } from '@/hooks/useMeetingControlsAutoHide';
+import { useMeetingPageLifecycle } from '@/hooks/useMeetingPageLifecycle';
 import { mergeJitsiRoster, useMeetingLayout } from '@/hooks/useMeetingLayout';
 import { FullscreenWrapper } from '@/components/meeting/FullscreenWrapper';
 import { ControlsBar } from '@/components/meeting/ControlsBar';
@@ -51,6 +52,16 @@ import {
   openYoutubeWatchTab,
   shouldAutoOpenYoutubeWatchTab,
 } from '@/lib/stream-live-ui';
+import {
+  buildMeetingControlsDiagnosticReport,
+  buildMoreMenuVisibility,
+  publishMeetingControlsDiagnostics,
+  logMeetingControlsEvent,
+} from '@/lib/media/meeting-controls-diagnostics';
+import {
+  detectScreenShareCapability,
+  getScreenShareUnsupportedMessage,
+} from '@/lib/media/screen-share-capability';
 
 function streamPanelStorageKey(meetingId: string) {
   return `bold:stream-panel-open:${meetingId}`;
@@ -187,6 +198,12 @@ function MeetingRoomInner({
   const canShareScreen =
     canShareScreenInRoom(myParticipant, roomMode, screenShareEnabled) ||
     (isHost && myRole === 'HOST' && !myParticipant);
+
+  const screenShareCapability = useMemo(() => detectScreenShareCapability(), []);
+  const shareUnavailable = canShareScreen && !screenShareCapability.supported;
+  const shareUnavailableHint = shareUnavailable
+    ? getScreenShareUnsupportedMessage(screenShareCapability)
+    : undefined;
 
   const {
     broadcastStatus: streamBroadcastStatus,
@@ -417,6 +434,8 @@ function MeetingRoomInner({
     layoutPrefs.autoHideControls,
   );
 
+  useMeetingPageLifecycle(mediaReady, revealControls);
+
   const handleDurationExpired = useCallback(() => {
     hangupRef.current?.();
   }, []);
@@ -566,15 +585,30 @@ function MeetingRoomInner({
   };
 
   const handleToggleShare = () => {
+    logMeetingControlsEvent('screen-share-attempt', {
+      userRole: myRole,
+      canShareScreenByRole: canShareScreen,
+      shareUnavailable,
+    });
+
     if (!canShareScreen) {
-      setShareError(
-        screenShareEnabled
-          ? 'Screen sharing is not available for your role'
-          : 'The host has not allowed participant screen sharing',
-      );
+      const message = screenShareEnabled
+        ? 'Screen sharing is not available for your role'
+        : 'The host has not allowed participant screen sharing';
+      logMeetingControlsEvent('screen-share-blocked', { reason: 'role', message });
+      setShareError(message);
       setTimeout(() => setShareError(null), 4000);
       return;
     }
+
+    if (!screenShareCapability.supported) {
+      const message = getScreenShareUnsupportedMessage(screenShareCapability);
+      logMeetingControlsEvent('screen-share-blocked', { reason: 'browser', message });
+      setShareError(message);
+      setTimeout(() => setShareError(null), 6000);
+      return;
+    }
+
     setShareError(null);
     toggleShareScreen();
   };
@@ -756,6 +790,45 @@ function MeetingRoomInner({
       // ignore — settings:update socket syncs on success
     }
   };
+
+  useEffect(() => {
+    if (!mediaReady) return;
+
+    const isHostRole = myRole === 'HOST';
+    const noop = () => undefined;
+    const visibility = buildMoreMenuVisibility({
+      reactionsEnabled,
+      raiseHandEnabled,
+      canManageBroadcast: isModerator,
+      onGoLive: isModerator ? noop : undefined,
+      onInvite: isModerator ? noop : undefined,
+      onSwitchRoomMode: isModerator ? noop : undefined,
+      onMuteAll: isModerator ? noop : undefined,
+      onToggleLock: isHostRole ? noop : undefined,
+      onToggleWaitingRoom: isHostRole ? noop : undefined,
+      onToggleParticipantScreenShare: isHostRole ? noop : undefined,
+      onEndMeeting: isHostRole ? noop : undefined,
+      isHost: isHostRole,
+      isModerator,
+    });
+
+    publishMeetingControlsDiagnostics(
+      buildMeetingControlsDiagnosticReport({
+        userRole: myRole,
+        isHost: isHostRole,
+        isModerator,
+        moreOpen: false,
+        hasMoreItems:
+          reactionsEnabled ||
+          raiseHandEnabled ||
+          isModerator ||
+          isHostRole ||
+          true,
+        visibility,
+        canShareScreenByRole: canShareScreen,
+      }),
+    );
+  }, [mediaReady, myRole, isModerator, reactionsEnabled, raiseHandEnabled, canShareScreen]);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0f172a]">
@@ -957,6 +1030,8 @@ function MeetingRoomInner({
         micDisabled={!canMic}
         cameraDisabled={!canCamera}
         shareDisabled={!canShareScreen}
+        shareUnavailable={shareUnavailable}
+        shareUnavailableHint={shareUnavailableHint}
         onToggleMic={handleToggleMic}
         onToggleVideo={handleToggleVideo}
         onToggleShare={handleToggleShare}
