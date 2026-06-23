@@ -155,11 +155,28 @@ model User {
   roadmapVotes         RoadmapVote[]
   connectedAccounts    ConnectedAccount[]
   planInterests        PlanInterest[]
+  meetingPosterAssets  MeetingPosterAsset[]
   isPwaInstalled       Boolean   @default(false) @map("is_pwa_installed")
   pwaInstalledAt       DateTime? @map("pwa_installed_at")
   lastPwaLaunchAt      DateTime? @map("last_pwa_launch_at")
 
   @@map("users")
+}
+
+model MeetingPosterAsset {
+  id        String   @id @default(cuid())
+  hostId    String
+  meetingId String?  @unique
+  mimeType  String
+  sizeBytes Int
+  data      Bytes    @db.ByteA
+  createdAt DateTime @default(now())
+
+  host    User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  meeting Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([hostId])
+  @@map("meeting_poster_assets")
 }
 
 model OtpVerification {
@@ -243,6 +260,7 @@ model Meeting {
   registrants   MeetingRegistrant[]
   chatMessages  ChatMessage[]
   youtubeStreams YouTubeStream[]
+  posterAsset   MeetingPosterAsset?
 
   @@index([hostId])
   @@index([status])

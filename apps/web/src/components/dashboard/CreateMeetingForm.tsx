@@ -50,6 +50,7 @@ export function CreateMeetingForm() {
   const [customDuration, setCustomDuration] = useState('');
   const [settings, setSettings] = useState(DEFAULT_MEETING_SETTINGS);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [posterUploading, setPosterUploading] = useState(false);
   const [passcodeRequired, setPasscodeRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -100,7 +101,7 @@ export function CreateMeetingForm() {
 
     setTouched({ title: true, passcode: true, scheduledAt: true });
 
-    if (!isFormValid) return;
+    if (!isFormValid || posterUploading) return;
 
     if (!session?.user?.isVerified) {
       setError('Verify your account to host meetings');
@@ -202,7 +203,11 @@ export function CreateMeetingForm() {
             placeholder="What's this meeting about?"
           />
 
-          <MeetingPosterUpload value={posterUrl} onChange={setPosterUrl} />
+          <MeetingPosterUpload
+            value={posterUrl}
+            onChange={setPosterUrl}
+            onUploadingChange={setPosterUploading}
+          />
 
           {!isInstant && (
             <>
@@ -308,7 +313,7 @@ export function CreateMeetingForm() {
             <Button type="button" variant="secondary" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" loading={loading} disabled={!isFormValid || loading}>
+            <Button type="submit" loading={loading} disabled={!isFormValid || loading || posterUploading}>
               {isInstant ? 'Start Meeting' : 'Schedule Meeting'}
             </Button>
           </div>

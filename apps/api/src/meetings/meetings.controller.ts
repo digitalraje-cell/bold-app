@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -155,6 +156,15 @@ export class MeetingsController {
     @Param('id') id: string,
   ) {
     return this.meetingsService.endMeeting(id, req.user.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard, VerifiedGuard)
+  permanentlyDeleteMeeting(
+    @Req() req: Request & { user: AuthUser },
+    @Param('id') id: string,
+  ) {
+    return this.meetingsService.permanentlyDeleteMeeting(id, req.user.id);
   }
 
   @Post(':id/leave')

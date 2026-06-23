@@ -32,6 +32,7 @@ import {
 } from './dto/meeting.dto';
 import { normalizePosterUrl } from './poster.util';
 import { JitsiTokenService } from './jitsi-token.service';
+import { MeetingPosterService } from './meeting-poster.service';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -39,6 +40,7 @@ export class MeetingsService {
     private permissionsService: PermissionsService,
     private gateway: MeetingGateway,
     private jitsiTokenService: JitsiTokenService,
+    private posterService: MeetingPosterService,
   ) {}
 
   private meetingIdentifierWhere(idOrCode: string) {
@@ -169,6 +171,14 @@ export class MeetingsService {
       },
       include: { settings: true },
     });
+
+    if (meeting.settings?.posterUrl) {
+      await this.posterService.linkToMeeting(
+        meeting.settings.posterUrl,
+        meeting.id,
+        hostId,
+      );
+    }
 
     await this.prisma.participant.create({
       data: {
@@ -608,17 +618,30 @@ export class MeetingsService {
   ) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { id: meetingId },
+      include: { settings: true },
     });
     if (!meeting) throw new NotFoundException('Meeting not found');
     if (meeting.hostId !== hostId)
       throw new ForbiddenException('Only the host can update settings');
 
     const { posterUrl, ...rest } = dto;
+    const normalizedPosterUrl =
+      posterUrl !== undefined ? normalizePosterUrl(posterUrl) : undefined;
+
+    if (posterUrl !== undefined) {
+      await this.posterService.replaceMeetingPoster(
+        meetingId,
+        hostId,
+        meeting.settings?.posterUrl,
+        normalizedPosterUrl,
+      );
+    }
+
     const settings = await this.prisma.meetingSettings.update({
       where: { meetingId },
       data: {
         ...rest,
-        ...(posterUrl !== undefined ? { posterUrl: normalizePosterUrl(posterUrl) } : {}),
+        ...(posterUrl !== undefined ? { posterUrl: normalizedPosterUrl } : {}),
       },
     });
 
@@ -677,6 +700,25 @@ export class MeetingsService {
     this.gateway.broadcastMeetingEnded(meeting.id, 'Meeting ended by host');
 
     return updated;
+  }
+
+  async permanentlyDeleteMeeting(meetingId: string, hostId: string) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      include: { settings: true },
+    });
+    if (!meeting) throw new NotFoundException('Meeting not found');
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Only the host can delete the meeting');
+    }
+
+    await this.posterService.deleteAssetsForMeeting(meetingId);
+
+    await this.prisma.meeting.delete({
+      where: { id: meetingId },
+    });
+
+    return { deleted: true, meetingId };
   }
 
   async leaveMeeting(idOrCode: string, userId: string) {

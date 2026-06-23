@@ -126,6 +126,40 @@ export const api = {
       }, false),
     create: (data: Record<string, unknown>) =>
       apiFetch('/meetings', { method: 'POST', body: JSON.stringify(data) }),
+    uploadPoster: async (file: Blob, filename: string) => {
+      const formData = new FormData();
+      formData.append('poster', file, filename);
+
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      let res: Response;
+      try {
+        res = await fetch('/api/meetings/poster/upload', {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Network request failed';
+        throw new Error(`Poster upload failed: ${message}`);
+      }
+
+      if (!res.ok) {
+        const { message } = await parseErrorResponse(res);
+        throw new Error(message);
+      }
+
+      return res.json() as Promise<{
+        id: string;
+        posterUrl: string;
+        mimeType: string;
+        sizeBytes: number;
+      }>;
+    },
     join: (id: string, data: {
       displayName: string;
       password?: string;
