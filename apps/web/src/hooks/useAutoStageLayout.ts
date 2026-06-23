@@ -24,6 +24,7 @@ export function useAutoStageLayout(
     context.isScreenSharing,
     context.isPresenterLayout,
     context.roomMode,
+    context.isYoutubeLiveCapturing,
     api.mediaReady,
   ]);
 

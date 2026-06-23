@@ -12,6 +12,8 @@ export type MeetingStageContext = {
   isScreenSharing: boolean;
   isPresenterLayout: boolean;
   roomMode: RoomMode;
+  /** Host is relaying the meeting tab to YouTube — keep tiles visible for capture + monitoring. */
+  isYoutubeLiveCapturing?: boolean;
 };
 
 /**
@@ -24,16 +26,23 @@ export function applyAutoStageLayout(
 ) {
   if (!api.mediaReady) return;
 
-  const presenting = context.isScreenSharing || context.isPresenterLayout;
+  const screenShareActive = context.isScreenSharing;
   const webinar = context.roomMode === RoomMode.WEBINAR;
 
   api.runJitsiCommand?.('overwriteConfig', {
     disableStageFilmstrip: true,
     disableShowVideoMutedAvatar: true,
-    disableTileEnlargement: presenting,
+    disableTileEnlargement: screenShareActive,
   });
 
-  if (presenting) {
+  if (context.isYoutubeLiveCapturing && !screenShareActive) {
+    api.setTileView(true);
+    api.setFilmstripVisible(true);
+    api.setSelfViewHidden(false);
+    return;
+  }
+
+  if (screenShareActive) {
     api.setTileView(false);
     api.setFilmstripVisible(true);
     api.setSelfViewHidden(true);
@@ -54,7 +63,7 @@ export function applyAutoStageLayout(
 
 export function meetingStageShellClass(context: MeetingStageContext): string {
   const classes = ['meeting-jitsi-shell', 'meeting-jitsi-shell--auto'];
-  if (context.isScreenSharing || context.isPresenterLayout) {
+  if (context.isScreenSharing) {
     classes.push('meeting-jitsi-shell--presenting');
   }
   if (context.roomMode === RoomMode.WEBINAR) {

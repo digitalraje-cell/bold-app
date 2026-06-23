@@ -151,15 +151,11 @@ export function YouTubeLiveStatusStack({
             retryLoading={streamResuming}
           />
         ) : (
-          <div className="flex justify-end">
-            <StreamLivePill displayStatus={streamDisplayStatus} onClick={onShowStreamPanel} />
-          </div>
+          <StreamLivePill displayStatus={streamDisplayStatus} onClick={onShowStreamPanel} />
         ))}
 
       {!youtubeModalOpen && isLiveStream && !isModerator && (
-        <div className="flex justify-end">
-          <StreamLivePill displayStatus="LIVE" />
-        </div>
+        <StreamLivePill displayStatus="LIVE" />
       )}
     </div>
   );

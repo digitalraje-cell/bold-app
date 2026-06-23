@@ -1,6 +1,6 @@
-/** Non-blocking top-right stack for YouTube Live status, toasts, and panels. */
+/** Non-blocking top-right stack for YouTube Live badge and optional control panel. */
 export const YOUTUBE_OVERLAY_STACK_CLASS =
-  'pointer-events-none fixed right-3 z-40 flex w-[min(calc(100vw-1.5rem),20rem)] flex-col items-stretch gap-2 sm:right-4';
+  'pointer-events-none fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 flex w-[min(calc(100vw-1.5rem),18rem)] flex-col items-end gap-2 sm:right-4';
 
 export function youtubeOverlayStackTopClass(offsetBelowHeader = false): string {
   const base = 'top-[max(0.75rem,env(safe-area-inset-top))]';

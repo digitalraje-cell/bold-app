@@ -61,11 +61,6 @@ function streamPanelStorageKey(meetingId: string) {
   return `bold:stream-panel-open:${meetingId}`;
 }
 
-function readStreamPanelOpen(meetingId: string): boolean {
-  if (typeof window === 'undefined') return true;
-  return sessionStorage.getItem(streamPanelStorageKey(meetingId)) !== 'closed';
-}
-
 function clearStreamPanelStorage(meetingId: string) {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(streamPanelStorageKey(meetingId));
@@ -116,7 +111,7 @@ function MeetingRoomInner({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>();
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
-  const [streamPanelOpen, setStreamPanelOpen] = useState(() => readStreamPanelOpen(meetingId));
+  const [streamPanelOpen, setStreamPanelOpen] = useState(false);
   const [youtubeLiveToast, setYoutubeLiveToast] = useState(false);
   const [mediaSession, setMediaSession] = useState<{
     loading: boolean;
@@ -366,7 +361,7 @@ function MeetingRoomInner({
     stopLive,
     loadModeratorState,
     setError: setStreamError,
-  } = useYouTubeLiveStream(meetingId, youtubeCaptureContext);
+  } = useYouTubeLiveStream(meetingId, youtubeCaptureContext, containerRef);
 
   useEffect(() => {
     stopLiveRef.current = stopLive;
@@ -398,8 +393,21 @@ function MeetingRoomInner({
       isScreenSharing,
       isPresenterLayout,
       roomMode,
+      isYoutubeLiveCapturing:
+        streamCaptureActive ||
+        isLiveStream ||
+        streamStarting ||
+        streamDisplayStatus === 'CONNECTING',
     }),
-    [isScreenSharing, isPresenterLayout, roomMode],
+    [
+      isScreenSharing,
+      isPresenterLayout,
+      roomMode,
+      streamCaptureActive,
+      isLiveStream,
+      streamStarting,
+      streamDisplayStatus,
+    ],
   );
 
   const { shellClassName } = useAutoStageLayout(jitsiLayoutApi, stageContext);
@@ -730,11 +738,16 @@ function MeetingRoomInner({
   ]);
 
   useEffect(() => {
+    if (!isLiveStream) return;
+    setStreamPanelOpen(false);
+  }, [isLiveStream]);
+
+  useEffect(() => {
     if (isLiveStream) return;
     youtubeTabOpenedRef.current = false;
     queueMicrotask(() => {
       setYoutubeLiveToast(false);
-      setStreamPanelOpen(true);
+      setStreamPanelOpen(false);
       clearStreamPanelStorage(meetingId);
     });
   }, [isLiveStream, meetingId]);
@@ -743,7 +756,7 @@ function MeetingRoomInner({
     if (streamDisplayStatus !== 'OFFLINE') return;
     queueMicrotask(() => {
       setYoutubeLiveToast(false);
-      setStreamPanelOpen(true);
+      setStreamPanelOpen(false);
       clearStreamPanelStorage(meetingId);
     });
   }, [streamDisplayStatus, meetingId]);
@@ -838,6 +851,7 @@ function MeetingRoomInner({
 
       <div
         ref={containerRef}
+        data-meeting-stage
         className={`meeting-jitsi-shell ${shellClassName} absolute inset-0 min-h-[200px] touch-manipulation bg-[#0f172a] [&_iframe]:min-h-full [&_iframe]:w-full [&_iframe]:border-0 [&_iframe]:bg-[#0f172a] ${
           !mediaReady ? 'invisible pointer-events-none' : ''
         }`}

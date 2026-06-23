@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   toStartYouTubeLiveApiBody,
@@ -138,13 +138,20 @@ function deriveStreamHealth(
   return 'offline';
 }
 
-async function requestMeetingCapture(context: YouTubeLiveCaptureContext): Promise<MediaStream> {
-  return captureMeetingStageForYouTube(context);
+async function requestMeetingCapture(
+  context: YouTubeLiveCaptureContext,
+  stageElementRef: RefObject<HTMLElement | null>,
+): Promise<MediaStream> {
+  return captureMeetingStageForYouTube({
+    ...context,
+    stageElement: stageElementRef.current,
+  });
 }
 
 export function useYouTubeLiveStream(
   meetingId: string,
   captureContext: YouTubeLiveCaptureContext,
+  stageElementRef: RefObject<HTMLElement | null>,
 ) {
   const [broadcastStatus, setBroadcastStatus] = useState<BroadcastStatus>('IDLE');
   const [watchUrl, setWatchUrl] = useState<string | null>(null);
@@ -235,7 +242,8 @@ export function useYouTubeLiveStream(
 
       try {
         const captureStream =
-          existingStream ?? (await requestMeetingCapture(captureContextRef.current));
+          existingStream ??
+          (await requestMeetingCapture(captureContextRef.current, stageElementRef));
         captureStreamRef.current = captureStream;
 
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
@@ -423,7 +431,7 @@ export function useYouTubeLiveStream(
         attachingRef.current = false;
       }
     },
-    [applyStreamState, startedAt],
+    [applyStreamState, startedAt, stageElementRef],
   );
 
   const stopLive = useCallback(
@@ -501,7 +509,7 @@ export function useYouTubeLiveStream(
           hasIngestToken: Boolean(relaySessions[0]!.ingestToken),
           captureContext,
         });
-        pendingCapture = await requestMeetingCapture(captureContext);
+        pendingCapture = await requestMeetingCapture(captureContext, stageElementRef);
         await attachCaptureAndSockets(relaySessions, pendingCapture);
         pendingCapture = null;
         return session;
@@ -522,7 +530,7 @@ export function useYouTubeLiveStream(
         setStarting(false);
       }
     },
-    [meetingId, cleanupCapture, attachCaptureAndSockets],
+    [meetingId, cleanupCapture, attachCaptureAndSockets, stageElementRef],
   );
 
   const loadModeratorState = useCallback(async () => {
@@ -595,7 +603,7 @@ export function useYouTubeLiveStream(
       if (relaySessions.length === 0) {
         throw new Error('Stream resumed but ingest credentials were missing from the API response.');
       }
-      pendingCapture = await requestMeetingCapture(captureContextRef.current);
+      pendingCapture = await requestMeetingCapture(captureContextRef.current, stageElementRef);
       await attachCaptureAndSockets(relaySessions, pendingCapture);
       pendingCapture = null;
       serverStreamActiveRef.current = true;
@@ -619,7 +627,7 @@ export function useYouTubeLiveStream(
       resumingRef.current = false;
       setResuming(false);
     }
-  }, [meetingId, cleanupCapture, attachCaptureAndSockets, loadModeratorState]);
+  }, [meetingId, cleanupCapture, attachCaptureAndSockets, loadModeratorState, stageElementRef]);
 
   useEffect(() => {
     if (!startedAt || broadcastStatus !== 'LIVE') {
