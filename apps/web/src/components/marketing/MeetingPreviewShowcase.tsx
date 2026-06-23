@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import {
-  LayoutGrid,
   LogOut,
   MessageSquare,
   Mic,
@@ -215,7 +214,6 @@ export function MeetingPreviewShowcase({ className }: { className?: string }) {
           <PreviewControlButton icon={MonitorUp} label="Share screen" active />
           <PreviewControlButton icon={MessageSquare} label="Chat" active />
           <PreviewControlButton icon={Users} label="Participants" />
-          <PreviewControlButton icon={LayoutGrid} label="Layout" />
           <PreviewControlButton icon={MoreHorizontal} label="More options" />
           <div className="mx-1 h-8 w-px shrink-0 bg-white/20" />
           <PreviewControlButton icon={LogOut} label="Leave meeting" danger />

@@ -5,7 +5,6 @@ export type RoomAction =
   | 'switchRoomMode'
   | 'transferHost'
   | 'manageCoHost'
-  | 'promotePanelist'
   | 'removeParticipant'
   | 'muteParticipant'
   | 'controlMicPermission'
@@ -33,7 +32,6 @@ const ROLE_CAPABILITIES: Record<string, RoomAction[]> = {
     'switchRoomMode',
     'transferHost',
     'manageCoHost',
-    'promotePanelist',
     'removeParticipant',
     'muteParticipant',
     'controlMicPermission',
@@ -63,14 +61,6 @@ const ROLE_CAPABILITIES: Record<string, RoomAction[]> = {
     'bringOnStage',
     'startBroadcast',
     'stopBroadcast',
-    'useAudio',
-    'useVideo',
-    'useChat',
-    'raiseHand',
-    'sendReaction',
-    'screenShare',
-  ],
-  PANELIST: [
     'useAudio',
     'useVideo',
     'useChat',
@@ -110,7 +100,7 @@ export function canPerformRoomAction(
 }
 
 function isStageVisibleRole(role: string): boolean {
-  return ['HOST', 'CO_HOST', 'PANELIST'].includes(role);
+  return ['HOST', 'CO_HOST'].includes(role);
 }
 
 export { ROLE_CAPABILITIES };

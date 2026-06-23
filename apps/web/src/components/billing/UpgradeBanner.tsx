@@ -8,9 +8,9 @@ import { badgeClass, cardClass } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 
 export function UpgradeBanner({ compact = false }: { compact?: boolean }) {
-  const { plan } = usePermissions();
+  const { shouldShowUpgrade } = usePermissions();
 
-  if (plan !== SubscriptionPlan.FREE) return null;
+  if (!shouldShowUpgrade) return null;
 
   if (compact) {
     return (

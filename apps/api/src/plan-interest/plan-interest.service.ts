@@ -37,9 +37,7 @@ export class PlanInterestService {
   ) {
     const normalized = [
       ...new Set(
-        requestedProviders
-          .map((p) => p.trim())
-          .filter(isMaxWaitlistPlatformId),
+        requestedProviders.map((p) => p.trim()).filter(isMaxWaitlistPlatformId),
       ),
     ];
 

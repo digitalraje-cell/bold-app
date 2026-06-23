@@ -15,12 +15,18 @@ export class AdminUsersController {
   }
 
   @Post(':id/activate-pro')
-  activatePro(@Param('id') id: string, @Req() req: Request & { user: AuthUser }) {
+  activatePro(
+    @Param('id') id: string,
+    @Req() req: Request & { user: AuthUser },
+  ) {
     return this.adminUsersService.activatePro(id, req.user.id);
   }
 
   @Post(':id/deactivate-pro')
-  deactivatePro(@Param('id') id: string, @Req() req: Request & { user: AuthUser }) {
+  deactivatePro(
+    @Param('id') id: string,
+    @Req() req: Request & { user: AuthUser },
+  ) {
     return this.adminUsersService.deactivatePro(id, req.user.id);
   }
 }

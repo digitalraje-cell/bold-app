@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { SubscriptionPlan, PLAN_PRICING_INR } from '@boldmeet/shared';
+import { SubscriptionPlan, PLAN_PRICING_INR, resolveEffectivePlan } from '@boldmeet/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsService } from '../subscriptions/permissions.service';
 
@@ -48,7 +48,10 @@ export class BillingService {
       }),
     ]);
 
-    const plan = ctx.plan === SubscriptionPlan.PRO ? SubscriptionPlan.PRO : SubscriptionPlan.FREE;
+    const plan =
+      ctx.plan === SubscriptionPlan.PRO
+        ? SubscriptionPlan.PRO
+        : SubscriptionPlan.FREE;
 
     return {
       plan: ctx.plan,
@@ -80,25 +83,33 @@ export class BillingService {
   private isRazorpayConfigured(): boolean {
     return Boolean(
       process.env.RAZORPAY_PRO_PAYMENT_LINK?.trim() ||
-        (process.env.RAZORPAY_KEY_ID?.trim() && process.env.RAZORPAY_KEY_SECRET?.trim()),
+      (process.env.RAZORPAY_KEY_ID?.trim() &&
+        process.env.RAZORPAY_KEY_SECRET?.trim()),
     );
   }
 
   async createProPaymentLink(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, subscriptionPlan: true },
+      select: { id: true, email: true, name: true, subscriptionPlan: true, role: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    if (user.subscriptionPlan === SubscriptionPlan.PRO) {
-      throw new BadRequestException('You are already on the Pro plan.');
+    const effectivePlan = resolveEffectivePlan(
+      user.role,
+      user.subscriptionPlan as SubscriptionPlan,
+      user.email,
+    );
+
+    if (effectivePlan !== SubscriptionPlan.FREE) {
+      throw new BadRequestException('Your account already has full plan access.');
     }
 
-    const frontend = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+    const frontend =
+      process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:3000';
     const amountInr = PLAN_PRICING_INR[SubscriptionPlan.PRO];
 
     const pending = await this.prisma.pendingPayment.create({

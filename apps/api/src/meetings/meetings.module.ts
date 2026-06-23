@@ -8,7 +8,12 @@ import { GatewayModule } from '../gateway/gateway.module';
 import { StreamModule } from '../stream/stream.module';
 
 @Module({
-  imports: [AuthModule, SubscriptionsModule, GatewayModule, forwardRef(() => StreamModule)],
+  imports: [
+    AuthModule,
+    SubscriptionsModule,
+    GatewayModule,
+    forwardRef(() => StreamModule),
+  ],
   controllers: [MeetingsController],
   providers: [MeetingsService, JitsiTokenService],
   exports: [MeetingsService],

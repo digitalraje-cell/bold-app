@@ -1,4 +1,11 @@
-import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateAppReleaseDto {
   @IsString()

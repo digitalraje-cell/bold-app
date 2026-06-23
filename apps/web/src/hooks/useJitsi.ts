@@ -384,6 +384,7 @@ export function useJitsi({
         joinedRef.current = true;
         reconnectAttemptsRef.current = 0;
         setIsReconnecting(false);
+        selfViewHiddenRef.current = false;
         const joined = payload as { id?: string; displayName?: string };
         if (joined.id) {
           setLocalParticipantId(joined.id);
@@ -575,6 +576,7 @@ export function useJitsi({
       setDominantSpeakerId(null);
       setPinnedParticipantId(null);
       setLocalParticipantId(null);
+      selfViewHiddenRef.current = false;
     });
 
     return () => cancelAnimationFrame(frame);
@@ -675,6 +677,7 @@ export function useJitsi({
     toggleTileView,
     setFilmstripVisible,
     setSelfViewHidden,
+    runJitsiCommand,
     pinParticipant,
     unpinParticipant,
     togglePinParticipant,

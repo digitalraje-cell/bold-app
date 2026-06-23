@@ -125,7 +125,10 @@ export const PLAN_DEFINITIONS: Record<SubscriptionPlan, PlanPermissions> = {
     permissions: {
       ...FREE_PERMISSIONS,
       canStreamToYoutube: true,
+      canUseCohost: true,
       canRecord: true,
+      canUsePanelists: true,
+      canSwitchRoomMode: true,
       canUseEvergreenWebinar: true,
       canAssignModerator: true,
     },
@@ -143,7 +146,10 @@ export const PLAN_DEFINITIONS: Record<SubscriptionPlan, PlanPermissions> = {
     permissions: {
       ...FREE_PERMISSIONS,
       canStreamToYoutube: true,
+      canUseCohost: true,
       canRecord: true,
+      canUsePanelists: true,
+      canSwitchRoomMode: true,
       canUseEvergreenWebinar: true,
       canAssignModerator: true,
     },

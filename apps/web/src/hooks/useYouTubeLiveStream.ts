@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
-  MeetingBroadcastProviderType,
   toStartYouTubeLiveApiBody,
   type BroadcastStatus,
   type LiveStreamDestinationView,
   type StreamConnectionState,
   type StreamDisplayStatus,
-  type YouTubeCaptureMode,
   type YouTubePrivacyStatus,
 } from '@boldmeet/shared';
 import { api } from '@/lib/api';
 import { getSocketOrigin } from '@/lib/api-base';
 import { isYouTubeLiveEnabled } from '@/lib/features';
+import {
+  captureMeetingStageForYouTube,
+  type YouTubeLiveCaptureContext,
+} from '@/lib/youtube-live-capture';
 import {
   formatYouTubeLiveUserError,
   sanitizeYouTubeLiveUserMessage,
@@ -25,7 +27,7 @@ import {
   logYouTubePipelineError,
 } from '@/lib/youtube-live-pipeline-log';
 
-export type { YouTubeCaptureMode } from '@boldmeet/shared';
+export type { YouTubeLiveCaptureContext } from '@/lib/youtube-live-capture';
 
 export type StartLiveStreamParams = import('@boldmeet/shared').StartYouTubeLiveClientParams;
 
@@ -136,74 +138,14 @@ function deriveStreamHealth(
   return 'offline';
 }
 
-async function requestCameraCapture(): Promise<MediaStream> {
-  logYouTubePipeline('STAGE-1-BROWSER', 'getUserMedia:request', { audio: true, video: true });
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 },
-      },
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    });
-    logYouTubePipeline('STAGE-1-BROWSER', 'getUserMedia:success', {
-      videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length,
-      videoLabel: stream.getVideoTracks()[0]?.label ?? null,
-      audioLabel: stream.getAudioTracks()[0]?.label ?? null,
-    });
-    return stream;
-  } catch (error) {
-    logYouTubePipelineError('STAGE-1-BROWSER', 'getUserMedia:failure', error);
-    throw error;
-  }
+async function requestMeetingCapture(context: YouTubeLiveCaptureContext): Promise<MediaStream> {
+  return captureMeetingStageForYouTube(context);
 }
 
-async function requestDisplayCapture(mode: 'screen' | 'window' | 'tab'): Promise<MediaStream> {
-  logYouTubePipeline('STAGE-1-BROWSER', 'getDisplayMedia:request', { mode });
-  try {
-    const displaySurface =
-      mode === 'screen' ? 'monitor' : mode === 'window' ? 'window' : 'browser';
-
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: {
-        frameRate: 30,
-        displaySurface,
-      } as MediaTrackConstraints,
-      audio: true,
-      ...(mode === 'tab'
-        ? ({ preferCurrentTab: true } as DisplayMediaStreamOptions & { preferCurrentTab?: boolean })
-        : {}),
-    });
-    const videoTrack = stream.getVideoTracks()[0];
-    const audioTrack = stream.getAudioTracks()[0];
-    logYouTubePipeline('STAGE-1-BROWSER', 'getDisplayMedia:success', {
-      mode,
-      videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length,
-      videoLabel: videoTrack?.label ?? null,
-      displaySurface: videoTrack?.getSettings().displaySurface ?? null,
-      audioLabel: audioTrack?.label ?? null,
-    });
-    return stream;
-  } catch (error) {
-    logYouTubePipelineError('STAGE-1-BROWSER', 'getDisplayMedia:failure', error, { mode });
-    throw error;
-  }
-}
-
-async function requestCaptureStream(mode: YouTubeCaptureMode): Promise<MediaStream> {
-  if (mode === 'camera') {
-    return requestCameraCapture();
-  }
-  return requestDisplayCapture(mode);
-}
-
-export function useYouTubeLiveStream(meetingId: string) {
+export function useYouTubeLiveStream(
+  meetingId: string,
+  captureContext: YouTubeLiveCaptureContext,
+) {
   const [broadcastStatus, setBroadcastStatus] = useState<BroadcastStatus>('IDLE');
   const [watchUrl, setWatchUrl] = useState<string | null>(null);
   const [destinations, setDestinations] = useState<LiveStreamDestinationView[]>([]);
@@ -234,7 +176,11 @@ export function useYouTubeLiveStream(meetingId: string) {
   const attachingRef = useRef(false);
   const startingRef = useRef(false);
   const resumingRef = useRef(false);
-  const lastCaptureModeRef = useRef<YouTubeCaptureMode>('camera');
+  const captureContextRef = useRef(captureContext);
+
+  useEffect(() => {
+    captureContextRef.current = captureContext;
+  }, [captureContext]);
 
   const cleanupCapture = useCallback(() => {
     recorderRef.current?.stop();
@@ -288,7 +234,8 @@ export function useYouTubeLiveStream(meetingId: string) {
       setUserError(null);
 
       try {
-        const captureStream = existingStream ?? (await requestCaptureStream(lastCaptureModeRef.current));
+        const captureStream =
+          existingStream ?? (await requestMeetingCapture(captureContextRef.current));
         captureStreamRef.current = captureStream;
 
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
@@ -521,13 +468,14 @@ export function useYouTubeLiveStream(meetingId: string) {
     [meetingId, cleanupCapture, applyStreamState, broadcastStatus],
   );
 
-  stopLiveRef.current = stopLive;
+  useEffect(() => {
+    stopLiveRef.current = stopLive;
+  }, [stopLive]);
 
   const startLive = useCallback(
     async (params: StartLiveStreamParams) => {
       if (!isYouTubeLiveEnabled()) return;
-      const captureMode = params.captureMode ?? 'camera';
-      lastCaptureModeRef.current = captureMode;
+      const captureContext = captureContextRef.current;
       setUserError(null);
       setStarting(true);
       startingRef.current = true;
@@ -535,7 +483,10 @@ export function useYouTubeLiveStream(meetingId: string) {
       let startedOnServer = false;
       let pendingCapture: MediaStream | null = null;
       try {
-        logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:request', { meetingId, captureMode });
+        logYouTubePipeline('STAGE-1-BROWSER', 'api:stream.start:request', {
+          meetingId,
+          captureContext,
+        });
         const apiBody = toStartYouTubeLiveApiBody(params);
         const session = (await api.stream.start(meetingId, apiBody)) as StreamStartApiResponse;
         startedOnServer = true;
@@ -548,9 +499,9 @@ export function useYouTubeLiveStream(meetingId: string) {
           streamId: relaySessions[0]!.id,
           sessionCount: relaySessions.length,
           hasIngestToken: Boolean(relaySessions[0]!.ingestToken),
-          captureMode,
+          captureContext,
         });
-        pendingCapture = await requestCaptureStream(captureMode);
+        pendingCapture = await requestMeetingCapture(captureContext);
         await attachCaptureAndSockets(relaySessions, pendingCapture);
         pendingCapture = null;
         return session;
@@ -644,7 +595,7 @@ export function useYouTubeLiveStream(meetingId: string) {
       if (relaySessions.length === 0) {
         throw new Error('Stream resumed but ingest credentials were missing from the API response.');
       }
-      pendingCapture = await requestCaptureStream(lastCaptureModeRef.current);
+      pendingCapture = await requestMeetingCapture(captureContextRef.current);
       await attachCaptureAndSockets(relaySessions, pendingCapture);
       pendingCapture = null;
       serverStreamActiveRef.current = true;

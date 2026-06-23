@@ -45,16 +45,11 @@ export interface StartYouTubeLiveInput {
   visibility?: YouTubePrivacyStatus;
 }
 
-/** Browser-only capture source — never send to POST /meetings/:id/stream/start */
-export type YouTubeCaptureMode = 'camera' | 'screen' | 'window' | 'tab';
+export type StartYouTubeLiveClientParams = StartYouTubeLiveInput;
 
-export interface StartYouTubeLiveClientParams extends StartYouTubeLiveInput {
-  captureMode?: YouTubeCaptureMode;
-}
-
-/** Strip client-only fields before stream/start API validation. */
+/** Pass-through for stream/start — strips any legacy client-only fields if present. */
 export function toStartYouTubeLiveApiBody(
-  params: StartYouTubeLiveClientParams,
+  params: StartYouTubeLiveClientParams & { captureMode?: string },
 ): StartYouTubeLiveInput {
   const { captureMode: _captureMode, ...apiBody } = params;
   return apiBody;

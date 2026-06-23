@@ -33,7 +33,12 @@ export class ParticipantsController {
     @Body() body: { isMuted: boolean },
   ) {
     return this.moderate(req.user.id, meetingId, () =>
-      this.participantsService.setMuted(meetingId, participantId, req.user.id, body.isMuted),
+      this.participantsService.setMuted(
+        meetingId,
+        participantId,
+        req.user.id,
+        body.isMuted,
+      ),
     );
   }
 
@@ -88,7 +93,11 @@ export class ParticipantsController {
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
   ) {
-    return this.participantsService.transferHost(meetingId, participantId, req.user.id);
+    return this.participantsService.transferHost(
+      meetingId,
+      participantId,
+      req.user.id,
+    );
   }
 
   @Post('waiting/:participantId/admit')
@@ -99,12 +108,23 @@ export class ParticipantsController {
     @Param('participantId') participantId: string,
   ) {
     return this.moderate(req.user.id, meetingId, () =>
-      this.participantsService.admitFromWaitingRoom(meetingId, participantId, req.user.id),
+      this.participantsService.admitFromWaitingRoom(
+        meetingId,
+        participantId,
+        req.user.id,
+      ),
     );
   }
 
-  private async moderate(userId: string, meetingId: string, action: () => Promise<unknown>) {
-    const canModerate = await this.participantsService.canModerate(meetingId, userId);
+  private async moderate(
+    userId: string,
+    meetingId: string,
+    action: () => Promise<unknown>,
+  ) {
+    const canModerate = await this.participantsService.canModerate(
+      meetingId,
+      userId,
+    );
     if (!canModerate) {
       throw new ForbiddenException('Insufficient permissions');
     }

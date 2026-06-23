@@ -18,7 +18,10 @@ export class PlanInterestController {
 
   @Post('max')
   @UseGuards(AuthGuard, VerifiedGuard)
-  joinMax(@Req() req: Request & { user: AuthUser }, @Body() dto: JoinMaxWaitlistDto) {
+  joinMax(
+    @Req() req: Request & { user: AuthUser },
+    @Body() dto: JoinMaxWaitlistDto,
+  ) {
     if (isMaxPlanLaunched()) {
       return {
         comingSoon: false,

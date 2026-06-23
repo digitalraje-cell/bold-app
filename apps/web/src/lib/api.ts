@@ -314,10 +314,6 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ chatMode, chatEnabled }),
       }),
-    promotePanelist: (meetingId: string, participantId: string) =>
-      apiFetch(`/meetings/${meetingId}/room/participants/${participantId}/panelist`, {
-        method: 'POST',
-      }),
     bringOnStage: (
       meetingId: string,
       participantId: string,

@@ -9,17 +9,19 @@ import { UpgradeBanner } from '@/components/billing/UpgradeBanner';
 import { Button } from '@/components/ui/Button';
 
 export default function RecordingsPage() {
-  const { can } = usePermissions();
+  const { can, shouldShowUpgrade } = usePermissions();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const canRecord = can('canRecord');
 
   return (
     <div className="mx-auto max-w-4xl">
-      <UpgradeModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        feature="Meeting recordings"
-      />
+      {shouldShowUpgrade && (
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          feature="Meeting recordings"
+        />
+      )}
 
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Recordings</h1>
@@ -28,7 +30,7 @@ export default function RecordingsPage() {
         </p>
       </div>
 
-      {!canRecord && <UpgradeBanner />}
+      {!canRecord && shouldShowUpgrade && <UpgradeBanner />}
 
       <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
@@ -51,9 +53,11 @@ export default function RecordingsPage() {
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
               Upgrade to Pro to save meeting recordings and YouTube Live streams to your library.
             </p>
-            <Button className="mt-6" onClick={() => setUpgradeOpen(true)}>
-              Upgrade to Pro
-            </Button>
+            {shouldShowUpgrade && (
+              <Button className="mt-6" onClick={() => setUpgradeOpen(true)}>
+                Upgrade to Pro
+              </Button>
+            )}
           </>
         )}
       </div>

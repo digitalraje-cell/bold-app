@@ -108,7 +108,10 @@ export function canSendChatInRoom(
     return participant.role === 'HOST';
   }
   if (chatMode === ChatMode.HOST_PANELISTS) {
-    return ['HOST', 'CO_HOST', 'PANELIST'].includes(participant.role);
+    return (
+      ['HOST', 'CO_HOST'].includes(participant.role) ||
+      (participant.role === 'PARTICIPANT' && participant.isOnStage)
+    );
   }
   return false;
 }
@@ -123,5 +126,5 @@ export function canShareScreenInRoom(
   if (participant.role === 'HOST' || participant.role === 'CO_HOST') return true;
   if (!screenShareEnabled) return false;
   if (roomMode === RoomMode.WEBINAR && !participant.isOnStage) return false;
-  return ['PARTICIPANT', 'PANELIST'].includes(participant.role);
+  return participant.role === 'PARTICIPANT' && participant.isOnStage;
 }

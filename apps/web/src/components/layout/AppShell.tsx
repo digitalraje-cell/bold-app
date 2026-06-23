@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const { plan } = usePermissions();
+  const { plan, shouldShowUpgrade } = usePermissions();
   const isAdmin = mounted && isPlatformAdmin(session?.user?.role, session?.user?.email);
   const isSuperAdminUser =
     mounted && isSuperAdmin(session?.user?.role, session?.user?.email ?? undefined);
@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="truncate text-sm text-muted-foreground">
               {mounted ? session?.user?.email : null}
             </p>
-            {mounted && !isPro && (
+            {mounted && shouldShowUpgrade && (
               <div className="mt-3">
                 <UpgradeBanner compact />
               </div>

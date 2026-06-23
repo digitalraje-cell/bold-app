@@ -23,9 +23,9 @@ export interface RoomModeSettings {
   screenShareEnabled: boolean;
 }
 
-/** Visible on stage in webinar mode */
+/** Visible on stage in webinar mode (host/co-host always; participants when invited). */
 export function isStageVisibleRole(role: string): boolean {
-  return ['HOST', 'CO_HOST', 'PANELIST'].includes(role);
+  return ['HOST', 'CO_HOST'].includes(role);
 }
 
 /** Apply webinar defaults to a regular participant */
